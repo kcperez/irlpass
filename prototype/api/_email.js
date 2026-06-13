@@ -1,19 +1,48 @@
 const FROM = "irlpass <hello@irlpass.xyz>"
 
-const shell = (inner) => `
-<div style="background:#1c1b17;padding:36px 16px;font-family:-apple-system,Helvetica,Arial,sans-serif">
-  <div style="max-width:480px;margin:0 auto">
-    <a href="https://irlpass.xyz" style="text-decoration:none">
-      <img src="https://irlpass.xyz/logo.png" alt="irlpass" height="44" style="display:block;height:44px;width:auto" />
-    </a>
-    <div style="background:#f4f1ea;border-radius:20px;padding:28px 24px;margin-top:20px;color:#1c1b17">
+// full document + color-scheme:light-only stops Apple Mail / Gmail dark mode
+// from inverting our palette and wrecking the branding
+const shell = (inner) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<style>
+  :root { color-scheme: light only; supported-color-schemes: light only; }
+  body, table { margin:0; padding:0; }
+  u + .body .gmail-fix { display:none; }
+  @media (prefers-color-scheme: dark) {
+    .ink-bg { background:#1c1b17 !important; }
+    .cream-card { background:#f4f1ea !important; }
+    .ink-text { color:#1c1b17 !important; }
+  }
+</style>
+</head>
+<body class="body" style="margin:0;padding:0;background:#1c1b17">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ink-bg" style="background:#1c1b17">
+<tr><td align="center" style="padding:36px 16px">
+  <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%">
+    <tr><td>
+      <a href="https://irlpass.xyz" style="text-decoration:none">
+        <img src="https://irlpass.xyz/logo.png" alt="irlpass" height="44" style="display:block;height:44px;width:auto;border:0" />
+      </a>
+    </td></tr>
+    <tr><td style="height:20px;line-height:20px;font-size:0">&nbsp;</td></tr>
+    <tr><td class="cream-card ink-text" style="background:#f4f1ea;border-radius:20px;padding:28px 24px;color:#1c1b17">
       ${inner}
-    </div>
-    <p style="color:#8a857a;font-size:11px;margin-top:16px;text-align:center;letter-spacing:1px;text-transform:uppercase">
-      the vetted travel club · <a href="https://irlpass.xyz" style="color:#8a857a">irlpass.xyz</a>
-    </p>
-  </div>
-</div>`
+    </td></tr>
+    <tr><td style="padding-top:16px;text-align:center">
+      <span style="color:#8a857a;font-size:11px;letter-spacing:1px;text-transform:uppercase">
+        the vetted travel club · <a href="https://irlpass.xyz" style="color:#8a857a">irlpass.xyz</a>
+      </span>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`
 
 export async function sendEmail({ to, subject, html }) {
   if (!process.env.RESEND_API_KEY) return { sent: false, reason: "no key" }

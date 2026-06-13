@@ -11,13 +11,14 @@ const Club = lazy(() => import("./screens/Club"))
 import Admin from "./screens/Admin"
 import Auth from "./screens/Auth"
 import Invite from "./screens/Invite"
+import Redeem from "./screens/Redeem"
 
 // filming helper: /?screen=pass&name=maya&ig=@maya.travels jumps straight to a screen
 const params = new URLSearchParams(window.location.search)
 const isAdminPath = window.location.pathname === "/admin"
 const initialScreen = isAdminPath
   ? "admin"
-  : ["city", "apply", "review", "received", "offer", "pass", "info", "app", "auth", "invite"].includes(params.get("screen"))
+  : ["city", "apply", "review", "received", "offer", "pass", "info", "app", "auth", "invite", "redeem"].includes(params.get("screen"))
     ? params.get("screen")
     : "city"
 // demo mode (filming): review flows into the instant "you're in" pass reveal.
@@ -74,6 +75,12 @@ export default function App() {
               {screen === "admin" && <Admin />}
               {screen === "auth" && <Auth />}
               {screen === "invite" && <Invite activityId={params.get("a")} onApply={() => setScreen("apply")} />}
+              {screen === "redeem" && (
+                <Redeem
+                  code={params.get("code")}
+                  onJoined={(t) => { window.location.href = `/?screen=pass&t=${t}` }}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

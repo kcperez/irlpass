@@ -71,9 +71,31 @@ export default async function handler(req, res) {
           .tag.banned{background:#e8b09c}
         </style></head><body>
         <h1>irlpass — applications <span class="count">${apps.length}</span> <small>(times in Bogotá)</small></h1>
+        <div style="margin:12px 0;padding:12px;background:#fff;border:1px solid #dcd6c8">
+          <b>free invite codes</b> — for vouching friends in past the paywall
+          <div style="margin-top:8px">
+            <input id="lbl" placeholder="label (optional, e.g. 'josh's friend')" style="padding:6px;border:1px solid #dcd6c8;width:240px">
+            <button id="gen">generate code</button>
+            <span id="codeout"></span>
+          </div>
+        </div>
         <table><tr><th>#</th><th>name</th><th>instagram</th><th>email</th><th>dates</th><th>here for</th><th>submitted</th><th></th></tr>${rows}</table>
         <script>
           const KEY = ${JSON.stringify(key)};
+          document.getElementById("gen").addEventListener("click", async () => {
+            const out = document.getElementById("codeout");
+            out.textContent = " generating…";
+            try {
+              const r = await fetch("/api/invite-code?key=" + encodeURIComponent(KEY), {
+                method: "POST", headers: { "content-type": "application/json" },
+                body: JSON.stringify({ label: document.getElementById("lbl").value, maxUses: 1 }),
+              });
+              const d = await r.json();
+              if (!d.code) throw new Error(d.error || "failed");
+              await navigator.clipboard.writeText(d.url).catch(() => {});
+              out.innerHTML = ' <b style="background:#cdee45;padding:2px 8px;border-radius:6px">' + d.code + '</b> — link copied, text it to your friend';
+            } catch (e) { out.textContent = " error: " + e.message; }
+          });
           document.querySelectorAll("button.accept").forEach((btn) => {
             btn.addEventListener("click", async () => {
               btn.disabled = true; btn.textContent = "creating…";
