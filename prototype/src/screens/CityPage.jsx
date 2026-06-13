@@ -4,6 +4,7 @@ import { ForkKnife, ShieldCheck, UsersThree, RocketLaunch, ArrowRight } from "@p
 import { CITY, MEMBERS, avatarUrl } from "../data"
 import { Logo, Squiggle, ColombiaFlag, LiveDot, LiveCounter, AvatarStack, Marquee, BigButton } from "../components/bits"
 import { signInWithGoogle } from "../lib/auth"
+import { t } from "../lib/i18n"
 
 const POSTCARDS = [
   { src: "/medellin/guatape.jpg", alt: "guatapé day trip", rot: -7, x: "-2%", y: 0, delay: 0.25 },
@@ -97,28 +98,28 @@ export default function CityPage({ onApply }) {
             href={`/?screen=app&t=${memberToken}`}
             className="rounded-full bg-ink px-3.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-lime"
           >
-            open the club →
+            {t("open the club →")}
           </a>
         ) : (
           <button
             onClick={() => signInWithGoogle()}
             className="rounded-full border border-line bg-cream-deep/70 px-3.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft active:scale-95"
           >
-            member sign in
+            {t("member sign in")}
           </button>
         )}
       </motion.header>
 
       {/* the global idea, then city one */}
       <motion.section variants={rise} className="px-5 pt-6">
-        <p className="display text-[15px] font-semibold text-ink">the vetted travel club. every city, one club.</p>
+        <p className="display text-[15px] font-semibold text-ink">{t("the vetted travel club. every city, one club.")}</p>
         <div className="mt-2.5 flex gap-1.5 overflow-x-auto pb-1">
           <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-ink">
-            <span className="h-1.5 w-1.5 rounded-full bg-ink" /> medellín · live
+            <span className="h-1.5 w-1.5 rounded-full bg-ink" />{" "}{t("medellín · live")}
           </span>
           {CITIES_SOON.map((c) => (
             <span key={c} className="shrink-0 rounded-full border border-line bg-cream-deep/50 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft/60">
-              {c} · soon
+              {c} · {t("soon")}
             </span>
           ))}
         </div>
@@ -139,10 +140,10 @@ export default function CityPage({ onApply }) {
           <span className="text-[17px]">
             <LiveCounter start={CITY.travelersNow} />
           </span>
-          <span className="text-ink-soft">travelers here right now</span>
+          <span className="text-ink-soft">{t("travelers here right now")}</span>
         </div>
         <div className="mt-3 flex items-center">
-          <AvatarStack extra={`+${CITY.travelersNow - 6} more this month`} />
+          <AvatarStack extra={t("{n} more this month", { n: CITY.travelersNow - 6 })} />
         </div>
       </motion.section>
 
@@ -171,10 +172,10 @@ export default function CityPage({ onApply }) {
       {/* the practical strip — NomadTable structure, no cards, divided rows */}
       <motion.section variants={rise} className="mt-6 divide-y divide-line/70 border-y border-line/70">
         {[
-          { icon: UsersThree, head: "nobody lands alone", sub: "see the plans, tap i'm in, you've got people" },
-          { icon: ShieldCheck, head: "every member is vetted", sub: "application, real instagram, no weirdos" },
-          { icon: ForkKnife, head: "dinner every thursday", sub: "six seats, members pick the spot" },
-          { icon: RocketLaunch, head: "the club app is live", sub: "activity board, city lobby, private chat per plan" },
+          { icon: UsersThree, head: t("nobody lands alone"), sub: t("see the plans, tap i'm in, you've got people") },
+          { icon: ShieldCheck, head: t("every member is vetted"), sub: t("application, real instagram, no weirdos") },
+          { icon: ForkKnife, head: t("dinner every thursday"), sub: t("six seats, members pick the spot") },
+          { icon: RocketLaunch, head: t("the club app is live"), sub: t("activity board, city lobby, private chat per plan") },
         ].map((r) => (
           <div key={r.head} className="flex items-center gap-4 px-5 py-3.5">
             <r.icon size={20} weight="duotone" className="shrink-0 text-ink" />
@@ -207,7 +208,7 @@ export default function CityPage({ onApply }) {
       <div className="sticky bottom-0 mt-auto bg-gradient-to-t from-cream via-cream/95 to-transparent px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-6">
         <BigButton onClick={onApply}>
           <span className="flex items-center justify-center gap-2">
-            apply to join <ArrowRight size={18} weight="bold" />
+            {t("apply to join")} <ArrowRight size={18} weight="bold" />
           </span>
         </BigButton>
       </div>

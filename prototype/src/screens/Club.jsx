@@ -18,6 +18,7 @@ import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
 import QRCode from "qrcode"
 import { Logo, ColombiaFlag } from "../components/bits"
+import { t, LANG } from "../lib/i18n"
 
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
 const MDE_CENTER = [-75.578, 6.235]
@@ -58,7 +59,8 @@ const nextDays = (n = 7) => {
   for (let i = 0; i < n; i++) {
     const d = new Date(base + i * 86400e3)
     const iso = d.toISOString().slice(0, 10)
-    const label = i === 0 ? "today" : i === 1 ? "tomorrow" : d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
+    const loc = LANG === "es" ? "es-ES" : "en-US"
+    const label = i === 0 ? t("today") : i === 1 ? t("tomorrow") : d.toLocaleDateString(loc, { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
     out.push({ iso, label })
   }
   return out
@@ -69,16 +71,17 @@ const timeOnly = (when = "") => when.replace(/\b(tonight|today|tomorrow|tmrw|thi
 // authoritative temporal line from the real date + cleaned time
 const whenLine = (a) => {
   const past = isPastDate(a.date)
-  const t = timeOnly(a.when)
-  return `${past ? "was " : ""}${dayLabel(a.date)}${t ? ` · ${t}` : ""}`
+  const tt = timeOnly(a.when)
+  return `${past ? t("was") + " " : ""}${dayLabel(a.date)}${tt ? ` · ${tt}` : ""}`
 }
 const dayLabel = (iso) => {
   if (!iso) return ""
   const days = nextDays(7)
   const hit = days.find((d) => d.iso === iso)
   if (hit) return hit.label
-  if (iso < days[0].iso) return new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
-  return new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
+  const loc = LANG === "es" ? "es-ES" : "en-US"
+  if (iso < days[0].iso) return new Date(iso + "T12:00:00Z").toLocaleDateString(loc, { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
+  return new Date(iso + "T12:00:00Z").toLocaleDateString(loc, { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
 }
 
 const EMOJI_CHOICES = ["🍽️", "☕", "🎾", "🥾", "🎉", "🚌", "🌇", "🏖️", "🎬", "🛍️", "⚽", "📍"]
@@ -155,7 +158,7 @@ function ProfileSheet({ token, me, onPhoto, onClose }) {
       if (!d.photo) throw new Error()
       onPhoto(d.photo)
     } catch {
-      setError("upload didn't take. try again")
+      setError(t("upload didn't take. try again"))
     }
     setBusy(false)
   }
@@ -185,21 +188,21 @@ function ProfileSheet({ token, me, onPhoto, onClose }) {
           </div>
         </div>
         <label className={`mt-5 flex w-full cursor-pointer items-center justify-center rounded-full bg-lime px-6 py-3.5 text-[14.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] ${busy ? "opacity-60" : ""}`}>
-          {busy ? "uploading…" : me.photo ? "change your photo" : "add your photo"}
+          {busy ? t("uploading…") : me.photo ? t("change your photo") : t("add your photo")}
           <input type="file" accept="image/*" className="hidden" onChange={pick} disabled={busy} />
         </label>
         {error && <p className="mt-2.5 text-center text-[12.5px] font-medium text-[#b3461f]">{error}</p>}
         <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft/70">
-          your face shows on the members list and in chats
+          {t("your face shows on the members list and in chats")}
         </p>
 
         {qr && (
           <div className="mt-5 flex items-center gap-4 rounded-2xl border border-line bg-white/70 p-4">
             <img src={qr} alt="log in on another device" className="h-24 w-24 rounded-lg" />
             <div>
-              <p className="text-[13.5px] font-semibold leading-snug">log in on your phone</p>
+              <p className="text-[13.5px] font-semibold leading-snug">{t("log in on your phone")}</p>
               <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-ink-soft">
-                scan with your camera. it opens the club, logged in as you.
+                {t("scan with your camera. it opens the club, logged in as you.")}
               </p>
             </div>
           </div>
@@ -222,7 +225,7 @@ function ProfileSheet({ token, me, onPhoto, onClose }) {
           href={`/?screen=pass&t=${token}&name=${encodeURIComponent(me.name)}&n=${me.memberNo}&ig=${encodeURIComponent(me.ig)}`}
           className="mt-4 flex w-full items-center justify-center rounded-full bg-ink py-3 text-[13.5px] font-semibold text-cream active:scale-[0.98]"
         >
-          view my pass
+          {t("view my pass")}
         </a>
         <div className="mt-2 flex gap-2">
           <button
@@ -236,7 +239,7 @@ function ProfileSheet({ token, me, onPhoto, onClose }) {
             }}
             className="w-full rounded-full border border-line py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft active:scale-[0.98]"
           >
-            manage subscription
+            {t("manage subscription")}
           </button>
           <button
             onClick={() => {
@@ -245,7 +248,7 @@ function ProfileSheet({ token, me, onPhoto, onClose }) {
             }}
             className="w-full rounded-full border border-line py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft active:scale-[0.98]"
           >
-            log out
+            {t("log out")}
           </button>
         </div>
       </motion.div>
@@ -286,11 +289,11 @@ function PlaceInput({ value, onChange }) {
       <input
         value={q}
         onChange={(e) => { setQ(e.target.value); lookup(e.target.value) }}
-        placeholder="where? (pueblito paisa, alambique, parque lleras…)"
+        placeholder={t("where? (pueblito paisa, alambique, parque lleras…)")}
         className="w-full border-b-2 border-line bg-transparent pb-1.5 text-[14px] outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
       />
       <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">
-        {status === "looking" ? "finding it…" : status === "found" ? `📍 ${value?.name} · on the map` : status === "missing" ? "can't place it on the map, posting anyway" : "type the spot, we'll find it"}
+        {status === "looking" ? t("finding it…") : status === "found" ? `📍 ${value?.name} · on the map` : status === "missing" ? t("can't place it on the map, posting anyway") : t("type the spot, we'll find it")}
       </p>
     </div>
   )
@@ -334,7 +337,7 @@ function TopBar({ me, onProfile }) {
 }
 
 /* ---------- map ---------- */
-function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
+function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy, photoMap = {} }) {
   const wrapRef = useRef(null)
   const mapRef = useRef(null)
   const markersRef = useRef([])
@@ -405,7 +408,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
               <div className="min-w-0">
                 {selected.type === "suggestion" && (
                   <p className="flex items-center gap-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-lime-deep">
-                    <Sparkle size={11} weight="fill" /> founder suggestion
+                    <Sparkle size={11} weight="fill" /> {t("founder suggestion")}
                   </p>
                 )}
                 <p className="text-[16px] font-semibold leading-snug">{actEmojiOf(a)} {a.title}</p>
@@ -413,8 +416,26 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
                   {selected.type === "activity" ? `${whenLine(a)}${a.place ? " · " + a.place : ""}` : a.place.name}
                 </p>
               </div>
-              <button onClick={() => setSelected(null)} className="font-mono text-[11px] text-ink-soft">close</button>
+              <button onClick={() => setSelected(null)} className="font-mono text-[11px] text-ink-soft">{t("close")}</button>
             </div>
+
+            {selected.type === "activity" && a.joined?.length > 0 && (
+              <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+                {a.joined.map((j) => (
+                  <a
+                    key={j.memberNo}
+                    href={`https://instagram.com/${String(j.ig || "").replace(/^@/, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex shrink-0 flex-col items-center gap-1"
+                  >
+                    <Avatar member={j} photo={photoMap[j.memberNo]} size="h-11 w-11 text-[17px]" />
+                    <span className="max-w-[56px] truncate font-mono text-[9.5px] text-ink-soft">{j.name.toLowerCase().split(" ")[0]}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+
             <div className="mt-3">
               {selected.type === "suggestion" ? (
                 <div className="flex gap-2">
@@ -423,7 +444,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
                     onChange={(e) => setPlanWhen(e.target.value)}
                     className="w-full rounded-full border border-line bg-white/80 px-4 py-2.5 font-mono text-[12px] outline-none"
                   >
-                    <option value="">pick a day…</option>
+                    <option value="">{t("pick a day…")}</option>
                     {nextDays(7).map((d) => (
                       <option key={d.iso} value={d.iso}>{d.label}</option>
                     ))}
@@ -433,7 +454,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
                     onClick={async () => { await onPlanSuggestion(selected.data, planWhen); setSelected(null) }}
                     className="shrink-0 rounded-full bg-ink px-5 py-2.5 text-[13.5px] font-semibold text-cream active:scale-[0.98] disabled:opacity-40"
                   >
-                    {busy ? "…" : "make it a plan"}
+                    {busy ? "…" : t("make it a plan")}
                   </button>
                 </div>
               ) : joined ? (
@@ -441,7 +462,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
                   onClick={() => { onOpenChat(a.id, a.title, a); setSelected(null) }}
                   className="w-full rounded-full bg-ink py-3 text-[13.5px] font-semibold text-cream active:scale-[0.98]"
                 >
-                  open chat
+                  {t("open chat")}
                 </button>
               ) : (
                 <div className="relative">
@@ -458,7 +479,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
                     }}
                     className="w-full rounded-full bg-lime py-3 text-[13.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.15)] active:scale-[0.98] disabled:opacity-40"
                   >
-                    {full ? "full" : "i'm in"}
+                    {full ? t("full") : t("i'm in")}
                   </button>
                 </div>
               )}
@@ -522,13 +543,13 @@ function Board({ token, me, openChat, photoMap = {} }) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-center justify-between px-5 py-3">
-          <h2 className="display text-[22px] font-bold">the map</h2>
+          <h2 className="display text-[22px] font-bold">{t("the map")}</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setView("list")}
               className="flex items-center gap-1.5 rounded-full border border-line bg-white/70 px-3.5 py-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] active:scale-95"
             >
-              <ListBullets size={14} weight="bold" /> list
+              <ListBullets size={14} weight="bold" /> {t("list")}
             </button>
             <button
               onClick={() => { setCreating(true); setView("list") }}
@@ -545,12 +566,13 @@ function Board({ token, me, openChat, photoMap = {} }) {
             acts={acts}
             me={me}
             busy={busy}
+            photoMap={photoMap}
             onJoin={async (id) => { await act({ action: "join", id }) }}
             onOpenChat={openChat}
             onPlanSuggestion={planSuggestion}
           />
           <div className="pointer-events-none absolute left-1/2 top-2.5 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-cream/95 px-3.5 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink-soft shadow-sm">
-            tap a pin to join · ✦ = suggested
+            {t("tap a pin to join · ✦ = suggested")}
           </div>
         </div>
       </div>
@@ -560,7 +582,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
   return (
     <div className="px-5 pb-28 pt-4">
       <div className="flex items-center justify-between">
-        <h2 className="display text-[26px] font-bold">on the board</h2>
+        <h2 className="display text-[26px] font-bold">{t("on the board")}</h2>
         <div className="flex items-center gap-2">
           <motion.button
             whileTap={{ scale: 0.94 }}
@@ -590,7 +612,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
             className="overflow-hidden"
           >
             <div className="mt-3 rounded-2xl border border-line bg-white/70 p-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">i want to…</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("i want to…")}</p>
               <div className="mt-1.5 flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -606,7 +628,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="grab coffee in laureles"
+                  placeholder={t("grab coffee in laureles")}
                   className="w-full border-b-2 border-line bg-transparent pb-1.5 text-[18px] font-medium outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
                 />
               </div>
@@ -625,7 +647,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                 <input
                   value={when}
                   onChange={(e) => setWhen(e.target.value)}
-                  placeholder="time (8pm, after lunch, flexible…)"
+                  placeholder={t("time (8pm, after lunch, flexible…)")}
                   className="w-full border-b-2 border-line bg-transparent pb-1.5 text-[14px] outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
                 />
                 <select
@@ -643,7 +665,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
               <input
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                placeholder="details (address, what to bring…) optional"
+                placeholder={t("details (address, what to bring…) optional")}
                 className="mt-3 w-full border-b-2 border-line bg-transparent pb-1.5 text-[13px] outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
               />
               <motion.button
@@ -655,7 +677,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                 }}
                 className="mt-4 w-full rounded-full bg-ink py-3 text-[14px] font-semibold text-cream disabled:opacity-35"
               >
-                {busy ? "posting…" : "add to the board"}
+                {busy ? t("posting…") : t("add to the board")}
               </motion.button>
             </div>
           </motion.div>
@@ -666,8 +688,8 @@ function Board({ token, me, openChat, photoMap = {} }) {
         <div className="mt-10 flex justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
       ) : acts.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-line p-6 text-center">
-          <p className="text-[15px] font-medium">nothing on the board yet</p>
-          <p className="mt-1 text-[13px] text-ink-soft">post the first plan. someone's waiting for exactly it.</p>
+          <p className="text-[15px] font-medium">{t("nothing on the board yet")}</p>
+          <p className="mt-1 text-[13px] text-ink-soft">{t("post the first plan. someone's waiting for exactly it.")}</p>
         </div>
       ) : (
         <div className="mt-4 space-y-3">
@@ -685,7 +707,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                     </p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-semibold ${full ? "bg-cream-deep text-ink-soft" : "bg-lime text-ink"}`}>
-                    {open ? `${a.joined.length} going` : `${a.joined.length}/${a.spots}`}
+                    {open ? `${a.joined.length} ${t("going")}` : `${a.joined.length}/${a.spots}`}
                   </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
@@ -713,7 +735,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                         }}
                         className="rounded-full border border-line px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
                       >
-                        invite
+                        {t("invite")}
                       </button>
                       {a.creator.memberNo === me.memberNo ? (
                         <button
@@ -723,21 +745,21 @@ function Board({ token, me, openChat, photoMap = {} }) {
                           }}
                           className="rounded-full border border-line px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b3461f] active:scale-95"
                         >
-                          delete
+                          {t("delete")}
                         </button>
                       ) : (
                         <button
                           onClick={() => act({ action: "leave", id: a.id })}
                           className="rounded-full border border-line px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
                         >
-                          leave
+                          {t("leave")}
                         </button>
                       )}
                       <button
                         onClick={() => openChat(a.id, a.title, a)}
                         className="rounded-full bg-ink px-4 py-2 text-[12.5px] font-semibold text-cream active:scale-95"
                       >
-                        open chat
+                        {t("open chat")}
                       </button>
                     </div>
                   ) : (
@@ -754,7 +776,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                         }}
                         className="rounded-full bg-lime px-4 py-2 text-[12.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.15)] active:scale-95 disabled:opacity-40"
                       >
-                        {full ? "full" : "i'm in"}
+                        {full ? t("full") : t("i'm in")}
                       </button>
                     </div>
                   )}
@@ -797,16 +819,16 @@ function Members({ token }) {
 
   return (
     <div className="px-5 pb-28 pt-4">
-      <h2 className="display text-[26px] font-bold">the club</h2>
+      <h2 className="display text-[26px] font-bold">{t("the club")}</h2>
 
       <motion.button
         whileTap={{ scale: 0.97 }}
         onClick={invite}
         className="mt-4 w-full rounded-2xl border border-dashed border-lime-deep bg-lime/15 px-4 py-3.5 text-left"
       >
-        <p className="text-[14.5px] font-semibold">{invited ? "copied. send it to them" : "know someone who'd fit?"}</p>
+        <p className="text-[14.5px] font-semibold">{invited ? t("copied. send it to them") : t("know someone who'd fit?")}</p>
         <p className="mt-0.5 font-mono text-[10.5px] text-ink-soft">
-          invite them to apply. they still get vetted like everyone
+          {t("invite them to apply. they still get vetted like everyone")}
         </p>
       </motion.button>
       {!members ? (
@@ -862,7 +884,7 @@ function PinnedInfo({ token, me, initial }) {
         <span className="text-[15px]">{actEmojiOf(act)}</span>
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft">
-            {whenLine(act)}{act.place ? ` · ${act.place}` : ""} · {act.joined.length} going
+            {whenLine(act)}{act.place ? ` · ${act.place}` : ""} · {act.joined.length} {t("going")}
           </p>
           {editing ? (
             <div className="mt-1.5 flex gap-2">
@@ -871,17 +893,17 @@ function PinnedInfo({ token, me, initial }) {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && save()}
-                placeholder="address, meeting point, what to bring…"
+                placeholder={t("address, meeting point, what to bring…")}
                 className="w-full rounded-lg border border-line bg-white/80 px-2.5 py-1.5 text-[12.5px] outline-none focus:border-lime-deep"
               />
-              <button onClick={save} className="shrink-0 rounded-full bg-ink px-3 py-1.5 font-mono text-[10px] font-semibold uppercase text-cream">save</button>
+              <button onClick={save} className="shrink-0 rounded-full bg-ink px-3 py-1.5 font-mono text-[10px] font-semibold uppercase text-cream">{t("save")}</button>
             </div>
           ) : (
             <p className="mt-0.5 text-[12.5px] leading-snug text-ink">
-              {act.details || (isCreator ? "no details yet" : "")}
+              {act.details || (isCreator ? t("no details yet") : "")}
               {isCreator && (
                 <button onClick={() => { setText(act.details || ""); setEditing(true) }} className="ml-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-lime-deep underline underline-offset-2">
-                  {act.details ? "edit" : "add details"}
+                  {act.details ? t("edit") : t("add details")}
                 </button>
               )}
             </p>
@@ -988,7 +1010,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold leading-tight">{title}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
-            {channel === "medellin" ? "city lobby · all members" : "private · joined members only"}
+            {channel === "medellin" ? t("city lobby · all members") : t("private · joined members only")}
           </p>
         </div>
       </div>
@@ -1001,7 +1023,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
           {!msgs ? (
             <div className="flex justify-center pb-8"><CircleNotch size={20} className="animate-spin text-ink-soft" /></div>
           ) : msgs.length === 0 ? (
-            <p className="pb-8 text-center font-mono text-[11px] text-ink-soft">no messages yet. say something.</p>
+            <p className="pb-8 text-center font-mono text-[11px] text-ink-soft">{t("no messages yet. say something.")}</p>
           ) : (
             msgs.map((m) => {
               const mine = m.from.memberNo === me.memberNo
@@ -1036,8 +1058,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
                         </p>
                       )}
                       <p className={`text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
-                        {m.deleted ? "message deleted" : m.text}
-                        {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">(edited)</span>}
+                        {m.deleted ? t("message deleted") : m.text}
+                        {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
                       </p>
                     </div>
 
@@ -1073,7 +1095,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
                             onClick={() => { setReplyTo(m); setEditing(null); setFocused(null) }}
                             className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
                           >
-                            reply
+                            {t("reply")}
                           </button>
                           {mine && (
                             <>
@@ -1128,7 +1150,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={editing ? "edit message…" : "message…"}
+            placeholder={editing ? t("edit message…") : t("message…")}
             className="w-full rounded-full border border-line bg-white/70 px-4 py-2.5 text-[14px] outline-none placeholder:text-ink-soft/50 focus:border-lime-deep"
           />
           <motion.button
@@ -1174,11 +1196,11 @@ function Chats({ token, me, active, setActive, photoMap }) {
     <div className="px-5 pb-28 pt-4">
       <h2 className="display text-[26px] font-bold">chats</h2>
       <div className="mt-4 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
-        <button onClick={() => setActive({ channel: "medellin", title: "medellín lobby" })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
+        <button onClick={() => setActive({ channel: "medellin", title: t("medellín lobby") })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lime/60"><ColombiaFlag className="h-3 w-4.5" /></span>
           <div>
-            <p className="text-[15px] font-semibold leading-tight">medellín lobby</p>
-            <p className="font-mono text-[10.5px] text-ink-soft">all members · plans start here</p>
+            <p className="text-[15px] font-semibold leading-tight">{t("medellín lobby")}</p>
+            <p className="font-mono text-[10.5px] text-ink-soft">{t("all members · plans start here")}</p>
           </div>
         </button>
         {acts.map((a) => (
@@ -1187,7 +1209,7 @@ function Chats({ token, me, active, setActive, photoMap }) {
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[16px]">{actEmojiOf(a)}</span>
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-semibold leading-tight">{a.title}</p>
-                <p className="font-mono text-[10.5px] text-ink-soft">{whenLine(a)} · {a.joined.length} going</p>
+                <p className="font-mono text-[10.5px] text-ink-soft">{whenLine(a)} · {a.joined.length} {t("going")}</p>
               </div>
             </button>
             <button
@@ -1202,7 +1224,7 @@ function Chats({ token, me, active, setActive, photoMap }) {
         ))}
       </div>
       {acts.length === 0 && (
-        <p className="mt-4 text-center font-mono text-[11px] text-ink-soft">no plan chats yet. join one on the board.</p>
+        <p className="mt-4 text-center font-mono text-[11px] text-ink-soft">{t("no plan chats yet. join one on the board.")}</p>
       )}
     </div>
   )
@@ -1223,18 +1245,18 @@ function DeniedScreen() {
   return (
     <div className="flex min-h-[var(--app-h)] flex-col items-start justify-center px-7">
       <Logo h="h-10" />
-      <h2 className="display mt-5 text-[30px] font-bold leading-tight">members only.</h2>
+      <h2 className="display mt-5 text-[30px] font-bold leading-tight">{t("members only.")}</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
-        this is the club side of irlpass. apply on the homepage and you'll get your own door key.
+        {t("this is the club side of irlpass. apply on the homepage and you'll get your own door key.")}
       </p>
       <button
         onClick={() => import("../lib/auth").then((m) => m.signInWithGoogle())}
         className="mt-6 w-full max-w-[320px] rounded-full bg-lime px-6 py-3.5 text-[14px] font-semibold text-ink active:scale-[0.98]"
       >
-        member sign in with google
+        {t("member sign in with google")}
       </button>
       {sent ? (
-        <p className="mt-3 font-mono text-[11px] text-ink-soft">if that email is in our system, a login link is on its way.</p>
+        <p className="mt-3 font-mono text-[11px] text-ink-soft">{t("if that email is in our system, a login link is on its way.")}</p>
       ) : (
         <div className="mt-3 flex w-full max-w-[320px] gap-2">
           <input
@@ -1242,16 +1264,16 @@ function DeniedScreen() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendLink()}
-            placeholder="or email me my login link"
+            placeholder={t("or email me my login link")}
             className="w-full rounded-full border border-line bg-white/70 px-4 py-3 text-[13px] outline-none placeholder:text-ink-soft/50 focus:border-lime-deep"
           />
           <button onClick={sendLink} className="shrink-0 rounded-full bg-ink px-4 py-3 text-[13px] font-semibold text-cream active:scale-95">
-            send
+            {t("send")}
           </button>
         </div>
       )}
       <a href="/" className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft underline underline-offset-2">
-        or apply to join
+        {t("or apply to join")}
       </a>
     </div>
   )
@@ -1300,9 +1322,9 @@ export default function Club({ token }) {
   }
 
   const TABS = [
-    { key: "board", label: "board", icon: CalendarPlus },
-    { key: "members", label: "members", icon: UsersThree },
-    { key: "chats", label: "chats", icon: ChatsCircle },
+    { key: "board", label: t("board"), icon: CalendarPlus },
+    { key: "members", label: t("members"), icon: UsersThree },
+    { key: "chats", label: t("chats"), icon: ChatsCircle },
   ]
   const inThread = tab === "chats" && activeChat
 

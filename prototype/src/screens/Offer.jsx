@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { CheckCircle, LockSimple, CircleNotch } from "@phosphor-icons/react"
 import { Logo } from "../components/bits"
+import { t } from "../lib/i18n"
 
 const PERKS = [
   "the medellín club. everyone in it got vetted like you did",
@@ -55,7 +56,7 @@ export default function Offer({ token }) {
     return (
       <div className="flex min-h-[var(--app-h)] flex-col items-start justify-center bg-ink px-7 text-cream">
         <Logo size="text-[20px]" />
-        <h2 className="display mt-5 text-[34px] font-bold leading-tight">this link isn't active.</h2>
+        <h2 className="display mt-5 text-[34px] font-bold leading-tight">{t("this link isn't active.")}</h2>
         <p className="mt-3 max-w-[30ch] text-[14.5px] leading-relaxed text-cream/60">
           founding offers are private and tied to accepted applications. if you think this is a
           mistake, reply to the message that brought you here.
@@ -79,7 +80,7 @@ export default function Offer({ token }) {
           animate={{ opacity: 1 }}
           className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-lime"
         >
-          application approved
+          {t("application approved")}
         </motion.p>
         <motion.h1
           initial={{ opacity: 0, y: 16 }}
@@ -127,8 +128,8 @@ export default function Offer({ token }) {
             }`}
           >
             <p className="display text-[26px] font-bold leading-none">$9.99</p>
-            <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-cream/55">per month</p>
-            <p className="mt-2 font-mono text-[9.5px] text-cream/45">cancel anytime</p>
+            <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-cream/55">{t("per month")}</p>
+            <p className="mt-2 font-mono text-[9.5px] text-cream/45">{t("cancel anytime")}</p>
           </button>
           <button
             onClick={() => setPlan("yearly")}
@@ -137,10 +138,10 @@ export default function Offer({ token }) {
             }`}
           >
             <span className="absolute -top-2 right-3 rounded-full bg-lime px-2 py-0.5 font-mono text-[8.5px] font-semibold uppercase tracking-[0.1em] text-ink">
-              save 42%
+              {t("save 42%")}
             </span>
             <p className="display text-[26px] font-bold leading-none">$69.99</p>
-            <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-cream/55">per year</p>
+            <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-cream/55">{t("per year")}</p>
             <p className="mt-2 font-mono text-[9.5px] text-cream/45">≈ $5.83/mo</p>
           </button>
         </motion.div>
@@ -158,10 +159,10 @@ export default function Offer({ token }) {
           whileTap={{ scale: 0.97 }}
           className="w-full rounded-full bg-lime px-6 py-4 text-[15.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] disabled:opacity-60"
         >
-          {state === "paying" ? "opening checkout…" : `claim spot nº ${member.memberNo} · ${plan === "yearly" ? "$69.99/yr" : "$9.99/mo"}`}
+          {state === "paying" ? t("opening checkout…") : t("claim spot nº {n} · {price}", { n: member.memberNo, price: plan === "yearly" ? "$69.99/yr" : "$9.99/mo" })}
         </motion.button>
         <p className="mt-2.5 flex items-center justify-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-cream/40">
-          <LockSimple size={11} weight="bold" /> secure checkout by stripe
+          <LockSimple size={11} weight="bold" /> {t("secure checkout by stripe")}
         </p>
       </footer>
     </div>

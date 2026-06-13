@@ -3,6 +3,7 @@ import { motion } from "framer-motion"
 import { AirplaneTakeoff, ShareFat, DoorOpen } from "@phosphor-icons/react"
 import { CITY } from "../data"
 import { Logo, ColombiaFlag } from "../components/bits"
+import { t } from "../lib/i18n"
 
 const BARS = [3, 1, 2, 1, 4, 1, 1, 3, 2, 1, 5, 1, 2, 2, 1, 4, 1, 3, 1, 1, 2, 5, 1, 2, 3, 1, 1, 4, 2, 1, 3, 1]
 
@@ -92,7 +93,7 @@ export default function Pass({ applicant }) {
           transition={{ delay: 0.15 }}
           className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-cream/50"
         >
-          application approved
+          {t("application approved")}
         </motion.p>
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -100,7 +101,7 @@ export default function Pass({ applicant }) {
           transition={{ type: "spring", stiffness: 140, damping: 18, delay: 0.2 }}
           className="display mt-1 text-[50px] font-bold leading-none"
         >
-          you're <em className="italic text-lime">in</em>.
+          {t("you're")} <em className="italic text-lime">{t("in")}</em>.
         </motion.h2>
       </header>
 
@@ -114,19 +115,19 @@ export default function Pass({ applicant }) {
         <div className="flex items-center justify-between px-6 pt-5">
           <Logo text size="text-[18px]" pill="bg-ink text-lime" />
           <span className="rounded-full bg-ink px-3 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.16em] text-lime">
-            {parseInt(memberNo, 10) <= 52 ? "founding member" : "member"}
+            {parseInt(memberNo, 10) <= 52 ? t("founding member") : t("member")}
           </span>
         </div>
 
         <div className="px-6 pb-5 pt-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">member</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">{t("member")}</p>
           <p className="display text-[32px] leading-tight">{applicant.name.toLowerCase()}</p>
           <p className="mt-0.5 font-mono text-[12px] text-ink/65">{applicant.ig}</p>
 
           <div className="mt-6 flex items-end justify-between">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">access</p>
-              <p className="font-mono text-[26px] font-semibold tracking-tight">all cities</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">{t("access")}</p>
+              <p className="font-mono text-[26px] font-semibold tracking-tight">{t("all cities")}</p>
             </div>
             <AirplaneTakeoff size={24} weight="duotone" className="mb-1 text-ink/70" />
             <div className="text-right">
@@ -146,7 +147,7 @@ export default function Pass({ applicant }) {
         <div className="px-6 pb-6 pt-4">
           <Barcode />
           <p className="mt-2 text-center font-mono text-[9.5px] uppercase tracking-[0.22em] text-ink/55">
-            membership verified · valid in every irlpass city
+            {t("membership verified · valid in every irlpass city")}
           </p>
         </div>
       </motion.section>
@@ -160,7 +161,7 @@ export default function Pass({ applicant }) {
           whileTap={{ scale: 0.97 }}
           className={`flex w-full items-center justify-center gap-2 rounded-full bg-lime px-6 py-4 text-[15px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] ${activated ? "" : "pointer-events-none opacity-60"}`}
         >
-          <DoorOpen size={19} weight="fill" /> {activated ? "enter the club" : "unlocking…"}
+          <DoorOpen size={19} weight="fill" /> {activated ? t("enter the club") : t("unlocking…")}
         </motion.a>
         <motion.button
           onClick={sharePass}
@@ -170,7 +171,7 @@ export default function Pass({ applicant }) {
           whileTap={{ scale: 0.97 }}
           className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-full border border-cream/20 px-6 py-3.5 text-[14px] font-semibold text-cream"
         >
-          <ShareFat size={17} weight="fill" /> {copied ? "copied. paste it anywhere" : "share your pass"}
+          <ShareFat size={17} weight="fill" /> {copied ? t("copied. paste it anywhere") : t("share your pass")}
         </motion.button>
       </footer>
     </div>

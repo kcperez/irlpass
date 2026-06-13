@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { CircleNotch, ArrowRight } from "@phosphor-icons/react"
 import { Logo } from "../components/bits"
+import { t } from "../lib/i18n"
 
 // public invite page: what non-members see when a member sends them a plan
 export default function Invite({ activityId, onApply }) {
@@ -29,7 +30,7 @@ export default function Invite({ activityId, onApply }) {
       <main className="flex flex-1 flex-col justify-center pb-10">
         {state === "invalid" ? (
           <>
-            <h1 className="display text-[34px] font-bold leading-tight">this invite expired.</h1>
+            <h1 className="display text-[34px] font-bold leading-tight">{t("this invite expired.")}</h1>
             <p className="mt-2 text-[14px] text-ink-soft text-cream/60">the plan's gone, but the club isn't.</p>
           </>
         ) : (
@@ -39,7 +40,7 @@ export default function Invite({ activityId, onApply }) {
               animate={{ opacity: 1 }}
               className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-lime"
             >
-              you're invited
+              {t("you're invited")}
             </motion.p>
             <motion.h1
               initial={{ opacity: 0, y: 14 }}
@@ -84,16 +85,16 @@ export default function Invite({ activityId, onApply }) {
           onClick={onApply}
           className="flex w-full items-center justify-center gap-2 rounded-full bg-lime px-6 py-4 text-[15px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)]"
         >
-          apply to join irlpass <ArrowRight size={18} weight="bold" />
+          {t("apply to join irlpass")} <ArrowRight size={18} weight="bold" />
         </motion.button>
         <button
           onClick={() => { localStorage.setItem("irlpass_member_token", ""); window.location.href = "/api/google-login" }}
           className="mt-3 w-full text-center font-mono text-[11px] uppercase tracking-[0.12em] text-cream/55 underline underline-offset-2 active:scale-[0.98]"
         >
-          already a member? sign in
+          {t("already a member? sign in")}
         </button>
         <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-cream/40">
-          members only · every application read by a founder
+          {t("members only · every application read by a founder")}
         </p>
       </footer>
     </div>

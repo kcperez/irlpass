@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, ArrowRight, InstagramLogo, EnvelopeSimple } from "@phosphor-icons/react"
 import { DATE_OPTIONS, REASON_OPTIONS, COUNTRIES } from "../data"
 import { BigButton } from "../components/bits"
+import { t } from "../lib/i18n"
 
 const slide = {
   enter: { opacity: 0, x: 36 },
@@ -38,23 +39,23 @@ export default function Apply({ onBack, onSubmit }) {
   const steps = [
     {
       key: "name",
-      title: "what's your name?",
-      sub: "this goes on your pass",
+      title: t("what's your name?"),
+      sub: t("this goes on your pass"),
       valid: name.trim().length > 1,
       body: (
         <input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="first name"
+          placeholder={t("first name")}
           className="w-full border-b-2 border-line bg-transparent pb-2 text-[26px] font-medium outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
         />
       ),
     },
     {
       key: "country",
-      title: "where are you from?",
-      sub: "your flag goes on your pass",
+      title: t("where are you from?"),
+      sub: t("your flag goes on your pass"),
       valid: country.trim().length > 1,
       body: (
         <div>
@@ -62,7 +63,7 @@ export default function Apply({ onBack, onSubmit }) {
             autoFocus
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            placeholder="start typing… (colombia, usa, france)"
+            placeholder={t("start typing… (colombia, usa, france)")}
             className="w-full border-b-2 border-line bg-transparent pb-2 text-[22px] font-medium outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
           />
           <div className="mt-4 flex max-h-56 flex-wrap content-start gap-2 overflow-y-auto">
@@ -85,8 +86,8 @@ export default function Apply({ onBack, onSubmit }) {
     },
     {
       key: "ig",
-      title: "what's your instagram?",
-      sub: "a real human checks this. not a bot, a human",
+      title: t("what's your instagram?"),
+      sub: t("a real human checks this. not a bot, a human"),
       valid: ig.trim().length > 2,
       body: (
         <div className="flex items-center gap-2 border-b-2 border-line pb-2 focus-within:border-lime-deep">
@@ -103,8 +104,8 @@ export default function Apply({ onBack, onSubmit }) {
     },
     {
       key: "email",
-      title: "last thing. where can we reach you?",
-      sub: "your decision lands in your inbox, usually within 24 hours",
+      title: t("last thing. where can we reach you?"),
+      sub: t("your decision lands in your inbox, usually within 24 hours"),
       valid: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()),
       body: (
         <div className="flex items-center gap-2 border-b-2 border-line pb-2 focus-within:border-lime-deep">
@@ -124,28 +125,28 @@ export default function Apply({ onBack, onSubmit }) {
     },
     {
       key: "dates",
-      title: "when are you in medellín?",
-      sub: "flexible counts — you'll still see who overlaps",
+      title: t("when are you in medellín?"),
+      sub: t("flexible counts — you'll still see who overlaps"),
       valid: !!dates,
       body: (
         <div className="flex flex-col gap-2.5">
           {DATE_OPTIONS.map((d) => (
-            <Chip key={d} label={d} active={dates === d} onClick={() => setDates(d)} />
+            <Chip key={d} label={t(d)} active={dates === d} onClick={() => setDates(d)} />
           ))}
         </div>
       ),
     },
     {
       key: "reasons",
-      title: "what are you here for?",
-      sub: "pick anything that's true",
+      title: t("what are you here for?"),
+      sub: t("pick anything that's true"),
       valid: reasons.length > 0,
       body: (
         <div className="flex flex-wrap gap-2.5">
           {REASON_OPTIONS.map((r) => (
             <Chip
               key={r}
-              label={r}
+              label={t(r)}
               active={reasons.includes(r)}
               onClick={() =>
                 setReasons((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]))
@@ -185,7 +186,7 @@ export default function Apply({ onBack, onSubmit }) {
       if (!r.ok) throw new Error("bad response")
       onSubmit(applicant)
     } catch {
-      setError("couldn't send — check your connection and try again")
+      setError(t("couldn't send — check your connection and try again"))
       setSubmitting(false)
     }
   }
@@ -232,7 +233,7 @@ export default function Apply({ onBack, onSubmit }) {
         )}
         <BigButton onClick={next} disabled={!current.valid || submitting}>
           <span className="flex items-center justify-center gap-2">
-            {submitting ? "sending…" : last ? "submit application" : "next"}
+            {submitting ? t("sending…") : last ? t("submit application") : t("next")}
             {!submitting && <ArrowRight size={18} weight="bold" />}
           </span>
         </BigButton>

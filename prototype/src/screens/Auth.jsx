@@ -2,6 +2,7 @@ import { motion } from "framer-motion"
 import { GoogleLogo } from "@phosphor-icons/react"
 import { Logo } from "../components/bits"
 import { signInWithGoogle } from "../lib/auth"
+import { t } from "../lib/i18n"
 
 // status page after google sign-in for people not yet members
 // members and accepted applicants never see this — they get redirected straight in

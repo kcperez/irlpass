@@ -1,6 +1,7 @@
 import { motion } from "framer-motion"
 import { CheckCircle, InstagramLogo } from "@phosphor-icons/react"
 import { CITY } from "../data"
+import { t } from "../lib/i18n"
 
 export default function Received({ applicant }) {
   return (
@@ -27,7 +28,7 @@ export default function Received({ applicant }) {
           transition={{ type: "spring", stiffness: 140, damping: 18, delay: 0.32 }}
           className="display mt-1.5 text-[42px] font-bold leading-[1.02]"
         >
-          you're on the list.
+          {t("you're on the list.")}
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -45,7 +46,7 @@ export default function Received({ applicant }) {
           transition={{ delay: 0.6 }}
           className="mt-7 rounded-full border border-line bg-cream-deep/70 px-4 py-2 font-mono text-[11px] text-ink-soft"
         >
-          50 founding spots
+          {t("50 founding spots")}
         </motion.p>
       </div>
 
@@ -61,10 +62,10 @@ export default function Received({ applicant }) {
           rel="noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-4 text-[15px] font-semibold text-cream active:scale-[0.98]"
         >
-          <InstagramLogo size={18} weight="bold" /> watch us build it
+          <InstagramLogo size={18} weight="bold" /> {t("watch us build it")}
         </a>
         <p className="mt-3 text-center font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft/70">
-          go pack. we'll email you.
+          {t("go pack. we'll email you.")}
         </p>
       </motion.div>
     </div>
