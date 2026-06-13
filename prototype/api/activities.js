@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto"
 import { getMember } from "./_lib.js"
 import { db } from "./_db.js"
+import { notifyMemberNo } from "./_notify.js"
 
 const rowToActivity = (r) => ({
   id: r.id,
@@ -148,6 +149,14 @@ export default async function handler(req, res) {
         }
         const { data, error } = await db.from("activities").update({ joined }).eq("id", id).select().single()
         if (error) throw error
+        // tell the creator someone joined their plan
+        if (action === "join" && !inIt && row.creator.memberNo !== me.memberNo) {
+          notifyMemberNo(row.creator.memberNo, {
+            subject: `${me.name.toLowerCase()} joined your plan`,
+            line: `${me.name.toLowerCase()} is in for "${row.title}". the chat's open — lock the details.`,
+            ctaLabel: "open the chat",
+          })
+        }
         return res.status(200).json({ ok: true, activity: rowToActivity(data) })
       }
 

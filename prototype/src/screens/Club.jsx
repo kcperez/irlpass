@@ -12,6 +12,7 @@ import {
   ListBullets,
   Sparkle,
   CircleNotch,
+  X,
 } from "@phosphor-icons/react"
 import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
@@ -61,6 +62,15 @@ const nextDays = (n = 7) => {
     out.push({ iso, label })
   }
   return out
+}
+const isPastDate = (iso) => iso && iso < bogotaTodayISO()
+// drop relative day words people type ("tonight at 7pm" -> "7pm") so they can't go stale
+const timeOnly = (when = "") => when.replace(/\b(tonight|today|tomorrow|tmrw|this (morning|afternoon|evening|weekend)|sat|sun|mon|tue|wed|thu|fri)\b/gi, "").replace(/^[\s·,-]+|[\s·,-]+$/g, "").trim()
+// authoritative temporal line from the real date + cleaned time
+const whenLine = (a) => {
+  const past = isPastDate(a.date)
+  const t = timeOnly(a.when)
+  return `${past ? "was " : ""}${dayLabel(a.date)}${t ? ` · ${t}` : ""}`
 }
 const dayLabel = (iso) => {
   if (!iso) return ""
@@ -400,7 +410,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy }) {
                 )}
                 <p className="text-[16px] font-semibold leading-snug">{actEmojiOf(a)} {a.title}</p>
                 <p className="mt-0.5 font-mono text-[11px] text-ink-soft">
-                  {selected.type === "activity" ? `${a.when} · ${a.place || "medellín"}` : a.place.name}
+                  {selected.type === "activity" ? `${whenLine(a)}${a.place ? " · " + a.place : ""}` : a.place.name}
                 </p>
               </div>
               <button onClick={() => setSelected(null)} className="font-mono text-[11px] text-ink-soft">close</button>
@@ -671,7 +681,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                   <div className="min-w-0">
                     <p className="text-[16px] font-semibold leading-snug">{actEmojiOf(a)} {a.title}</p>
                     <p className="mt-0.5 font-mono text-[11px] text-ink-soft">
-                      {dayLabel(a.date)} · {a.when}{a.place ? ` · ${a.place}` : ""} · by {a.creator.name.toLowerCase()}
+                      {whenLine(a)}{a.place ? ` · ${a.place}` : ""} · by {a.creator.name.toLowerCase()}
                     </p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-semibold ${full ? "bg-cream-deep text-ink-soft" : "bg-lime text-ink"}`}>
@@ -852,7 +862,7 @@ function PinnedInfo({ token, me, initial }) {
         <span className="text-[15px]">{actEmojiOf(act)}</span>
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft">
-            {dayLabel(act.date)} · {act.when}{act.place ? ` · ${act.place}` : ""} · {act.joined.length} going
+            {whenLine(act)}{act.place ? ` · ${act.place}` : ""} · {act.joined.length} going
           </p>
           {editing ? (
             <div className="mt-1.5 flex gap-2">
@@ -1138,12 +1148,25 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
 
 function Chats({ token, me, active, setActive, photoMap }) {
   const [acts, setActs] = useState([])
-  useEffect(() => {
+  const load = useCallback(() => {
     fetch(`/api/activities?t=${token}&scope=chats`)
       .then((r) => r.json())
       .then((d) => setActs(d.activities || []))
       .catch(() => {})
-  }, [token, me.memberNo])
+  }, [token])
+  useEffect(load, [load, me.memberNo])
+
+  // remove a chat from my list: creators delete it for everyone, members just leave
+  const removeChat = async (a) => {
+    const mine = a.creator.memberNo === me.memberNo
+    if (mine && !confirm("you created this — delete it for everyone?")) return
+    setActs((list) => list.filter((x) => x.id !== a.id))
+    await fetch("/api/activities", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, action: mine ? "delete" : "leave", id: a.id }),
+    }).catch(() => {})
+  }
 
   if (active) return <Thread token={token} me={me} photoMap={photoMap} channel={active.channel} title={active.title} activity={active.activity} onBack={() => setActive(null)} />
 
@@ -1159,15 +1182,28 @@ function Chats({ token, me, active, setActive, photoMap }) {
           </div>
         </button>
         {acts.map((a) => (
-          <button key={a.id} onClick={() => setActive({ channel: a.id, title: a.title, activity: a })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cream-deep text-[16px]">{actEmojiOf(a)}</span>
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold leading-tight">{a.title}</p>
-              <p className="font-mono text-[10.5px] text-ink-soft">{a.joined.length} going · {a.when}</p>
-            </div>
-          </button>
+          <div key={a.id} className="flex items-center">
+            <button onClick={() => setActive({ channel: a.id, title: a.title, activity: a })} className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pl-4 text-left">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[16px]">{actEmojiOf(a)}</span>
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold leading-tight">{a.title}</p>
+                <p className="font-mono text-[10.5px] text-ink-soft">{whenLine(a)} · {a.joined.length} going</p>
+              </div>
+            </button>
+            <button
+              onClick={() => removeChat(a)}
+              className="flex h-9 w-10 shrink-0 items-center justify-center pr-2 text-ink-soft/50 active:scale-90"
+              aria-label={a.creator.memberNo === me.memberNo ? "delete chat" : "leave chat"}
+              title={a.creator.memberNo === me.memberNo ? "delete (you created this)" : "leave chat"}
+            >
+              <X size={16} weight="bold" />
+            </button>
+          </div>
         ))}
       </div>
+      {acts.length === 0 && (
+        <p className="mt-4 text-center font-mono text-[11px] text-ink-soft">no plan chats yet. join one on the board.</p>
+      )}
     </div>
   )
 }

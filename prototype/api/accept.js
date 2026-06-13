@@ -1,6 +1,20 @@
 import { randomBytes } from "node:crypto"
+import { list } from "@vercel/blob"
+import { readJson } from "./_lib.js"
 import { db } from "./_db.js"
 import { sendEmail, acceptanceEmail } from "./_email.js"
+
+// pull the full application (country, reasons, dates) by ig or email
+async function findApplication(ig, email) {
+  try {
+    const { blobs } = await list({ prefix: "applications/", limit: 1000 })
+    for (const b of blobs) {
+      const a = await readJson(b.pathname)
+      if (a && (a.ig === ig || String(a.email).toLowerCase() === email)) return a
+    }
+  } catch {}
+  return null
+}
 
 // First two member numbers belong to the founders; applicants start at 003.
 const MEMBER_START = 3
@@ -36,6 +50,8 @@ export default async function handler(req, res) {
 
     const cleanEmail = String(email).trim().toLowerCase().slice(0, 120)
     const cleanName = String(name).trim().slice(0, 80)
+    // carry over everything the applicant told us
+    const app = await findApplication(cleanIg, cleanEmail)
     const { error } = await db.from("members").insert({
       token,
       name: cleanName,
@@ -43,6 +59,9 @@ export default async function handler(req, res) {
       email: cleanEmail,
       member_no: memberNo,
       city: "medellin",
+      country: app?.country ? String(app.country).slice(0, 60) : null,
+      reasons: Array.isArray(app?.reasons) ? app.reasons : null,
+      trip_dates: app?.dates ? String(app.dates).slice(0, 60) : null,
     })
     if (error) throw error
 

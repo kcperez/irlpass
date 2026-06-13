@@ -1,5 +1,6 @@
 import { getMember } from "./_lib.js"
 import { db } from "./_db.js"
+import { notifyMemberNo } from "./_notify.js"
 
 // channels: "medellin" (lobby, all members) or an activity id (joined members only)
 async function canAccess(channel, me) {
@@ -55,6 +56,17 @@ export default async function handler(req, res) {
           reply_to: Number.isInteger(replyTo) ? replyTo : null,
         })
         if (error) throw error
+        // if this is a reply, email the person being replied to
+        if (Number.isInteger(replyTo)) {
+          const { data: parent } = await db.from("messages").select("from_member_no, body").eq("id", replyTo).maybeSingle()
+          if (parent && parent.from_member_no !== me.memberNo && parent.from_member_no !== "000") {
+            notifyMemberNo(parent.from_member_no, {
+              subject: `${me.name.toLowerCase()} replied to you`,
+              line: `${me.name.toLowerCase()} replied: "${String(text).trim().slice(0, 120)}"`,
+              ctaLabel: "reply back",
+            })
+          }
+        }
         return res.status(200).json({ ok: true })
       }
 

@@ -44,42 +44,56 @@ export default async function handler(req, res) {
                 ? `<span class="tag paid">paid · nº ${esc(m.member_no)}</span>`
                 : `<span class="tag accepted">accepted · nº ${esc(m.member_no)} · awaiting payment</span>`
           return `<tr>
-            <td>${apps.length - i}</td>
-            <td>${esc(a.name)}${a.country ? ` <small>(${esc(a.country)})</small>` : ""}</td>
-            <td><a href="https://instagram.com/${esc(String(a.ig).replace(/^@/, ""))}" target="_blank">${esc(a.ig)}</a></td>
-            <td><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td>
-            <td>${esc(a.dates)}</td>
-            <td>${esc((a.reasons || []).join(", "))}</td>
-            <td>${esc(new Date(a.submittedAt).toLocaleString("en-US", { timeZone: "America/Bogota" }))}</td>
-            <td>${status}</td>
+            <td data-l="#">${apps.length - i}</td>
+            <td data-l="name">${esc(a.name)}${a.country ? ` <small>(${esc(a.country)})</small>` : ""}</td>
+            <td data-l="instagram"><a href="https://instagram.com/${esc(String(a.ig).replace(/^@/, ""))}" target="_blank">${esc(a.ig)}</a></td>
+            <td data-l="email"><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td>
+            <td data-l="dates">${esc(a.dates)}</td>
+            <td data-l="here for">${esc((a.reasons || []).join(", "))}</td>
+            <td data-l="submitted">${esc(new Date(a.submittedAt).toLocaleString("en-US", { timeZone: "America/Bogota" }))}</td>
+            <td data-l="status">${status}</td>
           </tr>`
         })
         .join("")
       res.setHeader("content-type", "text/html; charset=utf-8")
       return res.status(200).send(`<!doctype html><html><head><meta charset="utf-8"><title>irlpass applications</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noindex">
         <style>
-          body{font-family:ui-monospace,Menlo,monospace;background:#f4f1ea;color:#1c1b17;padding:24px;font-size:13px}
-          h1{font-size:16px} .count{background:#cdee45;border-radius:99px;padding:2px 10px}
-          table{border-collapse:collapse;width:100%;margin-top:16px;background:#fff}
-          th,td{border:1px solid #dcd6c8;padding:8px 10px;text-align:left;vertical-align:top}
+          *{box-sizing:border-box}
+          body{font-family:ui-monospace,Menlo,monospace;background:#f4f1ea;color:#1c1b17;padding:16px;font-size:13px;margin:0}
+          h1{font-size:16px;margin:0 0 4px} .count{background:#cdee45;border-radius:99px;padding:2px 10px}
+          .invite{margin:14px 0;padding:14px;background:#fff;border:1px solid #dcd6c8;border-radius:12px}
+          .invite input{padding:10px;border:1px solid #dcd6c8;border-radius:8px;width:100%;margin:8px 0;font-family:inherit}
+          .invite button,td button{background:#1c1b17;color:#f4f1ea;border:0;border-radius:99px;padding:10px 16px;font-family:inherit;font-size:13px;font-weight:600}
+          table{border-collapse:collapse;width:100%;margin-top:8px;background:#fff;border-radius:12px;overflow:hidden}
+          th,td{border-bottom:1px solid #ebe6da;padding:10px;text-align:left;vertical-align:top}
           th{background:#ebe6da;text-transform:uppercase;font-size:10px;letter-spacing:.1em}
           a{color:#1c1b17}
-          .tag{border-radius:99px;padding:3px 10px;font-size:11px;white-space:nowrap}
+          .tag{display:inline-block;border-radius:99px;padding:4px 10px;font-size:11px}
           .tag.paid{background:#cdee45}
           .tag.accepted{background:#ebe6da}
           .tag.banned{background:#e8b09c}
+          /* phone: each row becomes a stacked card with field labels */
+          @media(max-width:640px){
+            thead{display:none}
+            table,tbody,tr,td{display:block;width:100%}
+            tr{border:1px solid #dcd6c8;border-radius:12px;margin-bottom:12px;padding:6px;background:#fff}
+            td{border:0;padding:6px 10px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+            td:before{content:attr(data-l);text-transform:uppercase;font-size:9px;letter-spacing:.1em;color:#8a857a;flex:0 0 auto}
+            td:first-child{font-weight:700;border-bottom:1px solid #ebe6da;margin-bottom:4px}
+            td button{width:100%}
+          }
         </style></head><body>
-        <h1>irlpass — applications <span class="count">${apps.length}</span> <small>(times in Bogotá)</small></h1>
-        <div style="margin:12px 0;padding:12px;background:#fff;border:1px solid #dcd6c8">
-          <b>free invite codes</b> — for vouching friends in past the paywall
-          <div style="margin-top:8px">
-            <input id="lbl" placeholder="label (optional, e.g. 'josh's friend')" style="padding:6px;border:1px solid #dcd6c8;width:240px">
-            <button id="gen">generate code</button>
-            <span id="codeout"></span>
-          </div>
+        <h1>irlpass — applications <span class="count">${apps.length}</span></h1>
+        <small style="color:#8a857a">times in Bogotá</small>
+        <div class="invite">
+          <b>free invite codes</b> — vouch a friend in past the paywall
+          <input id="lbl" placeholder="label (optional, e.g. 'josh's friend')">
+          <button id="gen">generate code</button>
+          <div id="codeout" style="margin-top:8px"></div>
         </div>
-        <table><tr><th>#</th><th>name</th><th>instagram</th><th>email</th><th>dates</th><th>here for</th><th>submitted</th><th></th></tr>${rows}</table>
+        <table><thead><tr><th>#</th><th>name</th><th>instagram</th><th>email</th><th>dates</th><th>here for</th><th>submitted</th><th>status</th></tr></thead><tbody>${rows}</tbody></table>
         <script>
           const KEY = ${JSON.stringify(key)};
           document.getElementById("gen").addEventListener("click", async () => {

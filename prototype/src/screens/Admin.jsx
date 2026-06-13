@@ -23,7 +23,7 @@ export default function Admin() {
       const r = await fetch("/api/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pw }),
+        body: JSON.stringify({ pw: pw.trim() }),
       })
       if (!r.ok) throw new Error()
       const { key } = await r.json()
@@ -46,6 +46,10 @@ export default function Admin() {
           <input
             type="password"
             autoFocus
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
             value={pw}
             onChange={(e) => { setPw(e.target.value); setState("idle") }}
             onKeyDown={(e) => e.key === "Enter" && login()}

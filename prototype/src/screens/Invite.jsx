@@ -86,7 +86,13 @@ export default function Invite({ activityId, onApply }) {
         >
           apply to join irlpass <ArrowRight size={18} weight="bold" />
         </motion.button>
-        <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-cream/40">
+        <button
+          onClick={() => { localStorage.setItem("irlpass_member_token", ""); window.location.href = "/api/google-login" }}
+          className="mt-3 w-full text-center font-mono text-[11px] uppercase tracking-[0.12em] text-cream/55 underline underline-offset-2 active:scale-[0.98]"
+        >
+          already a member? sign in
+        </button>
+        <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-cream/40">
           members only · every application read by a founder
         </p>
       </footer>
