@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --color-cream: #f4f1ea;
+  --color-cream-deep: #ebe6da;
+  --color-ink: #1c1b17;
+  --color-ink-soft: #57544a;
+  --color-lime: #cdee45;
+  --color-lime-deep: #b5da2e;
+  --color-line: #dcd6c8;
+}
+
+html,
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* film-friendly: no blue tap highlight in screen recordings */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+/* quote/editorial accent only */
+.serif-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.015em;
+}
+
+/* primary display voice — chunky gen-z grotesque */
+.display {
+  font-family: "Clash Display", var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* app height: full viewport on phones, phone-frame height inside desktop bezel */
+:root {
+  --app-h: 100dvh;
+}
+@media (min-width: 768px) {
+  :root {
+    --app-h: min(844px, 92dvh);
+  }
+}
+
+/* paper grain over everything, fixed so it never repaints on scroll */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* seamless kinetic marquee */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 18s linear infinite;
+}

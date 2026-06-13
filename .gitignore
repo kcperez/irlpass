@@ -1,0 +1,26 @@
+# secrets — never commit
+**/.env
+**/.env.*
+!**/.env.example
+wallet-certs/
+*.pem
+*.p12
+*.key
+*.certSigningRequest
+
+# vercel
+**/.vercel
+
+# deps + build
+**/node_modules
+**/dist
+**/dist-ssr
+
+# os / editor
+.DS_Store
+.idea
+.vscode/*
+*.log
+
+# large competitor screenshot rip (keep the markdown teardown, skip the 140MB of jpgs)
+research/screens/

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "viral-reframe": {
+      "source": "kcperez/viral-skill",
+      "sourceType": "github",
+      "skillPath": "skills/viral-reframe/SKILL.md",
+      "computedHash": "8a23c900024179e2d7c7ce07965f404f8283a2521131c5266626f38de3545aae"
+    }
+  }
+}
