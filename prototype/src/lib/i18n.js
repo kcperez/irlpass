@@ -126,6 +126,9 @@ const ES = {
   "no plan chats yet. join one on the board.": "aún no tienes chats de planes. únete a uno en el tablero.",
   "medellín lobby": "lobby de medellín",
   "all members · plans start here": "todos los miembros · los planes empiezan aquí",
+  "pinned": "fijado",
+  "the medellín lobby. say where you're staying and what you're into, then post a plan when you want company.":
+    "el lobby de medellín. cuenta dónde estás y qué te gusta, y publica un plan cuando quieras compañía.",
   "your memories": "tus recuerdos",
   "add details": "agregar detalles",
   "edit": "editar",

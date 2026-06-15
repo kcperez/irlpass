@@ -13,6 +13,7 @@ import {
   Sparkle,
   CircleNotch,
   X,
+  PushPin,
 } from "@phosphor-icons/react"
 import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
@@ -1016,6 +1017,15 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
       </div>
 
       {activity && <PinnedInfo token={token} me={me} initial={activity} />}
+      {channel === "medellin" && (
+        <div className="flex items-start gap-2.5 border-b border-line/70 bg-cream-deep/50 px-4 py-2.5">
+          <PushPin size={14} weight="fill" className="mt-0.5 shrink-0 text-ink-soft" />
+          <div>
+            <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-soft/70">{t("pinned")}</p>
+            <p className="mt-0.5 text-[12.5px] leading-snug text-ink">{t("the medellín lobby. say where you're staying and what you're into, then post a plan when you want company.")}</p>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col overflow-y-auto px-4 py-4" onClick={() => setFocused(null)}>
         {/* mt-auto pins the conversation to the bottom, like every messenger */}
