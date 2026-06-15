@@ -504,7 +504,13 @@ function Board({ token, me, openChat, photoMap = {} }) {
   const [date, setDate] = useState(bogotaTodayISO())
   const [actEmoji, setActEmoji] = useState(null) // null = auto from title
   const [details, setDetails] = useState("")
+  const [photo, setPhoto] = useState(null) // dataURL preview of optional cover photo
   const [busy, setBusy] = useState(false)
+
+  const pickPhoto = async (e) => {
+    const file = e.target.files?.[0]
+    if (file) setPhoto(await resizeImage(file))
+  }
 
   const load = useCallback(() => {
     fetch(`/api/activities?t=${token}`)
@@ -669,12 +675,29 @@ function Board({ token, me, openChat, photoMap = {} }) {
                 placeholder={t("details (address, what to bring…) optional")}
                 className="mt-3 w-full border-b-2 border-line bg-transparent pb-1.5 text-[13px] outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
               />
+              <label className="mt-3 flex cursor-pointer items-center gap-3">
+                {photo ? (
+                  <img src={photo} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                ) : (
+                  <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-line text-ink-soft"><MapPin size={18} weight="duotone" /></span>
+                )}
+                <span className="font-mono text-[11px] text-ink-soft">{photo ? t("change photo") : t("add a photo (optional)")}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
+              </label>
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 disabled={!title.trim() || busy}
                 onClick={async () => {
-                  await act({ action: "create", title, when: when.trim() || "flexible", date, spots, place, emoji: actEmoji || emojiFor(title), details })
-                  setTitle(""); setWhen(""); setDate(bogotaTodayISO()); setPlace(null); setActEmoji(null); setDetails(""); setCreating(false)
+                  const created = await act({ action: "create", title, when: when.trim() || "flexible", date, spots, place, emoji: actEmoji || emojiFor(title), details })
+                  if (created && photo) {
+                    await fetch("/api/activity-photo", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ t: token, id: created.id, image: photo }),
+                    }).catch(() => {})
+                    load()
+                  }
+                  setTitle(""); setWhen(""); setDate(bogotaTodayISO()); setPlace(null); setActEmoji(null); setDetails(""); setPhoto(null); setCreating(false)
                 }}
                 className="mt-4 w-full rounded-full bg-ink py-3 text-[14px] font-semibold text-cream disabled:opacity-35"
               >
@@ -699,7 +722,11 @@ function Board({ token, me, openChat, photoMap = {} }) {
             const open = a.spots >= 999
             const full = !open && a.joined.length >= a.spots
             return (
-              <div key={a.id} className="rounded-2xl border border-line bg-white/70 p-4">
+              <div key={a.id} className="overflow-hidden rounded-2xl border border-line bg-white/70">
+                {a.image && (
+                  <img src={a.image} alt={a.title} className="h-32 w-full object-cover" />
+                )}
+                <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[16px] font-semibold leading-snug">{actEmojiOf(a)} {a.title}</p>
@@ -712,13 +739,15 @@ function Board({ token, me, openChat, photoMap = {} }) {
                   </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <div className="flex -space-x-2">
-                    {a.joined.slice(0, 5).map((j) => (
-                      <Avatar key={j.memberNo} member={j} photo={photoMap[j.memberNo]} size="h-7 w-7 text-[12px] border-2 border-cream" />
-                    ))}
-                    {a.joined.length > 5 && (
-                      <span className="ml-2 self-center font-mono text-[10px] text-ink-soft">+{a.joined.length - 5}</span>
-                    )}
+                  <div className="flex items-center">
+                    <div className="flex -space-x-2">
+                      {a.joined.slice(0, 6).map((j) => (
+                        <Avatar key={j.memberNo} member={j} photo={photoMap[j.memberNo]} size="h-8 w-8 text-[13px] border-2 border-cream" />
+                      ))}
+                    </div>
+                    <span className="ml-2.5 font-mono text-[11px] font-medium text-ink-soft">
+                      {a.joined.length > 6 ? `+${a.joined.length - 6} ${t("going")}` : t("going")}
+                    </span>
                   </div>
                   {joined ? (
                     <div className="flex items-center gap-1.5">
@@ -781,6 +810,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                       </button>
                     </div>
                   )}
+                </div>
                 </div>
               </div>
             )

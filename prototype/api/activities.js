@@ -17,6 +17,7 @@ const rowToActivity = (r) => ({
   emoji: r.emoji || null,
   details: r.details || null,
   date: r.event_date,
+  image: r.image_url || null,
 })
 
 const bogotaToday = () => new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10)

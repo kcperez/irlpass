@@ -127,6 +127,8 @@ const ES = {
   "medellín lobby": "lobby de medellín",
   "all members · plans start here": "todos los miembros · los planes empiezan aquí",
   "pinned": "fijado",
+  "add a photo (optional)": "agrega una foto (opcional)",
+  "change photo": "cambiar foto",
   "the medellín lobby. say where you're staying and what you're into, then post a plan when you want company.":
     "el lobby de medellín. cuenta dónde estás y qué te gusta, y publica un plan cuando quieras compañía.",
   "your memories": "tus recuerdos",
