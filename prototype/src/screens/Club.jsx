@@ -509,7 +509,7 @@ function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, bu
 }
 
 /* ---------- board ---------- */
-function Board({ token, me, openChat, photoMap = {} }) {
+function Board({ token, me, openChat, photoMap = {}, refresh }) {
   const [acts, setActs] = useState(null)
   const [view, setView] = useState("list")
   const [creating, setCreating] = useState(false)
@@ -536,7 +536,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
       .then((d) => setActs(d.activities || []))
       .catch(() => setActs([]))
   }, [token])
-  useEffect(load, [load])
+  useEffect(load, [load, refresh])
 
   const act = async (body) => {
     setBusy(true)
@@ -1405,6 +1405,7 @@ export default function Club({ token }) {
   const [activeChat, setActiveChat] = useState(null)
   const [profileOpen, setProfileOpen] = useState(false)
   const [photoMap, setPhotoMap] = useState({})
+  const [refresh, setRefresh] = useState(0)
 
   // photo lookup for avatars in chats and joined stacks
   useEffect(() => {
@@ -1432,7 +1433,7 @@ export default function Club({ token }) {
       .catch(() => setState("denied"))
   }, [token])
 
-  // returning from a paid-seat checkout: verify + add them, then clean the url
+  // returning from a paid-seat checkout: verify + add them, refresh the board, clean the url
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     const seat = p.get("seat")
@@ -1441,6 +1442,7 @@ export default function Club({ token }) {
       fetch(`/api/seat-activate?t=${token}&id=${seat}&session_id=${encodeURIComponent(session)}`)
         .catch(() => {})
         .finally(() => {
+          setRefresh((x) => x + 1) // re-fetch the board so the card flips to "joined"
           window.history.replaceState({}, "", `/?screen=app&t=${token}`)
         })
     }
@@ -1464,7 +1466,7 @@ export default function Club({ token }) {
     <div className="relative flex h-[var(--app-h)] flex-col">
       {!inThread && <TopBar me={me} onProfile={() => setProfileOpen(true)} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {tab === "board" && <Board token={token} me={me} photoMap={photoMap} openChat={(channel, title, activity) => { setActiveChat({ channel, title, activity }); setTab("chats") }} />}
+        {tab === "board" && <Board token={token} me={me} photoMap={photoMap} refresh={refresh} openChat={(channel, title, activity) => { setActiveChat({ channel, title, activity }); setTab("chats") }} />}
         {tab === "members" && <Members token={token} />}
         {tab === "chats" && <Chats token={token} me={me} photoMap={photoMap} active={activeChat} setActive={setActiveChat} />}
       </div>
