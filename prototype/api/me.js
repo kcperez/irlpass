@@ -9,5 +9,6 @@ export default async function handler(req, res) {
     memberNo: member.memberNo,
     city: member.city || "medellin",
     photo: member.photo || null,
+    canHost: member.canHost,
   })
 }

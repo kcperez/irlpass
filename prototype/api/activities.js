@@ -18,6 +18,7 @@ const rowToActivity = (r) => ({
   details: r.details || null,
   date: r.event_date,
   image: r.image_url || null,
+  priceCents: r.price_cents || null,
 })
 
 const bogotaToday = () => new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10)
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
       const meLite = { name: me.name, ig: me.ig, memberNo: me.memberNo }
 
       if (action === "create") {
-        const { title, when, spots, place, emoji, details, date } = req.body
+        const { title, when, spots, place, emoji, details, date, priceCents } = req.body
         if (!title || !String(title).trim() || !when) {
           return res.status(400).json({ error: "title and when required" })
         }
@@ -87,6 +88,7 @@ export default async function handler(req, res) {
           emoji: emoji ? String(emoji).slice(0, 8) : null,
           details: details ? String(details).slice(0, 280) : null,
           event_date: eventDate,
+          price_cents: me.canHost && parseInt(priceCents) > 0 ? Math.min(parseInt(priceCents), 50000) : null,
         }
         const { data, error } = await db.from("activities").insert(row).select().single()
         if (error) throw error
@@ -138,6 +140,9 @@ export default async function handler(req, res) {
         if (ge || !row) return res.status(404).json({ error: "not found" })
 
         const inIt = row.joined.some((j) => j.memberNo === me.memberNo)
+        if (action === "join" && row.price_cents && !inIt) {
+          return res.status(402).json({ error: "this one needs a paid seat" })
+        }
         let joined = row.joined
         if (action === "join") {
           if (!inIt) {

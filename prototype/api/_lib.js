@@ -26,6 +26,7 @@ export const rowToMember = (r) =>
     banned: r.banned,
     stripeCustomer: r.stripe_customer,
     photo: r.photo_url || null,
+    canHost: !!r.can_host,
   }
 
 // look up an accepted person by token (paid or not)

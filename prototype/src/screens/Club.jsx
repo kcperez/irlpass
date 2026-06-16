@@ -88,6 +88,12 @@ const dayLabel = (iso) => {
 const EMOJI_CHOICES = ["🍽️", "☕", "🎾", "🥾", "🎉", "🚌", "🌇", "🏖️", "🎬", "🛍️", "⚽", "📍"]
 const actEmojiOf = (a) => a.emoji || emojiFor(a.title)
 
+// the round activity icon: an uploaded photo if there is one, else the emoji
+function ActIcon({ a, size = "h-10 w-10 text-[16px]" }) {
+  if (a.image) return <img src={a.image} alt="" className={`${size.split(" ").slice(0, 2).join(" ")} shrink-0 rounded-full object-cover`} />
+  return <span className={`flex ${size} shrink-0 items-center justify-center rounded-full bg-cream-deep`}>{actEmojiOf(a)}</span>
+}
+
 const AVATAR_EMOJI = ["🌴", "🏔️", "☕", "🛵", "🪂", "🌞", "🥟", "💃", "🎒", "🛬", "🍹", "⚽"]
 const avatarFor = (m) => AVATAR_EMOJI[parseInt(m.memberNo, 10) % AVATAR_EMOJI.length]
 
@@ -338,7 +344,7 @@ function TopBar({ me, onProfile }) {
 }
 
 /* ---------- map ---------- */
-function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy, photoMap = {} }) {
+function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, busy, photoMap = {} }) {
   const wrapRef = useRef(null)
   const mapRef = useRef(null)
   const markersRef = useRef([])
@@ -375,7 +381,10 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy, photoMa
       const lng = a.lng ?? MDE_CENTER[0] + (i % 5) * 0.004 - 0.008
       const lat = a.lat ?? MDE_CENTER[1] + ((i * 7) % 5) * 0.004 - 0.008
       const el = document.createElement("div")
-      el.innerHTML = `<div style="display:flex;align-items:center;gap:4px;background:#cdee45;border:2px solid #1c1b17;border-radius:999px;padding:4px 9px 4px 6px;box-shadow:0 4px 10px rgba(28,27,23,.25);font:600 12px Geist,sans-serif;color:#1c1b17">${actEmojiOf(a)} ${a.joined.length}${a.spots >= 999 ? "" : "/" + a.spots}</div>`
+      const icon = a.image
+        ? `<img src="${a.image}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid #1c1b17"/>`
+        : `<span style="font-size:14px">${actEmojiOf(a)}</span>`
+      el.innerHTML = `<div style="display:flex;align-items:center;gap:4px;background:#cdee45;border:2px solid #1c1b17;border-radius:999px;padding:3px 9px 3px 4px;box-shadow:0 4px 10px rgba(28,27,23,.25);font:600 12px Geist,sans-serif;color:#1c1b17">${icon} ${a.joined.length}${a.spots >= 999 ? "" : "/" + a.spots}</div>`
       mk(lng, lat, el, () => setSelected({ type: "activity", data: a }))
     })
 
@@ -471,6 +480,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy, photoMa
                   <button
                     disabled={full || busy}
                     onClick={async () => {
+                      if (a.priceCents > 0) return onPayJoin(a)
                       const updated = await onJoin(a.id)
                       if (updated) {
                         setCelebrate(true)
@@ -480,7 +490,7 @@ function MapView({ acts, me, onJoin, onOpenChat, onPlanSuggestion, busy, photoMa
                     }}
                     className="w-full rounded-full bg-lime py-3 text-[13.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.15)] active:scale-[0.98] disabled:opacity-40"
                   >
-                    {full ? t("full") : t("i'm in")}
+                    {full ? t("full") : a.priceCents > 0 ? `${t("rsvp")} · $${(a.priceCents / 100).toFixed(0)}` : t("i'm in")}
                   </button>
                 </div>
               )}
@@ -505,6 +515,8 @@ function Board({ token, me, openChat, photoMap = {} }) {
   const [actEmoji, setActEmoji] = useState(null) // null = auto from title
   const [details, setDetails] = useState("")
   const [photo, setPhoto] = useState(null) // dataURL preview of optional cover photo
+  const [charge, setCharge] = useState(false) // host: charge per seat
+  const [price, setPrice] = useState("15")
   const [busy, setBusy] = useState(false)
 
   const pickPhoto = async (e) => {
@@ -534,6 +546,16 @@ function Board({ token, me, openChat, photoMap = {} }) {
     return r?.activity || null
   }
   const [justJoined, setJustJoined] = useState(null)
+
+  // paid activities: route join through stripe instead of a free rsvp
+  const payJoin = async (a) => {
+    const r = await fetch("/api/seat-checkout", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, id: a.id }),
+    }).then((x) => x.json()).catch(() => null)
+    if (r?.url) window.location.href = r.url
+  }
 
   const planSuggestion = async (s, dateIso) => {
     await act({
@@ -576,6 +598,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
             photoMap={photoMap}
             onJoin={async (id) => { await act({ action: "join", id }) }}
             onOpenChat={openChat}
+            onPayJoin={payJoin}
             onPlanSuggestion={planSuggestion}
           />
           <div className="pointer-events-none absolute left-1/2 top-2.5 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-cream/95 px-3.5 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink-soft shadow-sm">
@@ -621,17 +644,25 @@ function Board({ token, me, openChat, photoMap = {} }) {
             <div className="mt-3 rounded-2xl border border-line bg-white/70 p-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("i want to…")}</p>
               <div className="mt-1.5 flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const cur = actEmoji || emojiFor(title)
-                    const i = EMOJI_CHOICES.indexOf(cur)
-                    setActEmoji(EMOJI_CHOICES[(i + 1) % EMOJI_CHOICES.length])
-                  }}
-                  title="tap to change the emoji"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[20px] active:scale-90"
-                >
-                  {actEmoji || emojiFor(title)}
-                </button>
+                {/* the circular icon: tap to upload a pic; the 🙂 swaps back to an emoji */}
+                <div className="relative shrink-0">
+                  <label className="flex h-11 w-11 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-cream-deep text-[20px] active:scale-90">
+                    {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : (actEmoji || emojiFor(title))}
+                    <input type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
+                  </label>
+                  <button
+                    onClick={() => {
+                      setPhoto(null)
+                      const cur = actEmoji || emojiFor(title)
+                      const i = EMOJI_CHOICES.indexOf(cur)
+                      setActEmoji(EMOJI_CHOICES[(i + 1) % EMOJI_CHOICES.length])
+                    }}
+                    title="use an emoji instead"
+                    className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-line bg-cream text-[10px] active:scale-90"
+                  >
+                    🙂
+                  </button>
+                </div>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -675,20 +706,37 @@ function Board({ token, me, openChat, photoMap = {} }) {
                 placeholder={t("details (address, what to bring…) optional")}
                 className="mt-3 w-full border-b-2 border-line bg-transparent pb-1.5 text-[13px] outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
               />
-              <label className="mt-3 flex cursor-pointer items-center gap-3">
-                {photo ? (
-                  <img src={photo} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                ) : (
-                  <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-line text-ink-soft"><MapPin size={18} weight="duotone" /></span>
-                )}
-                <span className="font-mono text-[11px] text-ink-soft">{photo ? t("change photo") : t("add a photo (optional)")}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
-              </label>
+              {me.canHost && (
+                <div className="mt-3 rounded-xl border border-line bg-cream-deep/40 p-3">
+                  <label className="flex items-center justify-between">
+                    <span className="text-[13px] font-medium">{t("charge per seat")}</span>
+                    <button
+                      onClick={() => setCharge((c) => !c)}
+                      className={`relative h-6 w-11 rounded-full transition-colors ${charge ? "bg-lime-deep" : "bg-line"}`}
+                    >
+                      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${charge ? "left-[22px]" : "left-0.5"}`} />
+                    </button>
+                  </label>
+                  {charge && (
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <span className="font-mono text-[18px] font-semibold">$</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        className="w-20 border-b-2 border-line bg-transparent pb-1 text-[18px] font-semibold outline-none focus:border-lime-deep"
+                      />
+                      <span className="font-mono text-[11px] text-ink-soft">{t("usd per person · they pay to rsvp")}</span>
+                    </div>
+                  )}
+                </div>
+              )}
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 disabled={!title.trim() || busy}
                 onClick={async () => {
-                  const created = await act({ action: "create", title, when: when.trim() || "flexible", date, spots, place, emoji: actEmoji || emojiFor(title), details })
+                  const created = await act({ action: "create", title, when: when.trim() || "flexible", date, spots, place, emoji: actEmoji || emojiFor(title), details, priceCents: charge ? Math.round(parseFloat(price || "0") * 100) : null })
                   if (created && photo) {
                     await fetch("/api/activity-photo", {
                       method: "POST",
@@ -697,7 +745,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                     }).catch(() => {})
                     load()
                   }
-                  setTitle(""); setWhen(""); setDate(bogotaTodayISO()); setPlace(null); setActEmoji(null); setDetails(""); setPhoto(null); setCreating(false)
+                  setTitle(""); setWhen(""); setDate(bogotaTodayISO()); setPlace(null); setActEmoji(null); setDetails(""); setPhoto(null); setCharge(false); setPrice("15"); setCreating(false)
                 }}
                 className="mt-4 w-full rounded-full bg-ink py-3 text-[14px] font-semibold text-cream disabled:opacity-35"
               >
@@ -722,21 +770,25 @@ function Board({ token, me, openChat, photoMap = {} }) {
             const open = a.spots >= 999
             const full = !open && a.joined.length >= a.spots
             return (
-              <div key={a.id} className="overflow-hidden rounded-2xl border border-line bg-white/70">
-                {a.image && (
-                  <img src={a.image} alt={a.title} className="h-32 w-full object-cover" />
-                )}
-                <div className="p-4">
+              <div key={a.id} className="rounded-2xl border border-line bg-white/70 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[16px] font-semibold leading-snug">{actEmojiOf(a)} {a.title}</p>
-                    <p className="mt-0.5 font-mono text-[11px] text-ink-soft">
-                      {whenLine(a)}{a.place ? ` · ${a.place}` : ""} · by {a.creator.name.toLowerCase()}
-                    </p>
+                  <div className="flex min-w-0 gap-3">
+                    <ActIcon a={a} size="h-11 w-11 text-[18px]" />
+                    <div className="min-w-0">
+                      <p className="text-[16px] font-semibold leading-snug">{a.title}</p>
+                      <p className="mt-0.5 font-mono text-[11px] text-ink-soft">
+                        {whenLine(a)}{a.place ? ` · ${a.place}` : ""} · by {a.creator.name.toLowerCase()}
+                      </p>
+                    </div>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-semibold ${full ? "bg-cream-deep text-ink-soft" : "bg-lime text-ink"}`}>
-                    {open ? `${a.joined.length} ${t("going")}` : `${a.joined.length}/${a.spots}`}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {a.priceCents > 0 && (
+                      <span className="rounded-full bg-ink px-2.5 py-1 font-mono text-[10px] font-semibold text-lime">${(a.priceCents / 100).toFixed(0)}</span>
+                    )}
+                    <span className={`rounded-full px-2.5 py-1 font-mono text-[10px] font-semibold ${full ? "bg-cream-deep text-ink-soft" : "bg-lime text-ink"}`}>
+                      {open ? `${a.joined.length} ${t("going")}` : `${a.joined.length}/${a.spots}`}
+                    </span>
+                  </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center">
@@ -798,6 +850,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                       <button
                         disabled={full || busy}
                         onClick={async () => {
+                          if (a.priceCents > 0) return payJoin(a)
                           const u = await act({ action: "join", id: a.id })
                           if (u) {
                             setJustJoined(a.id)
@@ -806,11 +859,10 @@ function Board({ token, me, openChat, photoMap = {} }) {
                         }}
                         className="rounded-full bg-lime px-4 py-2 text-[12.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.15)] active:scale-95 disabled:opacity-40"
                       >
-                        {full ? t("full") : t("i'm in")}
+                        {full ? t("full") : a.priceCents > 0 ? `${t("rsvp")} · $${(a.priceCents / 100).toFixed(0)}` : t("i'm in")}
                       </button>
                     </div>
                   )}
-                </div>
                 </div>
               </div>
             )
@@ -1246,7 +1298,7 @@ function Chats({ token, me, active, setActive, photoMap }) {
         {acts.map((a) => (
           <div key={a.id} className="flex items-center">
             <button onClick={() => setActive({ channel: a.id, title: a.title, activity: a })} className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pl-4 text-left">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[16px]">{actEmojiOf(a)}</span>
+              <ActIcon a={a} />
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-semibold leading-tight">{a.title}</p>
                 <p className="font-mono text-[10.5px] text-ink-soft">{whenLine(a)} · {a.joined.length} {t("going")}</p>
@@ -1352,6 +1404,20 @@ export default function Club({ token }) {
         localStorage.setItem("irlpass_member_token", token)
       })
       .catch(() => setState("denied"))
+  }, [token])
+
+  // returning from a paid-seat checkout: verify + add them, then clean the url
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    const seat = p.get("seat")
+    const session = p.get("session_id")
+    if (seat && session && token) {
+      fetch(`/api/seat-activate?t=${token}&id=${seat}&session_id=${encodeURIComponent(session)}`)
+        .catch(() => {})
+        .finally(() => {
+          window.history.replaceState({}, "", `/?screen=app&t=${token}`)
+        })
+    }
   }, [token])
 
   if (state === "loading") {
