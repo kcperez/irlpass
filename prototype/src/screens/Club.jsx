@@ -431,7 +431,7 @@ function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, bu
 
             {selected.type === "activity" && a.joined?.length > 0 && (
               <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
-                {a.joined.map((j) => (
+                {a.joined.slice(0, 12).map((j) => (
                   <a
                     key={j.memberNo}
                     href={`https://instagram.com/${String(j.ig || "").replace(/^@/, "")}`}
@@ -443,6 +443,12 @@ function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, bu
                     <span className="max-w-[56px] truncate font-mono text-[9.5px] text-ink-soft">{j.name.toLowerCase().split(" ")[0]}</span>
                   </a>
                 ))}
+                {a.joined.length > 12 && (
+                  <div className="flex shrink-0 flex-col items-center gap-1">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cream-deep font-mono text-[12px] font-semibold text-ink-soft">+{a.joined.length - 12}</span>
+                    <span className="font-mono text-[9.5px] text-ink-soft">{t("more")}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -790,19 +796,37 @@ function Board({ token, me, openChat, photoMap = {} }) {
                     </span>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex -space-x-2">
-                      {a.joined.slice(0, 6).map((j) => (
-                        <Avatar key={j.memberNo} member={j} photo={photoMap[j.memberNo]} size="h-8 w-8 text-[13px] border-2 border-cream" />
-                      ))}
+                <div className="mt-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center">
+                      <div className="flex -space-x-2">
+                        {a.joined.slice(0, 5).map((j) => (
+                          <Avatar key={j.memberNo} member={j} photo={photoMap[j.memberNo]} size="h-8 w-8 text-[13px] border-2 border-cream" />
+                        ))}
+                      </div>
+                      <span className="ml-2.5 whitespace-nowrap font-mono text-[11px] font-medium text-ink-soft">
+                        {a.joined.length > 5 ? `+${a.joined.length - 5} ${t("going")}` : t("going")}
+                      </span>
                     </div>
-                    <span className="ml-2.5 font-mono text-[11px] font-medium text-ink-soft">
-                      {a.joined.length > 6 ? `+${a.joined.length - 6} ${t("going")}` : t("going")}
-                    </span>
+                    {!joined && (
+                      <div className="relative shrink-0">
+                        {justJoined === a.id && <MiniBurst />}
+                        <button
+                          disabled={full || busy}
+                          onClick={async () => {
+                            if (a.priceCents > 0) return payJoin(a)
+                            const u = await act({ action: "join", id: a.id })
+                            if (u) { setJustJoined(a.id); setTimeout(() => setJustJoined(null), 900) }
+                          }}
+                          className="rounded-full bg-lime px-5 py-2.5 text-[13px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.15)] active:scale-95 disabled:opacity-40"
+                        >
+                          {full ? t("full") : a.priceCents > 0 ? `${t("rsvp")} · $${(a.priceCents / 100).toFixed(0)}` : t("i'm in")}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {joined ? (
-                    <div className="flex items-center gap-1.5">
+                  {joined && (
+                    <div className="mt-3 flex gap-2">
                       <button
                         onClick={async () => {
                           const payload = {
@@ -815,7 +839,7 @@ function Board({ token, me, openChat, photoMap = {} }) {
                             else await navigator.clipboard.writeText(`${payload.text} ${payload.url}`)
                           } catch { /* sheet closed */ }
                         }}
-                        className="rounded-full border border-line px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
+                        className="flex-1 rounded-full border border-line py-2.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
                       >
                         {t("invite")}
                       </button>
@@ -825,41 +849,23 @@ function Board({ token, me, openChat, photoMap = {} }) {
                             if (!confirm("delete this plan for everyone?")) return
                             await act({ action: "delete", id: a.id })
                           }}
-                          className="rounded-full border border-line px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b3461f] active:scale-95"
+                          className="flex-1 rounded-full border border-line py-2.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#b3461f] active:scale-95"
                         >
                           {t("delete")}
                         </button>
                       ) : (
                         <button
                           onClick={() => act({ action: "leave", id: a.id })}
-                          className="rounded-full border border-line px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
+                          className="flex-1 rounded-full border border-line py-2.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
                         >
                           {t("leave")}
                         </button>
                       )}
                       <button
                         onClick={() => openChat(a.id, a.title, a)}
-                        className="rounded-full bg-ink px-4 py-2 text-[12.5px] font-semibold text-cream active:scale-95"
+                        className="flex-[1.4] rounded-full bg-ink py-2.5 text-[12.5px] font-semibold text-cream active:scale-95"
                       >
                         {t("open chat")}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      {justJoined === a.id && <MiniBurst />}
-                      <button
-                        disabled={full || busy}
-                        onClick={async () => {
-                          if (a.priceCents > 0) return payJoin(a)
-                          const u = await act({ action: "join", id: a.id })
-                          if (u) {
-                            setJustJoined(a.id)
-                            setTimeout(() => setJustJoined(null), 900)
-                          }
-                        }}
-                        className="rounded-full bg-lime px-4 py-2 text-[12.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.15)] active:scale-95 disabled:opacity-40"
-                      >
-                        {full ? t("full") : a.priceCents > 0 ? `${t("rsvp")} · $${(a.priceCents / 100).toFixed(0)}` : t("i'm in")}
                       </button>
                     </div>
                   )}
@@ -961,10 +967,30 @@ function PinnedInfo({ token, me, initial }) {
     if (r?.activity) setAct(r.activity)
   }
 
+  const changeIcon = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const image = await resizeImage(file)
+    const r = await fetch("/api/activity-photo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, id: act.id, image }),
+    }).then((x) => x.json()).catch(() => null)
+    if (r?.image) setAct((a) => ({ ...a, image: r.image }))
+  }
+
   return (
     <div className="border-b border-line/70 bg-cream-deep/50 px-4 py-2.5">
-      <div className="flex items-start gap-2">
-        <span className="text-[15px]">{actEmojiOf(act)}</span>
+      <div className="flex items-start gap-2.5">
+        {isCreator ? (
+          <label className="relative shrink-0 cursor-pointer">
+            <ActIcon a={act} size="h-9 w-9 text-[15px]" />
+            <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-line bg-cream text-[8px]">✎</span>
+            <input type="file" accept="image/*" className="hidden" onChange={changeIcon} />
+          </label>
+        ) : (
+          <ActIcon a={act} size="h-9 w-9 text-[15px]" />
+        )}
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft">
             {whenLine(act)}{act.place ? ` · ${act.place}` : ""} · {act.joined.length} {t("going")}

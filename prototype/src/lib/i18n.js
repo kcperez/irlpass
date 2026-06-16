@@ -132,6 +132,7 @@ const ES = {
   "charge per seat": "cobrar por cupo",
   "usd per person · they pay to rsvp": "usd por persona · pagan para reservar",
   "rsvp": "reservar",
+  "more": "más",
   "the medellín lobby. say where you're staying and what you're into, then post a plan when you want company.":
     "el lobby de medellín. cuenta dónde estás y qué te gusta, y publica un plan cuando quieras compañía.",
   "your memories": "tus recuerdos",
