@@ -86,7 +86,7 @@ export default async function handler(req, res) {
           }
         </style></head><body>
         <h1>irlpass — applications <span class="count">${apps.length}</span></h1>
-        <small style="color:#8a857a">times in Bogotá</small>
+        <small style="color:#8a857a">times in Bogotá</small> · <a href="/api/payouts?key=${esc(key)}" style="font-weight:600">host payouts →</a>
         <div class="invite">
           <b>free invite codes</b> — vouch a friend in past the paywall
           <input id="lbl" placeholder="label (optional, e.g. 'josh's friend')">
