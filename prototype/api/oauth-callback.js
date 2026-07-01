@@ -31,10 +31,9 @@ export default async function handler(req, res) {
     if (!email || payload.email_verified === false) return go("/?screen=auth&s=error")
 
     const { data: m } = await db.from("members").select("*").eq("email", email).maybeSingle()
-    if (m && !m.banned) {
-      if (m.paid) return go(`/?screen=app&t=${m.token}`)
-      return go(`/?screen=offer&t=${m.token}`)
-    }
+    // freemium: any accepted, non-banned member goes straight into the app —
+    // paid or not. the paywall is contextual (cross-city joins, dms), not at the door.
+    if (m && !m.banned) return go(`/?screen=app&t=${m.token}`)
 
     const { blobs } = await list({ prefix: "applications/", limit: 1000 })
     for (const b of blobs) {

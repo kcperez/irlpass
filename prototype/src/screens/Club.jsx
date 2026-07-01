@@ -22,7 +22,21 @@ import { Logo, ColombiaFlag } from "../components/bits"
 import { t, LANG } from "../lib/i18n"
 
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-const MDE_CENTER = [-75.578, 6.235]
+
+// the cities irlpass knows — slugs MUST match api/_cities.js. medellín is live
+// (seeded); the rest are browseable shells you can't free-join until we seed them.
+const CITIES = [
+  { slug: "medellin", name: "medellín", center: [-75.5812, 6.2442], live: true },
+  { slug: "cdmx", name: "mexico city", center: [-99.1332, 19.4326], live: false },
+  { slug: "miami", name: "miami", center: [-80.1918, 25.7617], live: false },
+  { slug: "lisboa", name: "lisbon", center: [-9.1393, 38.7223], live: false },
+  { slug: "bali", name: "bali", center: [115.1889, -8.4095], live: false },
+]
+const cityOf = (slug) => CITIES.find((c) => c.slug === slug) || CITIES[0]
+const MDE_CENTER = CITIES[0].center
+
+// women-only plans are visible/joinable only to women & non-binary members
+const isWomanNb = (g) => g === "woman" || g === "nonbinary"
 
 const NEIGHBORHOODS = [
   { name: "el poblado", lat: 6.2088, lng: -75.5679 },
@@ -126,11 +140,75 @@ const resizeImage = (file) =>
     img.src = URL.createObjectURL(file)
   })
 
-function ProfileSheet({ token, me, onPhoto, onClose }) {
+/* ---------- review + report ---------- */
+// rate a meetup after it happens. the rating rolls up into the host's reputation.
+function ReviewSheet({ token, activity, onClose }) {
+  const [rating, setRating] = useState(0)
+  const [note, setNote] = useState("")
+  const [sent, setSent] = useState(false)
+  const submit = async () => {
+    if (!rating) return
+    setSent(true)
+    await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, activityId: activity.id, targetNo: activity.creator.memberNo, rating, note }),
+    }).catch(() => {})
+    setTimeout(onClose, 700)
+  }
+  const report = async () => {
+    if (!confirm(t("report this plan to trust & safety? this is private."))) return
+    await fetch("/api/report", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, targetType: "activity", targetId: activity.id, reason: "reported from review" }),
+    }).catch(() => {})
+    onClose()
+  }
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/45 backdrop-blur-sm">
+      <motion.div initial={{ y: 60 }} animate={{ y: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-[440px] rounded-t-3xl bg-cream p-6 pb-9">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("how was it?")}</p>
+        <h3 className="display mt-1 text-[20px] font-bold leading-snug">{actEmojiOf(activity)} {activity.title}</h3>
+        <p className="mt-0.5 font-mono text-[11px] text-ink-soft">{t("by")} {activity.creator.name.toLowerCase()}</p>
+        <div className="mt-4 flex justify-center gap-2">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} onClick={() => setRating(n)} className={`text-[30px] transition-transform active:scale-110 ${n <= rating ? "" : "opacity-25 grayscale"}`}>⭐</button>
+          ))}
+        </div>
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={t("a line about it (optional)")}
+          className="mt-4 w-full border-b-2 border-line bg-transparent pb-1.5 text-[13.5px] outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
+        />
+        <button onClick={submit} disabled={!rating || sent} className="mt-5 w-full rounded-full bg-ink py-3 text-[14px] font-semibold text-cream disabled:opacity-35">
+          {sent ? t("thanks 🤝") : t("post review")}
+        </button>
+        <button onClick={report} className="mt-2 w-full py-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#b3461f]/80">
+          {t("something felt off — report privately")}
+        </button>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [qr, setQr] = useState(null)
   const [past, setPast] = useState([])
+  const [reviewOf, setReviewOf] = useState(null) // activity being reviewed
+
+  const saveSafety = async (patch) => {
+    onSafety?.(patch) // optimistic
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, ...patch }),
+    }).catch(() => {})
+  }
 
   useEffect(() => {
     fetch(`/api/activities?t=${token}&scope=past`)
@@ -190,8 +268,14 @@ function ProfileSheet({ token, me, onPhoto, onClose }) {
         <div className="mt-5 flex items-center gap-4">
           <Avatar member={me} photo={me.photo} size="h-16 w-16 text-[26px]" />
           <div>
-            <p className="display text-[20px] font-bold leading-tight">{me.name.toLowerCase()}</p>
-            <p className="font-mono text-[11px] text-ink-soft">{me.ig} · nº {me.memberNo}</p>
+            <p className="flex items-center gap-1.5 display text-[20px] font-bold leading-tight">
+              {me.name.toLowerCase()}
+              {me.verified && <span title="verified" className="text-[14px] text-lime-deep">✓</span>}
+            </p>
+            <p className="flex items-center gap-2 font-mono text-[11px] text-ink-soft">
+              {me.ig} · nº {me.memberNo}
+              {me.repScore != null && <span className="rounded-full bg-cream-deep px-1.5 py-0.5 text-[9.5px] font-semibold">⭐ {me.repScore.toFixed(1)} · {me.repCount} {t("vouches")}</span>}
+            </p>
           </div>
         </div>
         <label className={`mt-5 flex w-full cursor-pointer items-center justify-center rounded-full bg-lime px-6 py-3.5 text-[14.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] ${busy ? "opacity-60" : ""}`}>
@@ -217,16 +301,56 @@ function ProfileSheet({ token, me, onPhoto, onClose }) {
 
         {past.length > 0 && (
           <div className="mt-4 rounded-2xl border border-line bg-white/70 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">your memories</p>
-            <div className="mt-2 space-y-1.5">
-              {past.slice(0, 5).map((a) => (
-                <p key={a.id} className="text-[13px] text-ink">
-                  {actEmojiOf(a)} {a.title} <span className="font-mono text-[10.5px] text-ink-soft">· {dayLabel(a.date)}</span>
-                </p>
-              ))}
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("your memories")}</p>
+            <div className="mt-2 space-y-2">
+              {past.slice(0, 5).map((a) => {
+                const host = a.creator.memberNo !== me.memberNo
+                return (
+                  <div key={a.id} className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 text-[13px] text-ink">
+                      {actEmojiOf(a)} {a.title} <span className="font-mono text-[10.5px] text-ink-soft">· {dayLabel(a.date)}</span>
+                    </p>
+                    {host && (
+                      <button
+                        onClick={() => setReviewOf(a)}
+                        className="shrink-0 rounded-full border border-line bg-cream px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
+                      >
+                        {t("review")}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
+
+        {/* women-safety controls — who can reach you, who sees your instagram */}
+        {isWomanNb(me.gender) && (
+          <div className="mt-4 rounded-2xl border border-line bg-[#f3d9e6]/25 p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">🌸 {t("safety")}</p>
+            <label className="mt-2.5 flex items-center justify-between">
+              <span className="text-[13px]">{t("allow dms from men")}</span>
+              <button
+                onClick={() => saveSafety({ allowDmFromMen: !me.allowDmFromMen })}
+                className={`relative h-6 w-11 rounded-full transition-colors ${me.allowDmFromMen ? "bg-lime-deep" : "bg-line"}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.allowDmFromMen ? "left-[22px]" : "left-0.5"}`} />
+              </button>
+            </label>
+            <label className="mt-2 flex items-center justify-between">
+              <span className="text-[13px]">{t("show my instagram to men")}</span>
+              <button
+                onClick={() => saveSafety({ showIgToMen: !me.showIgToMen })}
+                className={`relative h-6 w-11 rounded-full transition-colors ${me.showIgToMen ? "bg-lime-deep" : "bg-line"}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.showIgToMen ? "left-[22px]" : "left-0.5"}`} />
+              </button>
+            </label>
+          </div>
+        )}
+
+        {reviewOf && <ReviewSheet token={token} activity={reviewOf} onClose={() => setReviewOf(null)} />}
 
         <a
           href={`/?screen=pass&t=${token}&name=${encodeURIComponent(me.name)}&n=${me.memberNo}&ig=${encodeURIComponent(me.ig)}`}
@@ -344,7 +468,7 @@ function TopBar({ me, onProfile }) {
 }
 
 /* ---------- map ---------- */
-function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, busy, photoMap = {} }) {
+function MapView({ acts, me, onJoin, onPayJoin, onLocked, onOpenChat, onPlanSuggestion, busy, photoMap = {}, center = MDE_CENTER, isHome = true }) {
   const wrapRef = useRef(null)
   const mapRef = useRef(null)
   const markersRef = useRef([])
@@ -355,13 +479,19 @@ function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, bu
     const map = new maplibregl.Map({
       container: wrapRef.current,
       style: MAP_STYLE,
-      center: MDE_CENTER,
+      center,
       zoom: 12,
       attributionControl: { compact: true },
     })
     mapRef.current = map
     return () => map.remove()
   }, [])
+
+  // glide to the city in view when the user switches cities
+  useEffect(() => {
+    const map = mapRef.current
+    if (map) map.flyTo({ center, zoom: 12, duration: 900 })
+  }, [center[0], center[1]])
 
   useEffect(() => {
     const map = mapRef.current
@@ -376,25 +506,29 @@ function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, bu
       markersRef.current.push(marker)
     }
 
-    // real activities: lime pins. no location yet -> pinned near the city center, jittered
+    // real activities: lime pins (locked = muted cream pin with a lock, can browse not join)
     acts.forEach((a, i) => {
-      const lng = a.lng ?? MDE_CENTER[0] + (i % 5) * 0.004 - 0.008
-      const lat = a.lat ?? MDE_CENTER[1] + ((i * 7) % 5) * 0.004 - 0.008
+      const lng = a.lng ?? center[0] + (i % 5) * 0.004 - 0.008
+      const lat = a.lat ?? center[1] + ((i * 7) % 5) * 0.004 - 0.008
       const el = document.createElement("div")
       const icon = a.image
         ? `<img src="${a.image}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid #1c1b17"/>`
         : `<span style="font-size:14px">${actEmojiOf(a)}</span>`
-      el.innerHTML = `<div style="display:flex;align-items:center;gap:4px;background:#cdee45;border:2px solid #1c1b17;border-radius:999px;padding:3px 9px 3px 4px;box-shadow:0 4px 10px rgba(28,27,23,.25);font:600 12px Geist,sans-serif;color:#1c1b17">${icon} ${a.joined.length}${a.spots >= 999 ? "" : "/" + a.spots}</div>`
+      const bg = a.locked ? "#e7e3d8" : "#cdee45"
+      const lock = a.locked ? `<span style="font-size:10px">🔒</span>` : ""
+      el.innerHTML = `<div style="display:flex;align-items:center;gap:4px;background:${bg};border:2px solid #1c1b17;border-radius:999px;padding:3px 9px 3px 4px;box-shadow:0 4px 10px rgba(28,27,23,.25);font:600 12px Geist,sans-serif;color:#1c1b17">${icon} ${a.joined.length}${a.spots >= 999 ? "" : "/" + a.spots}${lock}</div>`
       mk(lng, lat, el, () => setSelected({ type: "activity", data: a }))
     })
 
-    // founder suggestions: cream dashed pins. hidden once someone makes it a real plan
-    SUGGESTIONS.filter((s) => !acts.some((a) => a.title === s.title)).forEach((s) => {
-      const el = document.createElement("div")
-      el.innerHTML = `<div style="display:flex;align-items:center;gap:4px;background:#f4f1ea;border:2px dashed #b5da2e;border-radius:999px;padding:4px 9px;font:600 11px Geist,sans-serif;color:#57544a">✦ ${emojiFor(s.title)}</div>`
-      mk(s.lng, s.lat, el, () => { setPlanWhen(""); setSelected({ type: "suggestion", data: s }) })
-    })
-  }, [acts])
+    // founder suggestions only in your home city (you can only create plans there for free)
+    if (isHome) {
+      SUGGESTIONS.filter((s) => !acts.some((a) => a.title === s.title)).forEach((s) => {
+        const el = document.createElement("div")
+        el.innerHTML = `<div style="display:flex;align-items:center;gap:4px;background:#f4f1ea;border:2px dashed #b5da2e;border-radius:999px;padding:4px 9px;font:600 11px Geist,sans-serif;color:#57544a">✦ ${emojiFor(s.title)}</div>`
+        mk(s.lng, s.lat, el, () => { setPlanWhen(""); setSelected({ type: "suggestion", data: s }) })
+      })
+    }
+  }, [acts, center[0], center[1], isHome])
 
   const [celebrate, setCelebrate] = useState(false)
   const a = selected?.data
@@ -480,6 +614,13 @@ function MapView({ acts, me, onJoin, onPayJoin, onOpenChat, onPlanSuggestion, bu
                 >
                   {t("open chat")}
                 </button>
+              ) : a.locked ? (
+                <button
+                  onClick={() => { onLocked(a.city); setSelected(null) }}
+                  className="w-full rounded-full border-2 border-ink bg-cream py-3 text-[13.5px] font-semibold text-ink active:scale-[0.98]"
+                >
+                  ✦ {t("unlock")} {cityOf(a.city).name}
+                </button>
               ) : (
                 <div className="relative">
                   {celebrate && <MiniBurst />}
@@ -523,7 +664,18 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
   const [photo, setPhoto] = useState(null) // dataURL preview of optional cover photo
   const [charge, setCharge] = useState(false) // host: charge per seat
   const [price, setPrice] = useState("15")
+  const [womenOnly, setWomenOnly] = useState(false) // create: women & non-binary plan
   const [busy, setBusy] = useState(false)
+
+  // your home city (where your phone is = free to join) vs the city you're browsing
+  const homeCity = me.city || "medellin"
+  const [viewCity, setViewCity] = useState(homeCity)
+  const [cityPicker, setCityPicker] = useState(false)
+  const [paywallCity, setPaywallCity] = useState(null) // slug -> show contextual paywall
+  const [filterWomen, setFilterWomen] = useState(false) // board filter: women-only plans
+  const isHome = viewCity === homeCity
+  // board list respects the women-only filter (map view filters inline)
+  const shown = acts ? (filterWomen ? acts.filter((a) => a.audience === "women_nb") : acts) : null
 
   const pickPhoto = async (e) => {
     const file = e.target.files?.[0]
@@ -531,11 +683,11 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
   }
 
   const load = useCallback(() => {
-    fetch(`/api/activities?t=${token}`)
+    fetch(`/api/activities?t=${token}&city=${viewCity}`)
       .then((r) => r.json())
       .then((d) => setActs(d.activities || []))
       .catch(() => setActs([]))
-  }, [token])
+  }, [token, viewCity])
   useEffect(load, [load, refresh])
 
   const act = async (body) => {
@@ -548,6 +700,8 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
       .then((r) => r.json())
       .catch(() => null)
     setBusy(false)
+    // hit a cross-city gate? pop the contextual paywall instead of silently failing
+    if (r?.gate === "city") { setPaywallCity(r.city || viewCity); return null }
     load()
     return r?.activity || null
   }
@@ -560,6 +714,7 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ t: token, id: a.id }),
     }).then((x) => x.json()).catch(() => null)
+    if (r?.gate === "city") return setPaywallCity(r.city || viewCity)
     if (r?.url) window.location.href = r.url
   }
 
@@ -571,6 +726,7 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
       date: dateIso,
       spots: 6,
       place: { name: s.place.name, lat: s.lat, lng: s.lng },
+      city: homeCity, // suggestions only seed in your home city
     })
   }
 
@@ -598,19 +754,23 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
         {/* explicit height: percentage chains through flex break maplibre's canvas sizing */}
         <div className="relative h-[calc(var(--app-h)-186px)] md:h-[calc(var(--app-h)-218px)]">
           <MapView
-            acts={acts}
+            acts={filterWomen ? acts.filter((a) => a.audience === "women_nb") : acts}
             me={me}
             busy={busy}
             photoMap={photoMap}
+            center={cityOf(viewCity).center}
+            isHome={isHome}
             onJoin={async (id) => { await act({ action: "join", id }) }}
+            onLocked={(c) => setPaywallCity(c)}
             onOpenChat={openChat}
             onPayJoin={payJoin}
             onPlanSuggestion={planSuggestion}
           />
           <div className="pointer-events-none absolute left-1/2 top-2.5 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-cream/95 px-3.5 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink-soft shadow-sm">
-            {t("tap a pin to join · ✦ = suggested")}
+            {isHome ? t("tap a pin to join · ✦ = suggested") : `${cityOf(viewCity).name} · ${t("browsing — join with a pass")}`}
           </div>
         </div>
+        {paywallCity && <PaywallSheet token={token} city={paywallCity} onClose={() => setPaywallCity(null)} />}
       </div>
     )
   }
@@ -637,6 +797,47 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
             <Plus size={20} weight="bold" />
           </motion.button>
         </div>
+      </div>
+
+      {/* city switcher + women-only filter — browse any city free, join your own */}
+      <div className="relative mt-3 flex items-center gap-2">
+        <button
+          onClick={() => setCityPicker((v) => !v)}
+          className="flex items-center gap-1.5 rounded-full border border-line bg-white/70 px-3.5 py-2 text-[13px] font-semibold active:scale-95"
+        >
+          <MapPin size={14} weight="fill" className="text-lime-deep" />
+          {cityOf(viewCity).name}
+          {!isHome && <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-soft">· {t("browsing")}</span>}
+        </button>
+        <button
+          onClick={() => setFilterWomen((v) => !v)}
+          className={`rounded-full border px-3.5 py-2 text-[12.5px] font-semibold active:scale-95 ${filterWomen ? "border-ink bg-[#f3d9e6] text-ink" : "border-line bg-white/70 text-ink-soft"}`}
+        >
+          🌸 {t("women only")}
+        </button>
+        <AnimatePresence>
+          {cityPicker && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className="absolute left-0 top-12 z-20 w-56 overflow-hidden rounded-2xl border border-line bg-cream shadow-[0_18px_40px_-18px_rgba(28,27,23,0.5)]"
+            >
+              {CITIES.map((c) => (
+                <button
+                  key={c.slug}
+                  onClick={() => { setViewCity(c.slug); setCityPicker(false) }}
+                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-[14px] active:bg-cream-deep/50 ${c.slug === viewCity ? "bg-cream-deep/40 font-semibold" : ""}`}
+                >
+                  <span>{c.name}</span>
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-soft">
+                    {c.slug === homeCity ? t("you're here") : c.live ? t("live") : t("soon")}
+                  </span>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>
@@ -712,6 +913,23 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
                 placeholder={t("details (address, what to bring…) optional")}
                 className="mt-3 w-full border-b-2 border-line bg-transparent pb-1.5 text-[13px] outline-none placeholder:text-ink-soft/40 focus:border-lime-deep"
               />
+              {!isHome && (
+                <p className="mt-3 rounded-xl bg-[#f3d9e6]/50 px-3 py-2 font-mono text-[10.5px] text-ink-soft">
+                  {t("you're browsing")} {cityOf(viewCity).name}. {t("hosting here needs a pass.")}
+                </p>
+              )}
+              {isWomanNb(me.gender) && (
+                <label className="mt-3 flex items-center justify-between rounded-xl border border-line bg-[#f3d9e6]/30 p-3">
+                  <span className="text-[13px] font-medium">🌸 {t("women & non-binary only")}</span>
+                  <button
+                    type="button"
+                    onClick={() => setWomenOnly((v) => !v)}
+                    className={`relative h-6 w-11 rounded-full transition-colors ${womenOnly ? "bg-[#d98cb3]" : "bg-line"}`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${womenOnly ? "left-[22px]" : "left-0.5"}`} />
+                  </button>
+                </label>
+              )}
               {me.canHost && (
                 <div className="mt-3 rounded-xl border border-line bg-cream-deep/40 p-3">
                   <label className="flex items-center justify-between">
@@ -742,7 +960,7 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
                 whileTap={{ scale: 0.97 }}
                 disabled={!title.trim() || busy}
                 onClick={async () => {
-                  const created = await act({ action: "create", title, when: when.trim() || "flexible", date, spots, place, emoji: actEmoji || emojiFor(title), details, priceCents: charge ? Math.round(parseFloat(price || "0") * 100) : null })
+                  const created = await act({ action: "create", title, when: when.trim() || "flexible", date, spots, place, emoji: actEmoji || emojiFor(title), details, priceCents: charge ? Math.round(parseFloat(price || "0") * 100) : null, city: viewCity, audience: womenOnly ? "women_nb" : "open" })
                   if (created && photo) {
                     await fetch("/api/activity-photo", {
                       method: "POST",
@@ -751,7 +969,7 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
                     }).catch(() => {})
                     load()
                   }
-                  setTitle(""); setWhen(""); setDate(bogotaTodayISO()); setPlace(null); setActEmoji(null); setDetails(""); setPhoto(null); setCharge(false); setPrice("15"); setCreating(false)
+                  setTitle(""); setWhen(""); setDate(bogotaTodayISO()); setPlace(null); setActEmoji(null); setDetails(""); setPhoto(null); setCharge(false); setPrice("15"); setWomenOnly(false); setCreating(false)
                 }}
                 className="mt-4 w-full rounded-full bg-ink py-3 text-[14px] font-semibold text-cream disabled:opacity-35"
               >
@@ -764,14 +982,18 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
 
       {!acts ? (
         <div className="mt-10 flex justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
-      ) : acts.length === 0 ? (
+      ) : shown.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-line p-6 text-center">
-          <p className="text-[15px] font-medium">{t("nothing on the board yet")}</p>
-          <p className="mt-1 text-[13px] text-ink-soft">{t("post the first plan. someone's waiting for exactly it.")}</p>
+          <p className="text-[15px] font-medium">
+            {filterWomen ? t("no women-only plans here yet") : isHome ? t("nothing on the board yet") : `${t("nothing in")} ${cityOf(viewCity).name} ${t("yet")}`}
+          </p>
+          <p className="mt-1 text-[13px] text-ink-soft">
+            {isHome ? t("post the first plan. someone's waiting for exactly it.") : t("plans show up here as members land. check back.")}
+          </p>
         </div>
       ) : (
         <div className="mt-4 space-y-3">
-          {acts.map((a) => {
+          {shown.map((a) => {
             const joined = a.joined.some((j) => j.memberNo === me.memberNo)
             const open = a.spots >= 999
             const full = !open && a.joined.length >= a.spots
@@ -808,7 +1030,14 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
                         {a.joined.length > 5 ? `+${a.joined.length - 5} ${t("going")}` : t("going")}
                       </span>
                     </div>
-                    {!joined && (
+                    {!joined && (a.locked ? (
+                      <button
+                        onClick={() => setPaywallCity(a.city)}
+                        className="shrink-0 rounded-full border-2 border-ink bg-cream px-4 py-2.5 text-[12.5px] font-semibold text-ink active:scale-95"
+                      >
+                        ✦ {t("unlock")} {cityOf(a.city).name}
+                      </button>
+                    ) : (
                       <div className="relative shrink-0">
                         {justJoined === a.id && <MiniBurst />}
                         <button
@@ -823,7 +1052,7 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
                           {full ? t("full") : a.priceCents > 0 ? `${t("rsvp")} · $${(a.priceCents / 100).toFixed(0)}` : t("i'm in")}
                         </button>
                       </div>
-                    )}
+                    ))}
                   </div>
                   {joined && (
                     <div className="mt-3 flex gap-2">
@@ -875,12 +1104,90 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
           })}
         </div>
       )}
+      {paywallCity && <PaywallSheet token={token} city={paywallCity} onClose={() => setPaywallCity(null)} />}
     </div>
   )
 }
 
+/* ---------- contextual paywall ---------- */
+// fires the moment a free member taps something out of their home city (or a DM
+// to a stranger). this is the whole freemium conversion surface — the want is
+// already there, so we sell against it instead of walling the door.
+function PaywallSheet({ token, city, reason = "city", onClose }) {
+  const cityName = cityOf(city)?.name || city
+  const lines =
+    reason === "dm"
+      ? { head: t("message anyone, anywhere"), sub: t("dms beyond your shared plans are a pass perk.") }
+      : { head: `${t("unlock")} ${cityName}`, sub: t("browse every city free. join the plans with a pass.") }
+  const go = async (plan) => {
+    const r = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, plan }),
+    }).then((x) => x.json()).catch(() => null)
+    if (r?.url) window.location.href = r.url
+  }
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ y: 60 }}
+        animate={{ y: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[440px] rounded-t-3xl border-t border-line bg-cream p-6 pb-9"
+      >
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
+        <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-lime-deep">
+          <Sparkle size={12} weight="fill" /> {t("irlpass pass")}
+        </p>
+        <h3 className="display mt-1.5 text-[26px] font-bold leading-tight">{lines.head}</h3>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{lines.sub}</p>
+        <ul className="mt-4 space-y-2 text-[13.5px]">
+          {[t("join plans in any city you travel to"), t("host your own anywhere"), t("dm any member, not just shared plans"), t("the full member list, everywhere")].map((f) => (
+            <li key={f} className="flex items-start gap-2">
+              <span className="mt-0.5 text-lime-deep">✦</span> {f}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-5 flex gap-2">
+          <button onClick={() => go("yearly")} className="flex-1 rounded-2xl bg-ink py-3.5 text-center text-cream active:scale-[0.98]">
+            <span className="block text-[14px] font-semibold">{t("yearly")}</span>
+            <span className="block font-mono text-[10px] text-cream/60">{t("best value")}</span>
+          </button>
+          <button onClick={() => go("monthly")} className="flex-1 rounded-2xl border border-line bg-white/70 py-3.5 text-center active:scale-[0.98]">
+            <span className="block text-[14px] font-semibold">{t("monthly")}</span>
+            <span className="block font-mono text-[10px] text-ink-soft">{t("cancel anytime")}</span>
+          </button>
+        </div>
+        <button onClick={onClose} className="mt-3 w-full py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+          {t("keep browsing free")}
+        </button>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 /* ---------- members ---------- */
-function Members({ token }) {
+// a small reputation chip: average meetup rating + how many vouches
+function RepBadge({ score, count, verified }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      {verified && <span title="verified" className="text-lime-deep">✓</span>}
+      {score != null && (
+        <span className="rounded-full bg-cream-deep px-1.5 py-0.5 font-mono text-[9.5px] font-semibold text-ink-soft">
+          ⭐ {score.toFixed(1)}{count ? `·${count}` : ""}
+        </span>
+      )}
+    </span>
+  )
+}
+
+function Members({ token, me, onOpenDM }) {
   const [members, setMembers] = useState(null)
   const [invited, setInvited] = useState(false)
   useEffect(() => {
@@ -925,24 +1232,30 @@ function Members({ token }) {
       ) : (
         <div className="mt-4 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
           {members.map((m) => (
-            <a
-              key={m.memberNo}
-              href={`https://instagram.com/${m.ig.replace(/^@/, "")}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-3 px-4 py-3"
-            >
-              <Avatar member={m} />
-              <div className="min-w-0">
-                <p className="flex items-baseline gap-1.5 text-[14.5px] font-semibold leading-tight">
-                  {m.name.toLowerCase()}
-                  <span className="translate-y-[0.5px] font-mono text-[11px] font-normal text-ink-soft">{m.ig}</span>
-                </p>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
-                  nº {m.memberNo}{m.country ? ` · ${m.country}` : ""}
-                </p>
-              </div>
-            </a>
+            <div key={m.memberNo} className="flex items-center gap-3 px-4 py-3">
+              <a href={`https://instagram.com/${m.ig.replace(/^@/, "")}`} target="_blank" rel="noreferrer" className="flex min-w-0 flex-1 items-center gap-3">
+                <Avatar member={m} />
+                <div className="min-w-0">
+                  <p className="flex items-baseline gap-1.5 text-[14.5px] font-semibold leading-tight">
+                    {m.name.toLowerCase()}
+                    <span className="translate-y-[0.5px] font-mono text-[11px] font-normal text-ink-soft">{m.ig}</span>
+                  </p>
+                  <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
+                    nº {m.memberNo}{m.country ? ` · ${m.country}` : ""}
+                    <RepBadge score={m.repScore} count={m.repCount} verified={m.verified} />
+                  </p>
+                </div>
+              </a>
+              {m.memberNo !== me?.memberNo && (
+                <button
+                  onClick={() => onOpenDM(m)}
+                  className="shrink-0 rounded-full border border-line bg-cream px-3 py-2 active:scale-95"
+                  aria-label={`message ${m.name}`}
+                >
+                  <PaperPlaneRight size={15} weight="fill" className="text-ink-soft" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -1397,12 +1710,126 @@ function DeniedScreen() {
   )
 }
 
+/* ---------- direct messages ---------- */
+// free to dm anyone you've shared a plan with; reaching strangers needs a pass.
+function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }) {
+  const [threads, setThreads] = useState(null)
+  const [convo, setConvo] = useState(null) // { with, messages }
+  const [text, setText] = useState("")
+  const [busy, setBusy] = useState(false)
+  const endRef = useRef(null)
+
+  const loadInbox = useCallback(() => {
+    fetch(`/api/dm?t=${token}`).then((r) => r.json()).then((d) => setThreads(d.threads || [])).catch(() => setThreads([]))
+  }, [token])
+
+  const loadConvo = useCallback((no) => {
+    fetch(`/api/dm?t=${token}&with=${no}`).then((r) => r.json()).then((d) => setConvo(d)).catch(() => setConvo({ with: null, messages: [] }))
+  }, [token])
+
+  useEffect(() => {
+    if (openWith) { setConvo(null); loadConvo(openWith.memberNo) }
+    else { setConvo(null); loadInbox() }
+  }, [openWith, loadConvo, loadInbox])
+
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }) }, [convo])
+
+  const send = async () => {
+    const body = text.trim()
+    if (!body || !openWith) return
+    setBusy(true)
+    const r = await fetch("/api/dm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, to: openWith.memberNo, text: body }),
+    }).then((x) => x.json()).catch(() => null)
+    setBusy(false)
+    if (r?.gate === "dm") return onPaywall("dm")
+    if (r?.error) return alert(r.error)
+    setText("")
+    loadConvo(openWith.memberNo)
+  }
+
+  // a single conversation
+  if (openWith) {
+    const other = convo?.with || openWith
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+          <button onClick={() => setOpenWith(null)} className="text-ink-soft active:scale-90"><ArrowLeft size={20} /></button>
+          <Avatar member={other} photo={photoMap[other.memberNo]} size="h-9 w-9 text-[14px]" />
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{other.name?.toLowerCase()} <RepBadge score={other.repScore} verified={other.verified} /></p>
+            <p className="font-mono text-[10px] text-ink-soft">{other.ig}</p>
+          </div>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-4">
+          {!convo ? (
+            <div className="flex flex-1 items-center justify-center"><CircleNotch size={20} className="animate-spin text-ink-soft" /></div>
+          ) : convo.messages.length === 0 ? (
+            <p className="mt-6 text-center font-mono text-[11px] text-ink-soft">{t("say hi. you met on a plan — pick it back up.")}</p>
+          ) : (
+            convo.messages.map((m) => (
+              <div key={m.key} className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[13.5px] ${m.fromMe ? "self-end bg-lime text-ink" : "self-start bg-white/80 text-ink"}`}>
+                {m.text}
+              </div>
+            ))
+          )}
+          <div ref={endRef} />
+        </div>
+        <div className="flex items-center gap-2 border-t border-line px-3 py-2.5">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder={t("message…")}
+            className="w-full rounded-full border border-line bg-white/70 px-4 py-2.5 text-[14px] outline-none focus:border-lime-deep"
+          />
+          <button onClick={send} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
+            <PaperPlaneRight size={17} weight="fill" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // the inbox
+  return (
+    <div className="px-5 pb-28 pt-4">
+      <h2 className="display text-[26px] font-bold">{t("messages")}</h2>
+      {!threads ? (
+        <div className="mt-10 flex justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
+      ) : threads.length === 0 ? (
+        <div className="mt-10 rounded-2xl border border-dashed border-line p-6 text-center">
+          <p className="text-[15px] font-medium">{t("no messages yet")}</p>
+          <p className="mt-1 text-[13px] text-ink-soft">{t("join a plan, meet people, then message them here.")}</p>
+        </div>
+      ) : (
+        <div className="mt-4 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
+          {threads.map((th) => (
+            <button key={th.with.memberNo} onClick={() => setOpenWith(th.with)} className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/30">
+              <Avatar member={th.with} photo={photoMap[th.with.memberNo]} />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{th.with.name.toLowerCase()} <RepBadge score={th.with.repScore} verified={th.with.verified} /></p>
+                <p className="truncate font-mono text-[11px] text-ink-soft">{th.lastFromMe ? "you: " : ""}{th.last}</p>
+              </div>
+              {th.unread > 0 && <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 font-mono text-[10px] font-semibold text-ink">{th.unread}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ---------- shell ---------- */
 export default function Club({ token }) {
   const [me, setMe] = useState(null)
   const [state, setState] = useState("loading")
   const [tab, setTab] = useState("board")
   const [activeChat, setActiveChat] = useState(null)
+  const [dmWith, setDmWith] = useState(null) // member object when a thread is open
+  const [paywall, setPaywall] = useState(null) // reason string -> show paywall
   const [profileOpen, setProfileOpen] = useState(false)
   const [photoMap, setPhotoMap] = useState({})
   const [refresh, setRefresh] = useState(0)
@@ -1429,6 +1856,24 @@ export default function Club({ token }) {
         setState("ok")
         // remember this device so irlpass.xyz recognizes the member next visit
         localStorage.setItem("irlpass_member_token", token)
+        // geolocate: your phone's city becomes your free home city. silently
+        // updates me.city server-side so the join gate follows where you actually are.
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              fetch("/api/set-city", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ t: token, lat: pos.coords.latitude, lng: pos.coords.longitude }),
+              })
+                .then((r) => r.json())
+                .then((d) => { if (d?.matched && d.city) setMe((cur) => (cur ? { ...cur, city: d.city } : cur)) })
+                .catch(() => {})
+            },
+            () => {}, // denied / unavailable -> keep saved city
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+          )
+        }
       })
       .catch(() => setState("denied"))
   }, [token])
@@ -1458,16 +1903,18 @@ export default function Club({ token }) {
   const TABS = [
     { key: "board", label: t("board"), icon: CalendarPlus },
     { key: "members", label: t("members"), icon: UsersThree },
+    { key: "dms", label: t("dms"), icon: PaperPlaneRight },
     { key: "chats", label: t("chats"), icon: ChatsCircle },
   ]
-  const inThread = tab === "chats" && activeChat
+  const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith)
 
   return (
     <div className="relative flex h-[var(--app-h)] flex-col">
       {!inThread && <TopBar me={me} onProfile={() => setProfileOpen(true)} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {tab === "board" && <Board token={token} me={me} photoMap={photoMap} refresh={refresh} openChat={(channel, title, activity) => { setActiveChat({ channel, title, activity }); setTab("chats") }} />}
-        {tab === "members" && <Members token={token} />}
+        {tab === "members" && <Members token={token} me={me} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
+        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={setDmWith} photoMap={photoMap} onPaywall={(r) => setPaywall(r)} />}
         {tab === "chats" && <Chats token={token} me={me} photoMap={photoMap} active={activeChat} setActive={setActiveChat} />}
       </div>
       <AnimatePresence>
@@ -1476,16 +1923,20 @@ export default function Club({ token }) {
             token={token}
             me={me}
             onPhoto={(photo) => { setMe((m) => ({ ...m, photo })); setProfileOpen(false) }}
+            onSafety={(patch) => setMe((m) => ({ ...m, ...patch }))}
             onClose={() => setProfileOpen(false)}
           />
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {paywall && <PaywallSheet token={token} city={me.city} reason={paywall} onClose={() => setPaywall(null)} />}
+      </AnimatePresence>
       {!inThread && (
         <nav className="sticky bottom-0 z-10 flex border-t border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
-          {TABS.map((t) => (
-            <button key={t.key} onClick={() => { setTab(t.key); if (t.key !== "chats") setActiveChat(null) }} className="flex flex-1 flex-col items-center gap-0.5">
-              <t.icon size={22} weight={tab === t.key ? "fill" : "regular"} className={tab === t.key ? "text-ink" : "text-ink-soft/60"} />
-              <span className={`font-mono text-[9px] uppercase tracking-[0.12em] ${tab === t.key ? "text-ink" : "text-ink-soft/60"}`}>{t.label}</span>
+          {TABS.map((tb) => (
+            <button key={tb.key} onClick={() => { setTab(tb.key); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
+              <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={tab === tb.key ? "text-ink" : "text-ink-soft/60"} />
+              <span className={`font-mono text-[9px] uppercase tracking-[0.12em] ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`}>{tb.label}</span>
             </button>
           ))}
         </nav>

@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto"
-import { getMember } from "./_lib.js"
+import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { notifyMemberNo } from "./_notify.js"
+import { isCity, cityBySlug } from "./_cities.js"
 
 const rowToActivity = (r) => ({
   id: r.id,
@@ -19,18 +20,26 @@ const rowToActivity = (r) => ({
   date: r.event_date,
   image: r.image_url || null,
   priceCents: r.price_cents || null,
+  city: r.city || "medellin",
+  audience: r.audience || "open", // "open" | "women_nb"
 })
 
 const bogotaToday = () => new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10)
 
+// women-only activities are visible/joinable only to women & non-binary members
+const isWomanNb = (gender) => gender === "woman" || gender === "nonbinary"
+
 export default async function handler(req, res) {
   const token = req.method === "GET" ? req.query?.t : req.body?.t
-  const me = await getMember(token)
+  // free tier: any accepted user can browse, create and join *locally*. paid is
+  // checked per-action below (cross-city joins/creates require a subscription).
+  const me = await getUser(token)
   if (!me) return res.status(401).json({ error: "not a member" })
 
   try {
     if (req.method === "GET") {
       const scope = String(req.query?.scope || "board")
+      const viewCity = isCity(req.query?.city) ? String(req.query.city) : null
       const today = bogotaToday()
       let q = db.from("activities").select("*").limit(200)
       if (scope === "past") {
@@ -41,8 +50,9 @@ export default async function handler(req, res) {
         const weekAgo = new Date(Date.now() - 5 * 3600e3 - 7 * 86400e3).toISOString().slice(0, 10)
         q = q.gte("event_date", weekAgo).order("event_date", { ascending: true })
       } else {
-        // the board and map only show today and the future
+        // the board and map only show today and the future, for the city in view
         q = q.gte("event_date", today).order("event_date", { ascending: true })
+        if (viewCity) q = q.eq("city", viewCity)
       }
       const { data, error } = await q
       if (error) throw error
@@ -50,7 +60,13 @@ export default async function handler(req, res) {
       if (scope === "past" || scope === "chats") {
         acts = acts.filter((a) => a.joined.some((j) => j.memberNo === me.memberNo))
       }
-      return res.status(200).json({ activities: acts })
+      // women-only activities are invisible to men (unless they're already in it)
+      if (!isWomanNb(me.gender)) {
+        acts = acts.filter((a) => a.audience !== "women_nb" || a.joined.some((j) => j.memberNo === me.memberNo))
+      }
+      // flag which activities this user can't free-join (other city, not subscribed)
+      acts = acts.map((a) => ({ ...a, locked: a.city !== me.city && !me.paid }))
+      return res.status(200).json({ activities: acts, viewerCity: me.city, viewerPaid: !!me.paid })
     }
 
     if (req.method === "POST") {
@@ -58,9 +74,20 @@ export default async function handler(req, res) {
       const meLite = { name: me.name, ig: me.ig, memberNo: me.memberNo }
 
       if (action === "create") {
-        const { title, when, spots, place, emoji, details, date, priceCents } = req.body
+        const { title, when, spots, place, emoji, details, date, priceCents, city, audience } = req.body
         if (!title || !String(title).trim() || !when) {
           return res.status(400).json({ error: "title and when required" })
+        }
+        // which city this plan lives in. defaults to the host's current city.
+        const actCity = isCity(city) ? String(city) : me.city || "medellin"
+        // hosting in a city other than your current one is a paid perk
+        if (actCity !== me.city && !me.paid) {
+          return res.status(402).json({ error: "subscribe to host in other cities", city: actCity, gate: "city" })
+        }
+        // only women & non-binary members can create women-only plans
+        const aud = audience === "women_nb" ? "women_nb" : "open"
+        if (aud === "women_nb" && !isWomanNb(me.gender)) {
+          return res.status(403).json({ error: "women-only plans can only be hosted by women & non-binary members" })
         }
         const eventDate = /^\d{4}-\d{2}-\d{2}$/.test(String(date)) ? String(date) : bogotaToday()
         if (eventDate < bogotaToday()) return res.status(400).json({ error: "that day already happened" })
@@ -89,6 +116,8 @@ export default async function handler(req, res) {
           details: details ? String(details).slice(0, 280) : null,
           event_date: eventDate,
           price_cents: me.canHost && parseInt(priceCents) > 0 ? Math.min(parseInt(priceCents), 50000) : null,
+          city: actCity,
+          audience: aud,
         }
         const { data, error } = await db.from("activities").insert(row).select().single()
         if (error) throw error
@@ -140,8 +169,20 @@ export default async function handler(req, res) {
         if (ge || !row) return res.status(404).json({ error: "not found" })
 
         const inIt = row.joined.some((j) => j.memberNo === me.memberNo)
-        if (action === "join" && row.price_cents && !inIt) {
-          return res.status(402).json({ error: "this one needs a paid seat" })
+        const rowCity = row.city || "medellin"
+        if (action === "join" && !inIt) {
+          // cross-city joins require a subscription — browsing is free, joining isn't
+          if (rowCity !== me.city && !me.paid) {
+            return res.status(402).json({ error: `subscribe to join plans in other cities`, city: rowCity, gate: "city" })
+          }
+          // women-only plans are joinable only by women & non-binary members
+          if ((row.audience || "open") === "women_nb" && !isWomanNb(me.gender)) {
+            return res.status(403).json({ error: "this plan is women & non-binary only" })
+          }
+          // per-seat paid plans route through stripe (seat-checkout), not a free rsvp
+          if (row.price_cents) {
+            return res.status(402).json({ error: "this one needs a paid seat", gate: "seat" })
+          }
         }
         let joined = row.joined
         if (action === "join") {

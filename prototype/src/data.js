@@ -1,4 +1,6 @@
 // Seed content for the prototype. Numbers intentionally organic, not round.
+
+// the original live city. kept for the pass + received screens that read it.
 export const CITY = {
   name: "Medellín",
   country: "Colombia",
@@ -7,6 +9,20 @@ export const CITY = {
   appliedThisWeek: 187,
   acceptedThisWeek: 23,
 }
+
+// the brand is global, not one city. medellín is proof-of-life ("city one,
+// live now") — the rest read as "wherever you land," dropping next.
+export const CITIES = [
+  { name: "medellín", country: "colombia", status: "live" },
+  { name: "mexico city", country: "méxico", status: "soon" },
+  { name: "miami", country: "usa", status: "soon" },
+  { name: "lisbon", country: "portugal", status: "soon" },
+  { name: "bali", country: "indonesia", status: "soon" },
+]
+
+// global social proof — travelers moving across every city right now. ticks up
+// live (the filmable launch asset). organic, never round.
+export const TRAVELERS_NOW = 1294
 
 export const MEMBERS = [
   { name: "Linnea", img: 47, note: "here since march" },

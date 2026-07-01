@@ -1,9 +1,9 @@
-import { getMember } from "./_lib.js"
+import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 
 // GET ?t=&id=&session_id= -> verify the seat was paid, add the buyer to the activity
 export default async function handler(req, res) {
-  const me = await getMember(req.query?.t)
+  const me = await getUser(req.query?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
   const id = String(req.query?.id || "")
   const sessionId = String(req.query?.session_id || "")

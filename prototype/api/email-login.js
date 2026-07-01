@@ -12,12 +12,11 @@ export default async function handler(req, res) {
   try {
     const { data: m } = await db.from("members").select("*").eq("email", email).maybeSingle()
     if (m && !m.banned) {
-      const url = m.paid
-        ? `https://irlpass.xyz/?screen=app&t=${m.token}`
-        : `https://irlpass.xyz/?screen=offer&t=${m.token}`
+      // freemium: everyone accepted gets the app link. no more unpaid -> offer wall.
+      const url = `https://irlpass.xyz/?screen=app&t=${m.token}`
       await sendEmail({
         to: email,
-        ...loginEmail({ name: m.name, url, label: m.paid ? "enter the club" : `claim spot nº ${m.member_no}` }),
+        ...loginEmail({ name: m.name, url, label: "enter the club" }),
       })
     } else {
       const { blobs } = await list({ prefix: "applications/", limit: 1000 })

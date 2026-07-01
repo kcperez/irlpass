@@ -1,4 +1,4 @@
-import { getMember } from "./_lib.js"
+import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { notifyMemberNo } from "./_notify.js"
 
@@ -23,7 +23,7 @@ const rowToMsg = (m) => ({
 
 export default async function handler(req, res) {
   const token = req.method === "GET" ? req.query?.t : req.body?.t
-  const me = await getMember(token)
+  const me = await getUser(token)
   if (!me) return res.status(401).json({ error: "not a member" })
 
   try {

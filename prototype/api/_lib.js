@@ -27,6 +27,15 @@ export const rowToMember = (r) =>
     stripeCustomer: r.stripe_customer,
     photo: r.photo_url || null,
     canHost: !!r.can_host,
+    // freemium + reputation + safety (columns added by migration; undefined until then)
+    gender: r.gender || null,
+    birthday: r.birthday || null,
+    verified: !!r.verified_selfie,
+    repScore: typeof r.rep_score === "number" ? r.rep_score : null,
+    repCount: typeof r.rep_count === "number" ? r.rep_count : 0,
+    interests: Array.isArray(r.interests) ? r.interests : [],
+    allowDmFromMen: r.allow_dm_from_men !== false, // default on
+    showIgToMen: r.show_ig_to_men !== false, // default on
   }
 
 // look up an accepted person by token (paid or not)
@@ -36,9 +45,22 @@ export async function getAccepted(token) {
   return rowToMember(data)
 }
 
-// a member = accepted + paid + not banned
-export async function getMember(token) {
+// a USER = accepted + not banned. paid is optional. this is the free tier — use
+// this everywhere a non-paying member should still get in (the app is free locally).
+export async function getUser(token) {
   const m = await getAccepted(token)
-  if (!m || !m.paid || m.banned) return null
+  if (!m || m.banned) return null
   return m
 }
+
+// a PAID member = user + active subscription. only the premium gates use this
+// (cross-city joins, DMs to strangers, full lists, billing portal).
+export async function getPaid(token) {
+  const m = await getUser(token)
+  if (!m || !m.paid) return null
+  return m
+}
+
+// back-compat alias — getMember historically meant "paid". keep for endpoints
+// that are still strictly paid-only (portal, seat checkout/activate).
+export const getMember = getPaid

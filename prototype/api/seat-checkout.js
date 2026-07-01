@@ -1,10 +1,10 @@
-import { getMember } from "./_lib.js"
+import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 
 // POST { t, id } -> stripe one-time checkout for a paid activity seat
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
-  const me = await getMember(req.body?.t)
+  const me = await getUser(req.body?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
   const id = String(req.body?.id || "")
   if (!/^[a-f0-9]{16}$/.test(id)) return res.status(400).json({ error: "bad id" })
@@ -13,6 +13,14 @@ export default async function handler(req, res) {
     const { data: act } = await db.from("activities").select("*").eq("id", id).maybeSingle()
     if (!act) return res.status(404).json({ error: "not found" })
     if (!act.price_cents) return res.status(400).json({ error: "this activity is free" })
+    // a seat fee is the host's charge — but joining a plan in another city still
+    // needs a subscription, same gate as a free rsvp.
+    if ((act.city || "medellin") !== me.city && !me.paid) {
+      return res.status(402).json({ error: "subscribe to join plans in other cities", city: act.city || "medellin", gate: "city" })
+    }
+    if ((act.audience || "open") === "women_nb" && !(me.gender === "woman" || me.gender === "nonbinary")) {
+      return res.status(403).json({ error: "this plan is women & non-binary only" })
+    }
     if (act.joined.some((j) => j.memberNo === me.memberNo)) return res.status(409).json({ error: "already in" })
     if (act.spots < 999 && act.joined.length >= act.spots) return res.status(409).json({ error: "full" })
 

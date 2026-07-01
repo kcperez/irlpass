@@ -1,13 +1,35 @@
 import { put } from "@vercel/blob"
+import { createAcceptedMember } from "./accept.js"
+import { sendEmail, acceptanceEmail } from "./_email.js"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const VALID_GENDERS = ["woman", "man", "nonbinary"]
 
+// age in whole years from a YYYY-MM-DD string (null if unparseable)
+function ageFrom(iso) {
+  if (!iso) return null
+  const b = new Date(`${String(iso).slice(0, 10)}T00:00:00`)
+  if (Number.isNaN(b.getTime())) return null
+  const now = new Date()
+  let a = now.getFullYear() - b.getFullYear()
+  const m = now.getMonth() - b.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a -= 1
+  return a
+}
+
+// OPEN onboarding. Completing the flow AUTO-ACCEPTS: this creates the member row
+// and returns the token, no manual review queue. (createAcceptedMember in
+// accept.js is the function that writes the row.)
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "method not allowed" })
   }
   try {
-    const { name, ig, email, dates, reasons, city, country } = req.body || {}
+    const {
+      name, ig, email, dates, reasons, city, country,
+      gender, birthday, interests, verifiedSelfie,
+      allowDmFromMen, showIgToMen,
+    } = req.body || {}
 
     if (!name || !String(name).trim() || String(name).trim().length < 2) {
       return res.status(400).json({ error: "name required" })
@@ -18,9 +40,24 @@ export default async function handler(req, res) {
     if (!email || !EMAIL_RE.test(String(email).trim())) {
       return res.status(400).json({ error: "valid email required" })
     }
+    // 18+ hard gate
+    const age = ageFrom(birthday)
+    if (age === null) {
+      return res.status(400).json({ error: "birthday required" })
+    }
+    if (age < 18) {
+      return res.status(403).json({ error: "you've got to be 18+ to join" })
+    }
+    if (gender && !VALID_GENDERS.includes(gender)) {
+      return res.status(400).json({ error: "invalid gender" })
+    }
     if (!dates) {
       return res.status(400).json({ error: "dates required" })
     }
+
+    const cleanInterests = Array.isArray(interests)
+      ? interests.slice(0, 10).map((i) => String(i).slice(0, 40))
+      : []
 
     const record = {
       name: String(name).trim().slice(0, 80),
@@ -30,18 +67,54 @@ export default async function handler(req, res) {
       dates: String(dates).slice(0, 60),
       reasons: Array.isArray(reasons) ? reasons.slice(0, 10).map((r) => String(r).slice(0, 60)) : [],
       city: String(city || "medellin").slice(0, 40),
+      gender: VALID_GENDERS.includes(gender) ? gender : null,
+      birthday: String(birthday).slice(0, 10),
+      interests: cleanInterests,
+      verifiedSelfie: !!verifiedSelfie,
+      allowDmFromMen: allowDmFromMen !== false,
+      showIgToMen: showIgToMen !== false,
       submittedAt: new Date().toISOString(),
       userAgent: String(req.headers["user-agent"] || "").slice(0, 160),
     }
 
+    // keep an audit copy of the application (private blob)
     const safeIg = record.ig.replace(/[^a-zA-Z0-9_.]/g, "").slice(0, 30)
-    await put(`applications/${Date.now()}-${safeIg}.json`, JSON.stringify(record, null, 2), {
-      access: "private",
-      contentType: "application/json",
-      addRandomSuffix: true,
+    try {
+      await put(`applications/${Date.now()}-${safeIg}.json`, JSON.stringify(record, null, 2), {
+        access: "private",
+        contentType: "application/json",
+        addRandomSuffix: true,
+      })
+    } catch (e) {
+      console.error("apply blob error:", e)
+    }
+
+    // AUTO-ACCEPT: create the member row + mint a token, instantly
+    const { token, memberNo } = await createAcceptedMember({
+      name: record.name,
+      ig: record.ig,
+      email: record.email,
+      country: record.country,
+      reasons: record.reasons,
+      dates: record.dates,
+      city: record.city,
+      gender: record.gender,
+      birthday: record.birthday,
+      interests: record.interests,
+      verifiedSelfie: record.verifiedSelfie,
+      allowDmFromMen: record.allowDmFromMen,
+      showIgToMen: record.showIgToMen,
     })
 
-    return res.status(200).json({ ok: true })
+    // welcome email (preserves the existing email + token mechanics)
+    try {
+      const url = `https://irlpass.xyz/?screen=app&t=${token}`
+      await sendEmail({ to: record.email, ...acceptanceEmail({ name: record.name, memberNo, url }) })
+    } catch (e) {
+      console.error("apply email error:", e)
+    }
+
+    return res.status(200).json({ ok: true, token, memberNo })
   } catch (e) {
     console.error("apply error:", e)
     return res.status(500).json({ error: "could not save application" })

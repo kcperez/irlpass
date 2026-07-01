@@ -1,4 +1,4 @@
-import { getMember } from "./_lib.js"
+import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 
 export const config = { api: { bodyParser: { sizeLimit: "3mb" } } }
@@ -6,7 +6,7 @@ export const config = { api: { bodyParser: { sizeLimit: "3mb" } } }
 // POST { t, image: "data:image/jpeg;base64,..." } -> uploads avatar, saves url
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
-  const me = await getMember(req.body?.t)
+  const me = await getUser(req.body?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
 
   try {

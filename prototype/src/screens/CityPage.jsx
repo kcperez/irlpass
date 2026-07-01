@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ForkKnife, ShieldCheck, UsersThree, RocketLaunch, ArrowRight } from "@phosphor-icons/react"
-import { CITY, MEMBERS, avatarUrl } from "../data"
-import { Logo, Squiggle, ColombiaFlag, LiveDot, LiveCounter, AvatarStack, Marquee, BigButton } from "../components/bits"
+import { ShieldCheck, ChatCircleDots, GlobeHemisphereWest, Ticket, ArrowRight } from "@phosphor-icons/react"
+import { CITIES, TRAVELERS_NOW } from "../data"
+import { Logo, Squiggle, LiveDot, LiveCounter, AvatarStack, Marquee, BigButton } from "../components/bits"
 import { signInWithGoogle } from "../lib/auth"
 import { t } from "../lib/i18n"
 
@@ -36,7 +36,7 @@ const FOUNDERS = [
     ig: "jawshmac",
     title: "co-founder · member 002",
     note:
-      "half my dms are people asking how to do colombia right. who to trust, where to go, how to not be alone out here. this is the answer i always wished i could send.",
+      "half my dms are people asking how to travel a place right. who to trust, where to go, how to not be alone out there. this is the answer i always wished i could send.",
   },
 ]
 
@@ -84,8 +84,6 @@ function FounderNotes() {
   )
 }
 
-const CITIES_SOON = ["miami", "cdmx", "lisboa", "bali"]
-
 export default function CityPage({ onApply }) {
   const memberToken = localStorage.getItem("irlpass_member_token")
   return (
@@ -110,45 +108,58 @@ export default function CityPage({ onApply }) {
         )}
       </motion.header>
 
-      {/* the global idea, then city one */}
+      {/* brand-led hero — global value prop, then social proof */}
       <motion.section variants={rise} className="px-5 pt-6">
-        <p className="display text-[15px] font-semibold text-ink">{t("the vetted travel club. every city, one club.")}</p>
-        <div className="mt-2.5 flex gap-1.5 overflow-x-auto pb-1">
-          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-ink">
-            <span className="h-1.5 w-1.5 rounded-full bg-ink" />{" "}{t("medellín · live")}
-          </span>
-          {CITIES_SOON.map((c) => (
-            <span key={c} className="shrink-0 rounded-full border border-line bg-cream-deep/50 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft/60">
-              {c} · {t("soon")}
-            </span>
-          ))}
-        </div>
-      </motion.section>
-
-      {/* editorial hero — left aligned, squiggle */}
-      <motion.section variants={rise} className="px-5 pt-5">
-        <div className="flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-soft">
-          <ColombiaFlag /> {CITY.country} · {CITY.code}
-        </div>
-        <h1 className="display mt-1 text-[54px] font-bold leading-[0.95]">
-          {CITY.name}
-          <Squiggle className="mt-1 w-[190px]" />
+        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-soft">
+          {t("the vetted travel club")}
+        </p>
+        <h1 className="display mt-2 max-w-[9ch] text-[52px] font-bold leading-[0.95]">
+          {t("nobody lands alone")}
+          <Squiggle className="mt-1 w-[200px]" />
         </h1>
+        <p className="mt-4 max-w-[22rem] text-[15.5px] leading-relaxed text-ink-soft">
+          {t("wherever you travel, there's already people. every city, one club.")}
+        </p>
 
-        <div className="mt-4 flex items-center gap-2.5 text-[15px]">
+        {/* live global counter — the filmable launch asset */}
+        <div className="mt-5 flex items-center gap-2.5 text-[15px]">
           <LiveDot />
           <span className="text-[17px]">
-            <LiveCounter start={CITY.travelersNow} />
+            <LiveCounter start={TRAVELERS_NOW} />
           </span>
-          <span className="text-ink-soft">{t("travelers here right now")}</span>
+          <span className="text-ink-soft">{t("travelers moving right now")}</span>
         </div>
         <div className="mt-3 flex items-center">
-          <AvatarStack extra={t("{n} more this month", { n: CITY.travelersNow - 6 })} />
+          <AvatarStack extra={t("{n} more across the map", { n: 128 })} />
+        </div>
+
+        {/* city one is live, the rest are dropping next — "wherever you land" */}
+        <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1">
+          {CITIES.map((c) =>
+            c.status === "live" ? (
+              <span
+                key={c.name}
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-ink"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-ink" /> {c.name} · {t("live")}
+              </span>
+            ) : (
+              <span
+                key={c.name}
+                className="shrink-0 rounded-full border border-line bg-cream-deep/50 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft/60"
+              >
+                {c.name} · {t("soon")}
+              </span>
+            )
+          )}
         </div>
       </motion.section>
 
-      {/* scattered postcards (Travo collage energy) */}
-      <motion.section variants={rise} className="relative mt-6 px-5">
+      {/* scattered postcards — medellín as proof-of-life, not the ceiling */}
+      <motion.section variants={rise} className="relative mt-7 px-5">
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
+          {t("city one · medellín · live now")}
+        </p>
         <div
           className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-lime/50 blur-3xl"
           aria-hidden
@@ -172,10 +183,10 @@ export default function CityPage({ onApply }) {
       {/* the practical strip — NomadTable structure, no cards, divided rows */}
       <motion.section variants={rise} className="mt-6 divide-y divide-line/70 border-y border-line/70">
         {[
-          { icon: UsersThree, head: t("nobody lands alone"), sub: t("see the plans, tap i'm in, you've got people") },
-          { icon: ShieldCheck, head: t("every member is vetted"), sub: t("application, real instagram, no weirdos") },
-          { icon: ForkKnife, head: t("dinner every thursday"), sub: t("six seats, members pick the spot") },
-          { icon: RocketLaunch, head: t("the club app is live"), sub: t("activity board, city lobby, private chat per plan") },
+          { icon: ChatCircleDots, head: t("free in your city"), sub: t("see what's happening, make plans, group chat per activity") },
+          { icon: GlobeHemisphereWest, head: t("browse the whole map"), sub: t("every city, wherever you travel") },
+          { icon: ShieldCheck, head: t("vetted + safe"), sub: t("real members, reputation, women-only plans 🌸") },
+          { icon: Ticket, head: t("travel mode"), sub: t("the pass unlocks hosting anywhere + dms with anyone") },
         ].map((r) => (
           <div key={r.head} className="flex items-center gap-4 px-5 py-3.5">
             <r.icon size={20} weight="duotone" className="shrink-0 text-ink" />
@@ -192,12 +203,12 @@ export default function CityPage({ onApply }) {
         <FounderNotes />
       </motion.section>
 
-      <Marquee items={["medellín", "vetted", "irl", "thursday dinners", "no tourist traps", "members only"]} />
+      <Marquee items={[t("every city"), t("vetted"), "irl", t("nobody lands alone"), t("women-only plans"), t("members only"), t("medellín · live")]} />
 
       {/* compliance footer — pricing, contact, legal (stripe reviewers read this) */}
       <motion.footer variants={rise} className="px-5 py-5 text-center">
         <p className="font-mono text-[10px] text-ink-soft">
-          membership $9.99/mo or $69.99/yr ·{" "}
+          free to join · the pass unlocks every city + dms · $9.99/mo or $69.99/yr ·{" "}
           <a href="/?screen=info" className="underline underline-offset-2">terms</a> ·{" "}
           <a href="mailto:kevincastroperez@gmail.com" className="underline underline-offset-2">contact</a>{" "}
           · © 2026 irlpass
@@ -211,6 +222,9 @@ export default function CityPage({ onApply }) {
             {t("apply to join")} <ArrowRight size={18} weight="bold" />
           </span>
         </BigButton>
+        <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+          {t("free in your city · the pass unlocks the rest")}
+        </p>
       </div>
     </motion.div>
   )

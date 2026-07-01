@@ -20,11 +20,9 @@ export default async function handler(req, res) {
     if (!email) return res.status(401).json({ error: "no email" })
 
     const { data: m } = await db.from("members").select("*").eq("email", email).maybeSingle()
+    // freemium: accepted = in. paid or not, route to the app.
     if (m && !m.banned) {
-      if (m.paid) {
-        return res.status(200).json({ state: "member", name: m.name, url: `/?screen=app&t=${m.token}` })
-      }
-      return res.status(200).json({ state: "accepted", name: m.name, url: `/?screen=offer&t=${m.token}` })
+      return res.status(200).json({ state: "member", name: m.name, url: `/?screen=app&t=${m.token}` })
     }
 
     // not accepted yet: do they have an application in?
