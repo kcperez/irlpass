@@ -387,32 +387,45 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
   )
 }
 
-// typed location that resolves itself ("pueblito paisa" -> coordinates)
-function PlaceInput({ value, onChange }) {
+// typed location that resolves itself via google maps ("pueblito paisa" -> pick
+// from real places, pinned to the city the plan is being created in)
+function PlaceInput({ value, onChange, city }) {
   const [q, setQ] = useState(value?.name || "")
   const [status, setStatus] = useState(value ? "found" : "idle") // idle | looking | found | missing
+  const [suggestions, setSuggestions] = useState([])
   const timer = useRef(null)
 
   const lookup = (text) => {
     clearTimeout(timer.current)
     const query = text.trim()
-    if (query.length < 3) { onChange(null); setStatus("idle"); return }
+    if (query.length < 3) { onChange(null); setStatus("idle"); setSuggestions([]); return }
     setStatus("looking")
     timer.current = setTimeout(async () => {
       try {
-        const d = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`).then((r) => r.json())
+        const d = await fetch(`/api/geocode?q=${encodeURIComponent(query)}&city=${encodeURIComponent(city || "")}`).then((r) => r.json())
         if (d.found) {
+          // best match auto-pins; the rest populate a picker underneath
           onChange({ name: d.name, lat: d.lat, lng: d.lng })
           setStatus("found")
+          setSuggestions((d.suggestions || []).slice(0, 4))
         } else {
           onChange({ name: query.toLowerCase(), lat: null, lng: null })
           setStatus("missing")
+          setSuggestions([])
         }
       } catch {
         onChange({ name: query.toLowerCase(), lat: null, lng: null })
         setStatus("missing")
+        setSuggestions([])
       }
     }, 600)
+  }
+
+  const pick = (s) => {
+    onChange({ name: s.name, lat: s.lat, lng: s.lng })
+    setQ(s.name)
+    setStatus("found")
+    setSuggestions([])
   }
 
   return (
@@ -426,6 +439,21 @@ function PlaceInput({ value, onChange }) {
       <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">
         {status === "looking" ? t("finding it…") : status === "found" ? `📍 ${value?.name} · on the map` : status === "missing" ? t("can't place it on the map, posting anyway") : t("type the spot, we'll find it")}
       </p>
+      {suggestions.length > 1 && (
+        <div className="mt-1.5 overflow-hidden rounded-xl border border-line bg-white/80">
+          {suggestions.map((s, i) => (
+            <button
+              key={`${s.lat},${s.lng}`}
+              type="button"
+              onClick={() => pick(s)}
+              className={`flex w-full items-baseline gap-2 px-3 py-2 text-left active:bg-cream-deep/60 ${i > 0 ? "border-t border-line/60" : ""} ${value?.name === s.name ? "bg-lime/20" : ""}`}
+            >
+              <span className="truncate text-[13px] font-medium">📍 {s.name}</span>
+              {s.address && <span className="truncate font-mono text-[10px] text-ink-soft">{s.address}</span>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -906,7 +934,7 @@ function Board({ token, me, openChat, photoMap = {}, refresh }) {
                   <option value={999}>open</option>
                 </select>
               </div>
-              <PlaceInput value={place} onChange={setPlace} />
+              <PlaceInput value={place} onChange={setPlace} city={viewCity} />
               <input
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
