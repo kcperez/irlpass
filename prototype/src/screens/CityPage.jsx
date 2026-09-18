@@ -1,7 +1,6 @@
-import {
-  CalendarPlus, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShieldCheck, ChatCircleDots, GlobeHemisphereWest, Ticket, ArrowRight } from "@phosphor-icons/react"
+import { ShieldCheck, ChatCircleDots, GlobeHemisphereWest, Ticket, ArrowRight, CalendarPlus } from "@phosphor-icons/react"
 import { CITIES, TRAVELERS_NOW } from "../data"
 import { Logo, Squiggle, LiveDot, LiveCounter, AvatarStack, Marquee, BigButton } from "../components/bits"
 import { signInWithGoogle } from "../lib/auth"

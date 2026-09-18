@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRight, InstagramLogo, EnvelopeSimple,
   Camera, CheckCircle, DoorOpen,
 } from "@phosphor-icons/react"
-import { DATE_OPTIONS, REASON_OPTIONS, COUNTRIES, CITY } from "../data"
+import { COUNTRIES, CITY } from "../data"
 import { BigButton, LiveDot, LiveCounter } from "../components/bits"
 import { t } from "../lib/i18n"
 
@@ -106,7 +106,6 @@ export default function Apply({ onBack, onSubmit }) {
   const [ig, setIg] = useState("")
   const [photo, setPhoto] = useState(null)
   const [selfieState, setSelfieState] = useState("idle") // idle | checking | verified
-  const [dates, setDates] = useState(null)
   // v2: the dates people actually travel. posted as a trip the moment they join.
   const [tripCity, setTripCity] = useState("medellin")
   const [tripStart, setTripStart] = useState(todayIso())
