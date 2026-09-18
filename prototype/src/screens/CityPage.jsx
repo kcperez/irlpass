@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import {
+  CalendarPlus, useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShieldCheck, ChatCircleDots, GlobeHemisphereWest, Ticket, ArrowRight } from "@phosphor-icons/react"
 import { CITIES, TRAVELERS_NOW } from "../data"
@@ -111,14 +112,14 @@ export default function CityPage({ onApply }) {
       {/* brand-led hero — global value prop, then social proof */}
       <motion.section variants={rise} className="px-5 pt-6">
         <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-soft">
-          {t("the vetted travel club")}
+          {t("post your dates. see who's there.")}
         </p>
         <h1 className="display mt-2 max-w-[9ch] text-[52px] font-bold leading-[0.95]">
           {t("nobody lands alone")}
           <Squiggle className="mt-1 w-[200px]" />
         </h1>
         <p className="mt-4 max-w-[22rem] text-[15.5px] leading-relaxed text-ink-soft">
-          {t("wherever you travel, there's already people. every city, one club.")}
+          {t("say when you're in a city. see everyone whose trip overlaps yours, and message them.")}
         </p>
 
         {/* live global counter — the filmable launch asset */}
@@ -183,10 +184,10 @@ export default function CityPage({ onApply }) {
       {/* the practical strip — NomadTable structure, no cards, divided rows */}
       <motion.section variants={rise} className="mt-6 divide-y divide-line/70 border-y border-line/70">
         {[
-          { icon: ChatCircleDots, head: t("free in your city"), sub: t("see what's happening, make plans, group chat per activity") },
-          { icon: GlobeHemisphereWest, head: t("browse the whole map"), sub: t("every city, wherever you travel") },
-          { icon: ShieldCheck, head: t("vetted + safe"), sub: t("real members, reputation, women-only plans 🌸") },
-          { icon: Ticket, head: t("travel mode"), sub: t("the pass unlocks hosting anywhere + dms with anyone") },
+          { icon: CalendarPlus, head: t("post your dates, free"), sub: t("30 seconds, no approval, no waiting") },
+          { icon: GlobeHemisphereWest, head: t("see who overlaps"), sub: t("every person whose trip crosses yours, day by day") },
+          { icon: ShieldCheck, head: t("safe by default"), sub: t("real instagram accounts, women-only mode, block and report 🌸") },
+          { icon: Ticket, head: t("message when you want to"), sub: t("replying is free · $19 a trip or $29/mo to start one") },
         ].map((r) => (
           <div key={r.head} className="flex items-center gap-4 px-5 py-3.5">
             <r.icon size={20} weight="duotone" className="shrink-0 text-ink" />
@@ -203,12 +204,12 @@ export default function CityPage({ onApply }) {
         <FounderNotes />
       </motion.section>
 
-      <Marquee items={[t("every city"), t("vetted"), "irl", t("nobody lands alone"), t("women-only plans"), t("members only"), t("medellín · live")]} />
+      <Marquee items={[t("every city"), t("post your dates"), "irl", t("nobody lands alone"), t("women-only mode"), t("free to join"), t("medellín · live")]} />
 
       {/* compliance footer — pricing, contact, legal (stripe reviewers read this) */}
       <motion.footer variants={rise} className="px-5 py-5 text-center">
         <p className="font-mono text-[10px] text-ink-soft">
-          free to join · the pass unlocks every city + dms · $9.99/mo or $69.99/yr ·{" "}
+          free to join and post dates · $19 per trip or $29/mo to message ·{" "}
           <a href="/?screen=info" className="underline underline-offset-2">terms</a> ·{" "}
           <a href="mailto:kevincastroperez@gmail.com" className="underline underline-offset-2">contact</a>{" "}
           · © 2026 irlpass
@@ -219,11 +220,11 @@ export default function CityPage({ onApply }) {
       <div className="sticky bottom-0 mt-auto bg-gradient-to-t from-cream via-cream/95 to-transparent px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-6">
         <BigButton onClick={onApply}>
           <span className="flex items-center justify-center gap-2">
-            {t("apply to join")} <ArrowRight size={18} weight="bold" />
+            {t("post your dates")} <ArrowRight size={18} weight="bold" />
           </span>
         </BigButton>
         <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">
-          {t("free in your city · the pass unlocks the rest")}
+          {t("free to join · first 40 members message free")}
         </p>
       </div>
     </motion.div>

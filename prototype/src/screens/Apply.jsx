@@ -29,6 +29,21 @@ const INTERESTS = [
 ]
 const MAX_INTERESTS = 10
 
+const TRIP_CITIES = [
+  { slug: "medellin", name: "Medellín" },
+  { slug: "cdmx", name: "Mexico City" },
+  { slug: "miami", name: "Miami" },
+  { slug: "lisboa", name: "Lisbon" },
+  { slug: "bali", name: "Bali" },
+]
+
+const todayIso = () => new Date().toISOString().slice(0, 10)
+const addDaysIso = (iso, n) => {
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
 function Chip({ label, active, onClick, disabled }) {
   return (
     <motion.button
@@ -92,6 +107,11 @@ export default function Apply({ onBack, onSubmit }) {
   const [photo, setPhoto] = useState(null)
   const [selfieState, setSelfieState] = useState("idle") // idle | checking | verified
   const [dates, setDates] = useState(null)
+  // v2: the dates people actually travel. posted as a trip the moment they join.
+  const [tripCity, setTripCity] = useState("medellin")
+  const [tripStart, setTripStart] = useState(todayIso())
+  const [tripEnd, setTripEnd] = useState(addDaysIso(todayIso(), 6))
+  const [flexible, setFlexible] = useState(false)
   const [interests, setInterests] = useState([])
 
   const [submitting, setSubmitting] = useState(false)
@@ -307,14 +327,35 @@ export default function Apply({ onBack, onSubmit }) {
     },
     {
       key: "dates",
-      title: t("when are you in medellín?"),
-      sub: t("flexible counts — you'll still see who overlaps"),
-      valid: !!dates,
+      title: t("when are you there?"),
+      sub: t("this is what puts you on the calendar — you'll see who overlaps"),
+      valid: !!tripStart && !!tripEnd && tripEnd >= tripStart,
       body: (
-        <div className="flex flex-col gap-2.5">
-          {DATE_OPTIONS.map((d) => (
-            <Chip key={d} label={t(d)} active={dates === d} onClick={() => setDates(d)} />
-          ))}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {TRIP_CITIES.map((c) => (
+              <Chip key={c.slug} label={c.name} active={tripCity === c.slug} onClick={() => setTripCity(c.slug)} />
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label htmlFor="apply-start" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">arrive</label>
+              <input
+                id="apply-start" type="date" value={tripStart} min={todayIso()}
+                onChange={(e) => { setTripStart(e.target.value); if (tripEnd < e.target.value) setTripEnd(e.target.value) }}
+                className="mt-1.5 w-full rounded-2xl border border-line bg-white/70 px-3 py-3 text-[15px]"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="apply-end" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">leave</label>
+              <input
+                id="apply-end" type="date" value={tripEnd} min={tripStart}
+                onChange={(e) => setTripEnd(e.target.value)}
+                className="mt-1.5 w-full rounded-2xl border border-line bg-white/70 px-3 py-3 text-[15px]"
+              />
+            </div>
+          </div>
+          <Chip label={t("i'm flexible on these dates")} active={flexible} onClick={() => setFlexible((f) => !f)} />
         </div>
       ),
     },
@@ -362,13 +403,13 @@ export default function Apply({ onBack, onSubmit }) {
       email: email.trim(),
       gender,
       birthday,
-      dates,
+      dates: flexible ? `${tripStart} to ${tripEnd} (flexible)` : `${tripStart} to ${tripEnd}`,
       reasons: interests, // legacy field still carries their interests
       interests,
       verifiedSelfie: selfieState === "verified",
       allowDmFromMen: true,
       showIgToMen: true,
-      city: "medellin",
+      city: tripCity,
     }
     setSubmitting(true)
     setError(null)
@@ -391,6 +432,15 @@ export default function Apply({ onBack, onSubmit }) {
           })
         } catch {}
       }
+
+      // put them on the calendar immediately — this is the whole point of v2
+      try {
+        await fetch("/api/trips", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ t: data.token, city: tripCity, starts: tripStart, ends: tripEnd, flexible }),
+        })
+      } catch {}
 
       localStorage.setItem("irlpass_member_token", data.token)
       onSubmit?.(applicant)

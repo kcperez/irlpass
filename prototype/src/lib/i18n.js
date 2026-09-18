@@ -6,6 +6,29 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
 const ES = {
+  // ── v2: the calendar ──
+  "post your dates. see who's there.": "pon tus fechas. mira quién está ahí.",
+  "say when you're in a city. see everyone whose trip overlaps yours, and message them.":
+    "di cuándo estás en una ciudad. mira a todos cuyo viaje coincide con el tuyo, y escríbeles.",
+  "post your dates": "pon tus fechas",
+  "post your dates, free": "pon tus fechas, gratis",
+  "30 seconds, no approval, no waiting": "30 segundos, sin aprobación, sin esperar",
+  "see who overlaps": "mira quién coincide",
+  "every person whose trip crosses yours, day by day": "cada persona cuyo viaje cruza el tuyo, día a día",
+  "safe by default": "seguro desde el inicio",
+  "real instagram accounts, women-only mode, block and report 🌸":
+    "instagram reales, modo solo mujeres, bloquear y reportar 🌸",
+  "message when you want to": "escribe cuando quieras",
+  "replying is free · $19 a trip or $29/mo to start one":
+    "responder es gratis · $19 por viaje o $29/mes para escribir primero",
+  "women-only mode": "modo solo mujeres",
+  "free to join": "gratis para entrar",
+  "free to join · first 40 members message free":
+    "gratis para entrar · los primeros 40 miembros escriben gratis",
+  "when are you there?": "¿cuándo estás ahí?",
+  "this is what puts you on the calendar — you'll see who overlaps":
+    "esto es lo que te pone en el calendario — verás quién coincide",
+  "i'm flexible on these dates": "soy flexible con estas fechas",
   // ── landing / city page ──
   "the vetted travel club. every city, one club.": "el club de viajeros con filtro. cada ciudad, un club.",
   "the vetted travel club": "el club de viajeros con filtro",
