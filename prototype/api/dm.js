@@ -2,6 +2,7 @@ import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { rowToMember } from "./_lib.js"
 import { notifyMemberNo } from "./_notify.js"
+import { canReachMember } from "./_access.js"
 
 const pair = (a, b) => (String(a) < String(b) ? [String(a), String(b)] : [String(b), String(a)])
 
@@ -89,10 +90,26 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: "this member only accepts dms from women & non-binary members" })
       }
 
-      // the paywall: free if you share a plan, otherwise it's a pass perk
-      const shared = await shareActivity(me.memberNo, String(to))
-      if (!shared && !me.paid) {
-        return res.status(402).json({ error: "subscribe to dm members you haven't met", gate: "dm" })
+      // the paywall: replying is always free, starting a conversation is not.
+      // free to start when you hold a founding slot, the pass, or an unlock
+      // covering their dates. legacy: sharing an activity also counts.
+      const [pa, pb] = pair(me.memberNo, String(to))
+      const { data: existing } = await db.from("dm_threads").select("id").eq("a_no", pa).eq("b_no", pb).maybeSingle()
+      let theyWroteFirst = false
+      if (existing) {
+        const { count } = await db
+          .from("dm_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("thread_id", existing.id)
+          .eq("from_no", String(to))
+        theyWroteFirst = (count || 0) > 0
+      }
+      if (!theyWroteFirst) {
+        const reach = await canReachMember(me, String(to))
+        const shared = reach.ok ? true : await shareActivity(me.memberNo, String(to))
+        if (!reach.ok && !shared) {
+          return res.status(402).json({ error: "unlock these dates to send the first message", gate: "unlock", to: String(to) })
+        }
       }
 
       const [a, b] = pair(me.memberNo, String(to))

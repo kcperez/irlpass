@@ -20,6 +20,7 @@ import "maplibre-gl/dist/maplibre-gl.css"
 import QRCode from "qrcode"
 import { Logo, ColombiaFlag } from "../components/bits"
 import { t, LANG } from "../lib/i18n"
+import Trips from "./Trips"
 
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
 
@@ -1772,7 +1773,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
       body: JSON.stringify({ t: token, to: openWith.memberNo, text: body }),
     }).then((x) => x.json()).catch(() => null)
     setBusy(false)
-    if (r?.gate === "dm") return onPaywall("dm")
+    if (r?.gate === "dm" || r?.gate === "unlock") return onPaywall(r.gate)
     if (r?.error) return alert(r.error)
     setText("")
     loadConvo(openWith.memberNo)
@@ -1854,13 +1855,14 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
 export default function Club({ token }) {
   const [me, setMe] = useState(null)
   const [state, setState] = useState("loading")
-  const [tab, setTab] = useState("board")
+  const [tab, setTab] = useState("trips")
   const [activeChat, setActiveChat] = useState(null)
   const [dmWith, setDmWith] = useState(null) // member object when a thread is open
   const [paywall, setPaywall] = useState(null) // reason string -> show paywall
   const [profileOpen, setProfileOpen] = useState(false)
   const [photoMap, setPhotoMap] = useState({})
   const [refresh, setRefresh] = useState(0)
+  const [unlockRequest, setUnlockRequest] = useState(0)
 
   // photo lookup for avatars in chats and joined stacks
   useEffect(() => {
@@ -1929,7 +1931,7 @@ export default function Club({ token }) {
   }
 
   const TABS = [
-    { key: "board", label: t("board"), icon: CalendarPlus },
+    { key: "trips", label: "dates", icon: CalendarPlus },
     { key: "members", label: t("members"), icon: UsersThree },
     { key: "dms", label: t("dms"), icon: PaperPlaneRight },
     { key: "chats", label: t("chats"), icon: ChatsCircle },
@@ -1940,9 +1942,10 @@ export default function Club({ token }) {
     <div className="relative flex h-[var(--app-h)] flex-col">
       {!inThread && <TopBar me={me} onProfile={() => setProfileOpen(true)} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
         {tab === "board" && <Board token={token} me={me} photoMap={photoMap} refresh={refresh} openChat={(channel, title, activity) => { setActiveChat({ channel, title, activity }); setTab("chats") }} />}
         {tab === "members" && <Members token={token} me={me} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
-        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={setDmWith} photoMap={photoMap} onPaywall={(r) => setPaywall(r)} />}
+        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={setDmWith} photoMap={photoMap} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
         {tab === "chats" && <Chats token={token} me={me} photoMap={photoMap} active={activeChat} setActive={setActiveChat} />}
       </div>
       <AnimatePresence>

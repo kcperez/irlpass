@@ -95,3 +95,19 @@ export const loginEmail = ({ name, url, label }) => ({
       ${label}
     </a>`,
 })
+
+// v2: someone posted dates that overlap yours. the loop that brings people back.
+export const matchEmail = ({ name, who, city, starts, ends, url }) => ({
+  subject: `${who} will be in ${city} on your dates`,
+  html: `
+    <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? name.toLowerCase() : "there"}.</h1>
+    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:12px 0 0">
+      ${who} just posted <strong>${starts} to ${ends}</strong> in ${city}, which overlaps your trip.
+    </p>
+    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:20px">
+      see who else is there
+    </a>
+    <p style="font-size:12px;color:#8a857a;text-align:center;margin:12px 0 0">
+      <a href="https://irlpass.xyz/api/notify-off?t=" style="color:#8a857a">turn off these emails</a>
+    </p>`,
+})

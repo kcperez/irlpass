@@ -36,6 +36,9 @@ export const rowToMember = (r) =>
     interests: Array.isArray(r.interests) ? r.interests : [],
     allowDmFromMen: r.allow_dm_from_men !== false, // default on
     showIgToMen: r.show_ig_to_men !== false, // default on
+    // v2: founding slot = messaging is free for this member, forever
+    foundingFree: !!r.founding_free,
+    foundingNo: r.founding_no || null,
   }
 
 // look up an accepted person by token (paid or not)

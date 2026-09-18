@@ -19,5 +19,7 @@ export default async function handler(req, res) {
     repCount: member.repCount,
     allowDmFromMen: member.allowDmFromMen,
     showIgToMen: member.showIgToMen,
+    foundingFree: !!member.foundingFree,
+    foundingNo: member.foundingNo,
   })
 }

@@ -36,8 +36,15 @@ export async function createAcceptedMember(input = {}) {
     return { token: existing.token, memberNo: existing.member_no, existing: true }
   }
 
-  const { count } = await db.from("members").select("*", { count: "exact", head: true })
-  const memberNo = String(MEMBER_START + (count || 0)).padStart(3, "0")
+  // next number = highest real number + 1. counting rows drifted (gaps, test
+  // rows 990-992) and handed out duplicates; 9xx is reserved for test members.
+  const { data: top } = await db
+    .from("members")
+    .select("member_no")
+    .lt("member_no", "900")
+    .order("member_no", { ascending: false })
+    .limit(1)
+  const memberNo = String(Math.max(MEMBER_START, Number(top?.[0]?.member_no || 0) + 1)).padStart(3, "0")
   const token = randomBytes(16).toString("hex")
 
   const row = {
