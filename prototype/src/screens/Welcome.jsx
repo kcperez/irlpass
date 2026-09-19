@@ -105,15 +105,17 @@ export default function Welcome({ onStart }) {
           </motion.div>
         </div>
 
-        <motion.img
-          src="/art/hero.png"
-          alt=""
-          initial={{ opacity: 0, scale: 0.94, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 110, damping: 18, delay: 0.1 }}
-          className="mx-auto min-h-0 w-[94%] max-w-[420px] flex-1 select-none object-contain py-2 lg:order-2 lg:w-full lg:max-w-none lg:flex-none lg:py-0"
-          draggable="false"
-        />
+        <div className="relative flex min-h-[180px] flex-1 items-center justify-center px-4 lg:order-2 lg:min-h-0 lg:flex-none lg:px-0">
+          <motion.img
+            src="/art/hero.png"
+            alt=""
+            initial={{ opacity: 0, scale: 0.94, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 110, damping: 18, delay: 0.1 }}
+            className="h-full max-h-[42vh] w-auto max-w-full select-none object-contain lg:max-h-none lg:w-full"
+            draggable="false"
+          />
+        </div>
       </div>
     </div>
   )
