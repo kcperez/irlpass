@@ -3,19 +3,11 @@ import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, ArrowRight, CircleNotch, LockSimple } from "@phosphor-icons/react"
 import { useEffect } from "react"
 import { t } from "../lib/i18n"
+import { CITY_INDEX, searchCities, slugify, cityChip } from "../lib/cities"
 
 // two taps and you're on the calendar: where + when, then how we reach you.
 
-const CITIES = [
-  { slug: "medellin", name: "Medellín", emoji: "🇨🇴", live: true },
-  { slug: "cdmx", name: "Mexico City", emoji: "🇲🇽" },
-  { slug: "miami", name: "Miami", emoji: "🌴" },
-  { slug: "lisboa", name: "Lisbon", emoji: "🇵🇹" },
-  { slug: "bali", name: "Bali", emoji: "🌺" },
-]
-const slugify = (name) =>
-  String(name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40)
+const QUICK = ["medellin", "cdmx", "miami", "lisboa", "bali"].map((slug) => CITY_INDEX.find((c) => c.slug === slug))
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const todayIso = () => iso(new Date())
@@ -73,6 +65,13 @@ export default function Join({ ig, onBack, onDone }) {
   const [flexible, setFlexible] = useState(false)
   const [picked, setPicked] = useState(null) // which preset, or "exact"
   const [exact, setExact] = useState(false)
+  const matches = (() => {
+    const found = searchCities(customCity)
+    const slug = slugify(customCity)
+    // anything we don't know still gets a chip, with a pin
+    if (slug && !found.some((c) => c.slug === slug)) return [cityChip(slug, customCity), ...found].slice(0, 6)
+    return found
+  })()
   const [starts, setStarts] = useState(todayIso())
   const [ends, setEnds] = useState(addDays(todayIso(), 6))
   const [email, setEmail] = useState("")
@@ -148,24 +147,26 @@ export default function Join({ ig, onBack, onDone }) {
               const slug = slugify(e.target.value)
               if (slug) setCity(slug)
             }}
+            autoComplete="off"
             placeholder={t("type any city")}
             className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
+
           <div className="flex flex-wrap gap-2">
-            {CITIES.map((c) => (
+            {(customCity.trim() ? matches : QUICK).map((c) => (
               <Bubble
                 key={c.slug}
                 active={city === c.slug}
-                onClick={() => { setCity(c.slug); setCustomCity("") }}
+                onClick={() => { setCity(c.slug); setCustomCity(c.name) }}
               >
                 <span className="mr-1.5">{c.emoji}</span>
                 {c.name}
-                {byCity[c.slug] > 0 ? (
+                {byCity[c.slug] > 0 && (
                   <span className="relative ml-2 inline-flex h-2 w-2 align-middle">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-[#5fd35f]" />
                   </span>
-                ) : null}
+                )}
               </Bubble>
             ))}
           </div>
@@ -356,6 +357,7 @@ export default function Join({ ig, onBack, onDone }) {
     },
   ]
 
+  const chip = cityChip(city, customCity)
   const cur = steps[step]
   const last = step === steps.length - 1
 
@@ -370,7 +372,7 @@ export default function Join({ ig, onBack, onDone }) {
             <span key={s.key} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-ink" : "bg-line"}`} />
           ))}
         </div>
-        <span className="font-mono text-[11px] text-ink-soft">@{ig}</span>
+        <span className="font-mono text-[11px] text-ink-soft">{step > 0 ? `${chip.emoji} ${chip.name}` : `@${ig}`}</span>
       </div>
 
       <AnimatePresence mode="wait">

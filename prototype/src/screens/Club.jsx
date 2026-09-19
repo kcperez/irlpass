@@ -15,6 +15,7 @@ import { Logo } from "../components/bits"
 import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
+import { cityChip } from "../lib/cities"
 
 const CITIES = [
   { slug: "medellin", name: "medellín", center: [-75.5812, 6.2442], live: true },
@@ -835,8 +836,6 @@ function DeniedScreen() {
 
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
-const CITY_LABEL = { medellin: "medellín", cdmx: "mexico city", miami: "miami", lisboa: "lisbon", bali: "bali" }
-
 function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }) {
   const [roomOpen, setRoomOpen] = useState(false)
   const [threads, setThreads] = useState(null)
@@ -919,7 +918,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
     )
   }
 
-  const cityName = CITY_LABEL[me.city] || me.city
+  const cityName = cityChip(me.city).name.toLowerCase()
 
   if (roomOpen) {
     return (

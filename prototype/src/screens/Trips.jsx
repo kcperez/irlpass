@@ -4,18 +4,13 @@ import {
   CalendarPlus, CheckCircle, CircleNotch, LockSimple,
   Plus, Trash, X,
 } from "@phosphor-icons/react"
+import { CITY_INDEX, cityChip } from "../lib/cities"
 
 // v2: the calendar is the product. post your dates, see who overlaps them,
 // pay once to start conversations with them.
 
-const CITIES = [
-  { slug: "medellin", name: "Medellín" },
-  { slug: "cdmx", name: "Mexico City" },
-  { slug: "miami", name: "Miami" },
-  { slug: "lisboa", name: "Lisbon" },
-  { slug: "bali", name: "Bali" },
-]
-const cityName = (slug) => CITIES.find((c) => c.slug === slug)?.name || slug
+const CITIES = ["medellin", "cdmx", "miami", "lisboa", "bali"].map((slug) => CITY_INDEX.find((c) => c.slug === slug))
+const cityName = (slug) => cityChip(slug).name
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const todayIso = () => iso(new Date())

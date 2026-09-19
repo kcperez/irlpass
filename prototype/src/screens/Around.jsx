@@ -18,7 +18,7 @@ const fmt = (isoDate) =>
 const dayLetter = (isoDate) =>
   new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "narrow", timeZone: "UTC" })
 
-const CITY_LABEL = { medellin: "medellín", cdmx: "mexico city", miami: "miami", lisboa: "lisbon", bali: "bali" }
+import { cityChip } from "../lib/cities"
 
 export default function Around({ token, me, onOpenDM, onUnlock }) {
   const [data, setData] = useState(null)
@@ -55,7 +55,7 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
   return (
     <div className="px-5 pb-28 pt-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="display text-[30px] font-bold">{CITY_LABEL[me.city] || me.city}</h2>
+        <h2 className="display text-[30px] font-bold">{cityChip(me.city).name.toLowerCase()}</h2>
         <span className="text-[13px] font-semibold text-ink-soft">
           {data.total} {data.total === 1 ? t("person with dates") : t("people with dates")}
         </span>
