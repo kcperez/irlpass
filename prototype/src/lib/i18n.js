@@ -6,6 +6,9 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "when?": "¿cuándo?",
+  "sometime soon": "en algún momento",
+  "pick exact dates": "elegir fechas exactas",
   "are you there now?": "¿ya estás allá?",
   "until when?": "¿hasta cuándo?",
   "when are you going?": "¿cuándo vas?",
