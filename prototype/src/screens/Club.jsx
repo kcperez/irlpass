@@ -1057,9 +1057,16 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
 export default function Club({ token }) {
   const [me, setMe] = useState(null)
   const [state, setState] = useState("loading")
-  const [tab, setTab] = useState("trips")
+  const [tab, setTab] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get("dm")) return "dms"
+    return p.get("tab") === "chat" ? "dms" : "trips"
+  })
   const [activeChat, setActiveChat] = useState(null)
-  const [dmWith, setDmWith] = useState(null) // member object when a thread is open
+  const [dmWith, setDmWith] = useState(() => {
+    const no = new URLSearchParams(window.location.search).get("dm")
+    return no ? { memberNo: no, name: `nº ${no}`, ig: "" } : null
+  }) // member object when a thread is open
   const [paywall, setPaywall] = useState(null) // reason string -> show paywall
   const [profileOpen, setProfileOpen] = useState(false)
   const [photoMap, setPhotoMap] = useState({})

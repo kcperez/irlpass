@@ -38,6 +38,10 @@ export default function Ops({ token }) {
       <div className="flex items-center gap-3">
         <a href={`/?screen=app&t=${token}`} aria-label="back"><ArrowLeft size={22} weight="bold" /></a>
         <h1 className="display text-[26px] font-bold">ops</h1>
+        <div className="ml-auto flex gap-2">
+          <a href={`/?screen=app&t=${token}`} className="rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold">app</a>
+          <a href={`/?screen=app&t=${token}&tab=chat`} className="rounded-full bg-ink px-3 py-1.5 text-[12px] font-bold text-cream">chat</a>
+        </div>
       </div>
 
       <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">members</p>
@@ -92,6 +96,12 @@ export default function Ops({ token }) {
             <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${m.hasDates ? "bg-lime" : "bg-cream-deep text-ink-soft"}`}>
               {m.hasDates ? "dates" : "silent"}
             </span>
+            <a
+              href={`/?screen=app&t=${token}&dm=${m.memberNo}`}
+              className="shrink-0 rounded-full border-2 border-line px-2.5 py-0.5 text-[10px] font-bold text-ink-soft"
+            >
+              dm
+            </a>
           </div>
         ))}
       </div>
