@@ -246,49 +246,35 @@ export default function Join({ ig, onBack, onDone }) {
             </div>
           ) : (
             <>
+              {/* never lead with nothing: if no trips overlap, the city's people are the number */}
               <div>
                 <p className="display text-[72px] font-bold leading-[0.85] tracking-tight">
-                  <CountUp to={preview.live ? preview.count : preview.asked} />
+                  <CountUp to={preview.count > 0 ? preview.count : preview.inCity} />
                 </p>
                 <p className="display mt-1 text-[26px] font-bold leading-tight">
-                  {!preview.live
-                    ? t("people headed there")
-                    : preview.count === 1
-                      ? t("person is there on your dates")
-                      : t("people are there on your dates")}
+                  {preview.count > 0
+                    ? preview.count === 1 ? t("person is there on your dates") : t("people are there on your dates")
+                    : `${t("people in")} ${preview.cityName}`}
                 </p>
-                {preview.count > 0 && (
-                  <p className="mt-1.5 text-[14px] text-ink-soft">
-                    {preview.women > 0 && `${preview.women} ${preview.women === 1 ? t("woman") : t("women")} · `}
-                    {preview.men > 0 && `${preview.men} ${preview.men === 1 ? t("man") : t("men")}`}
-                    {preview.sameDay > 0 && ` · ${preview.sameDay} ${t("land the same day as you")}`}
-                  </p>
-                )}
+                <p className="mt-1.5 text-[14px] text-ink-soft">
+                  {preview.count > 0 ? (
+                    <>
+                      {preview.women > 0 && `${preview.women} ${preview.women === 1 ? t("woman") : t("women")} · `}
+                      {preview.men > 0 && `${preview.men} ${preview.men === 1 ? t("man") : t("men")}`}
+                      {preview.sameDay > 0 && ` · ${preview.sameDay} ${t("land the same day as you")}`}
+                    </>
+                  ) : (
+                    <>
+                      {preview.anchorNames}
+                      {t("and the rest of the crew are already here. nobody's posted your exact days yet, so you'd be first.")}
+                    </>
+                  )}
+                </p>
               </div>
 
-              {!preview.live ? (
-                <div className="rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4">
-                  <p className="display text-[19px] font-bold leading-tight">
-                    {preview.cityName} {t("is filling up")}
-                  </p>
-                  <p className="mt-1 text-[13.5px]">
-                    {t("you're early. we'll ping you the moment someone's trip overlaps yours.")}
-                  </p>
-                  <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-white/60">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, Math.round(((preview.asked + 1) / preview.openAt) * 100))}%` }}
-                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      className="h-full rounded-full bg-ink"
-                    />
-                  </div>
-                  <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em]">
-                    {preview.asked + 1} / {preview.openAt} {t("before it goes live")}
-                  </p>
-                </div>
-              ) : preview.count > 0 ? (
+              {(preview.count > 0 ? preview.faces : preview.cityFaces || []).length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {preview.faces.map((f, i) => (
+                  {(preview.count > 0 ? preview.faces : preview.cityFaces).map((f, i) => (
                     <motion.div
                       key={`${f.first}-${i}`}
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -311,20 +297,23 @@ export default function Join({ ig, onBack, onDone }) {
                     </motion.div>
                   ))}
                 </div>
-              ) : (
-                <div className="rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
-                  <p className="text-[15px] font-semibold">{t("you'd be the first on those days")}</p>
-                  <p className="mt-1 text-[13.5px] text-ink-soft">
-                    {preview.inCity} {t("members are based there. post your dates and they get told you're coming.")}
-                  </p>
-                </div>
               )}
 
+              <div className="rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-3.5">
+                <p className="display text-[18px] font-bold leading-tight">
+                  {preview.count > 0 ? t("claim your spot and say hi") : `${t("join the")} ${preview.cityName} ${t("crew")}`}
+                </p>
+                <p className="mt-1 text-[13px]">
+                  {preview.count > 0
+                    ? t("your dates go up, they get told you're coming.")
+                    : t("group chat with everyone in town, and we ping you the second someone matches your dates.")}
+                </p>
+              </div>
+
               {preview.foundingLeft > 0 && (
-                <div className="flex items-center gap-2 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
-                  <span className="display text-[22px] font-bold">{preview.foundingLeft}</span>
-                  <span className="text-[13px] font-semibold leading-tight">{t("founding spots left · message everyone free, forever")}</span>
-                </div>
+                <p className="text-center text-[12.5px] font-semibold text-ink-soft">
+                  {preview.foundingLeft} {t("founding spots left · message everyone free, forever")}
+                </p>
               )}
             </>
           )}

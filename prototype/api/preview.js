@@ -38,12 +38,24 @@ export default async function handler(req, res) {
         }))
     }
 
-    // people who live in that city count too: they are who you'd meet anyway
-    const { count: inCity } = await db
+    // people based in that city count too: with an empty calendar they are the
+    // reason to join, so we hand back faces and a couple of names to anchor it
+    const { data: cityMembers } = await db
       .from("members")
-      .select("member_no", { count: "exact", head: true })
+      .select("member_no, name, photo_url, gender, banned, comped")
       .eq("city", city)
       .lt("member_no", "900")
+      .order("member_no")
+      .limit(400)
+    const locals = (cityMembers || []).filter((m) => !m.banned)
+    const inCity = locals.length
+    // anchors first: comped founders (kevin, josh) then anyone with a photo
+    const anchors = [...locals].sort((a, b) => (b.comped === true) - (a.comped === true) || (!!b.photo_url - !!a.photo_url))
+    const cityFaces = anchors.slice(0, 8).map((m) => ({
+      first: String(m.name || "").trim().split(/\s+/)[0] || "someone",
+      photo: m.photo_url || null,
+      anchor: !!m.comped,
+    }))
 
     // how many land on the same day you do — the line that makes it feel real
     const sameDay = rows.filter((t) => t.starts === starts).length
@@ -67,7 +79,13 @@ export default async function handler(req, res) {
       women: people.filter((p) => p.gender === "woman").length,
       men: people.filter((p) => p.gender === "man").length,
       sameDay,
-      inCity: inCity || 0,
+      inCity,
+      cityFaces,
+      anchorNames: cityFaces
+        .filter((f) => f.anchor)
+        .slice(0, 2)
+        .map((f) => f.first.toLowerCase())
+        .join(" and ") + (cityFaces.some((f) => f.anchor) ? " " : ""),
       faces: people.slice(0, 8).map((p) => ({ first: p.first, photo: p.photo })),
       foundingLeft: await foundingLeft(),
     })
