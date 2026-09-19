@@ -354,7 +354,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
         <div className="mt-4 rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("who can message you")}</p>
           <label className="mt-2.5 flex items-center justify-between">
-            <span className="text-[13.5px] font-semibold">{t("men can message me")}</span>
+            <span className="text-[13.5px] font-semibold">{t("people can message me")}</span>
             <button
               onClick={() => saveSafety({ allowDmFromMen: !me.allowDmFromMen })}
               className={`relative h-6 w-11 rounded-full transition-colors ${me.allowDmFromMen ? "bg-lime-deep" : "bg-line"}`}
@@ -371,7 +371,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.showIgToMen ? "left-[22px]" : "left-0.5"}`} />
             </button>
           </label>
-          <p className="mt-2 text-[12px] text-ink-soft">{t("turn the first one off and only women and non-binary members can start a chat with you.")}</p>
+          <p className="mt-2 text-[12px] text-ink-soft">{t("off means only women and non-binary members can start a chat with you.")}</p>
         </div>
 
         {reviewOf && <ReviewSheet token={token} activity={reviewOf} onClose={() => setReviewOf(null)} />}

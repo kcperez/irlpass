@@ -6,6 +6,8 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "people can message me": "la gente me puede escribir",
+  "off means only women and non-binary members can start a chat with you.": "apagado significa que solo mujeres y personas no binarias pueden escribirte primero.",
   "your face shows next to your dates": "tu foto aparece junto a tus fechas",
   "we'll look at the next month and ping you when someone matches": "miramos el próximo mes y te avisamos cuando alguien coincida",
   "they're already there. nobody's posted your exact days yet, so you'd be first.": "ya están ahí. nadie puso tus días exactos todavía, así que serías la primera persona.",
