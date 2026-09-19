@@ -6,6 +6,15 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
 const ES = {
+  "checking who's there…": "viendo quién está ahí…",
+  "people are there on your dates": "personas están ahí en tus fechas",
+  "person is there on your dates": "persona está ahí en tus fechas",
+  "woman": "mujer", "women": "mujeres", "man": "hombre", "men": "hombres",
+  "land the same day as you": "llegan el mismo día que tú",
+  "you'd be the first on those days": "serías la primera persona esos días",
+  "members are based there. post your dates and they get told you're coming.": "miembros viven ahí. pon tus fechas y les avisamos que vienes.",
+  "founding spots left · message everyone free, forever": "cupos fundadores · escribe a todos gratis, para siempre",
+  "claim my spot": "reservar mi cupo",
   "see who overlaps": "mira quién coincide",
   "travelers in medellín, cdmx, lisbon, miami + bali": "viajeros en medellín, cdmx, lisboa, miami + bali",
   "never travel": "nunca viajes",

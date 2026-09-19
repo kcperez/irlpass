@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowLeft, ArrowRight, CircleNotch } from "@phosphor-icons/react"
+import { ArrowLeft, ArrowRight, CircleNotch, LockSimple } from "@phosphor-icons/react"
+import { useEffect } from "react"
 import { t } from "../lib/i18n"
 
 // two taps and you're on the calendar: where + when, then how we reach you.
@@ -28,6 +29,23 @@ const slide = {
   exit: { opacity: 0, x: -40, scale: 0.98, transition: { duration: 0.16 } },
 }
 
+function CountUp({ to, duration = 900 }) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    if (!to) return setN(0)
+    const t0 = performance.now()
+    let raf
+    const tick = (t) => {
+      const p = Math.min(1, (t - t0) / duration)
+      setN(Math.round(to * (1 - Math.pow(1 - p, 3)))) // ease out
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [to, duration])
+  return <>{n}</>
+}
+
 function Bubble({ active, children, onClick, className = "" }) {
   return (
     <motion.button
@@ -49,6 +67,7 @@ export default function Join({ ig, onBack, onDone }) {
   const [ends, setEnds] = useState(addDays(todayIso(), 6))
   const [email, setEmail] = useState("")
   const [birthday, setBirthday] = useState("")
+  const [preview, setPreview] = useState(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState("")
 
@@ -80,6 +99,20 @@ export default function Join({ ig, onBack, onDone }) {
     } catch (e) {
       setErr(e.message)
       setBusy(false)
+    }
+  }
+
+  const loadPreview = async () => {
+    setPreview("loading")
+    try {
+      const r = await fetch("/api/preview", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ city, starts, ends }),
+      })
+      setPreview(await r.json())
+    } catch {
+      setPreview({ count: 0, faces: [], inCity: 0 })
     }
   }
 
@@ -144,6 +177,80 @@ export default function Join({ ig, onBack, onDone }) {
       ),
     },
     {
+      key: "reveal",
+      hideArt: true,
+      valid: true,
+      body: (
+        <div className="flex flex-col gap-4">
+          {preview === "loading" || !preview ? (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <CircleNotch size={26} className="animate-spin text-ink-soft" />
+              <p className="text-[14px] text-ink-soft">{t("checking who's there…")}</p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="display text-[72px] font-bold leading-[0.85] tracking-tight">
+                  <CountUp to={preview.count} />
+                </p>
+                <p className="display mt-1 text-[26px] font-bold leading-tight">
+                  {preview.count === 1 ? t("person is there on your dates") : t("people are there on your dates")}
+                </p>
+                {preview.count > 0 && (
+                  <p className="mt-1.5 text-[14px] text-ink-soft">
+                    {preview.women > 0 && `${preview.women} ${preview.women === 1 ? t("woman") : t("women")} · `}
+                    {preview.men > 0 && `${preview.men} ${preview.men === 1 ? t("man") : t("men")}`}
+                    {preview.sameDay > 0 && ` · ${preview.sameDay} ${t("land the same day as you")}`}
+                  </p>
+                )}
+              </div>
+
+              {preview.count > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {preview.faces.map((f, i) => (
+                    <motion.div
+                      key={`${f.first}-${i}`}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.25 + i * 0.07, type: "spring", stiffness: 220, damping: 18 }}
+                      className="relative"
+                    >
+                      {f.photo ? (
+                        <img src={f.photo} alt="" className={`h-14 w-14 rounded-full object-cover ${i > 0 ? "blur-[5px]" : ""}`} />
+                      ) : (
+                        <div className={`flex h-14 w-14 items-center justify-center rounded-full bg-cream-deep text-[18px] font-bold ${i > 0 ? "blur-[4px]" : ""}`}>
+                          {f.first[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      {i > 0 && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <LockSimple size={15} weight="fill" className="text-ink/70" />
+                        </span>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
+                  <p className="text-[15px] font-semibold">{t("you'd be the first on those days")}</p>
+                  <p className="mt-1 text-[13.5px] text-ink-soft">
+                    {preview.inCity} {t("members are based there. post your dates and they get told you're coming.")}
+                  </p>
+                </div>
+              )}
+
+              {preview.foundingLeft > 0 && (
+                <div className="flex items-center gap-2 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+                  <span className="display text-[22px] font-bold">{preview.foundingLeft}</span>
+                  <span className="text-[13px] font-semibold leading-tight">{t("founding spots left · message everyone free, forever")}</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "you",
       art: "/art/icon-chat.png",
       title: t("where do we send your pass?"),
@@ -188,9 +295,9 @@ export default function Join({ ig, onBack, onDone }) {
 
       <AnimatePresence mode="wait">
         <motion.div key={cur.key} variants={slide} initial="enter" animate="center" exit="exit" className="relative flex flex-1 flex-col pt-6">
-          <img src={cur.art} alt="" className="h-28 w-28 select-none" draggable="false" />
-          <h1 className="display mt-3 text-[34px] font-bold leading-[0.95] tracking-tight">{cur.title}</h1>
-          <div className="mt-5">{cur.body}</div>
+          {!cur.hideArt && <img src={cur.art} alt="" className="h-28 w-28 select-none" draggable="false" />}
+          {cur.title && <h1 className="display mt-3 text-[34px] font-bold leading-[0.95] tracking-tight">{cur.title}</h1>}
+          <div className={cur.hideArt ? "" : "mt-5"}>{cur.body}</div>
         </motion.div>
       </AnimatePresence>
 
@@ -199,11 +306,15 @@ export default function Join({ ig, onBack, onDone }) {
       <motion.button
         whileTap={{ scale: 0.97 }}
         disabled={!cur.valid || busy}
-        onClick={() => (last ? submit() : setStep((s) => s + 1))}
+        onClick={() => {
+          if (last) return submit()
+          if (steps[step].key === "when") loadPreview()
+          setStep((s) => s + 1)
+        }}
         className="relative flex items-center justify-center gap-2 rounded-full bg-ink py-4 text-[17px] font-bold text-cream disabled:opacity-40"
       >
         {busy ? <CircleNotch size={18} className="animate-spin" /> : null}
-        {last ? t("let me in") : t("next")}
+        {last ? t("let me in") : cur.key === "reveal" ? t("claim my spot") : t("next")}
         {!last && <ArrowRight size={18} weight="bold" />}
       </motion.button>
       {last && (
