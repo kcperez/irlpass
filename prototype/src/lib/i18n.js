@@ -6,6 +6,12 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "followers": "seguidores",
+  "and the others are already there. nobody's posted your exact days yet, so you'd be first.": "y los demás ya están ahí. nadie puso tus días exactos todavía, así que serías la primera persona.",
+  "traveling with someone?": "¿viajas con alguien?",
+  "send them your dates, they land straight in": "mándales tus fechas y entran directo",
+  "invite": "invitar",
+  "link copied": "link copiado",
   "ops dashboard": "panel de ops",
   "co-founder": "co-fundador",
   "josh · irlpass": "josh · irlpass",

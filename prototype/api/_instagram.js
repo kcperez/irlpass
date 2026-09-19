@@ -1,4 +1,3 @@
-import { put } from "@vercel/blob"
 import { db } from "./_db.js"
 
 // Pull the public shape of an instagram profile (photo, name, follower count,
@@ -73,19 +72,25 @@ export async function enrichMember(memberNo, handle) {
 export const verifyCode = (memberNo, token) =>
   "irl-" + Buffer.from(`${memberNo}:${String(token).slice(0, 8)}`).toString("base64url").slice(0, 6).toLowerCase()
 
-// copy an instagram avatar into our own blob storage so it doesn't rot
+// copy an instagram avatar into our own storage so it doesn't rot
 async function storePhoto(url, memberNo) {
   try {
     const r = await fetch(url)
     if (!r.ok) return null
     const buf = Buffer.from(await r.arrayBuffer())
     if (buf.length > 4_000_000) return null
-    const blob = await put(`avatars/${memberNo}-${Date.now()}.jpg`, buf, {
-      access: "public",
-      contentType: r.headers.get("content-type") || "image/jpeg",
-      addRandomSuffix: true,
+    const path = `avatars/${memberNo}.jpg`
+    const up = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/${path}`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+        "content-type": r.headers.get("content-type") || "image/jpeg",
+        "x-upsert": "true",
+      },
+      body: buf,
     })
-    return blob.url
+    if (!up.ok) return null
+    return `${process.env.SUPABASE_URL}/storage/v1/object/public/${path}?v=${Date.now()}`
   } catch (e) {
     console.error("avatar store error:", e.message)
     return null

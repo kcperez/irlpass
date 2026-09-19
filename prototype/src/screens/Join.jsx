@@ -58,12 +58,14 @@ function Bubble({ active, children, onClick, className = "" }) {
   )
 }
 
+const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams()
+
 export default function Join({ ig, onBack, onDone }) {
   const [step, setStep] = useState(0)
-  const [city, setCity] = useState("medellin")
+  const [city, setCity] = useState(params.get("city") || "medellin")
   const [customCity, setCustomCity] = useState("")
   const [flexible, setFlexible] = useState(false)
-  const [picked, setPicked] = useState(null) // which preset, or "exact"
+  const [picked, setPicked] = useState(params.get("starts") ? "shared" : null) // which preset, or "exact"
   const [exact, setExact] = useState(false)
   const matches = (() => {
     const found = searchCities(customCity)
@@ -72,8 +74,8 @@ export default function Join({ ig, onBack, onDone }) {
     if (slug && !found.some((c) => c.slug === slug)) return [cityChip(slug, customCity), ...found].slice(0, 6)
     return found
   })()
-  const [starts, setStarts] = useState(todayIso())
-  const [ends, setEnds] = useState(addDays(todayIso(), 6))
+  const [starts, setStarts] = useState(params.get("starts") || todayIso())
+  const [ends, setEnds] = useState(params.get("ends") || addDays(todayIso(), 6))
   const [email, setEmail] = useState("")
   const [adult, setAdult] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -266,7 +268,7 @@ export default function Join({ ig, onBack, onDone }) {
                   ) : (
                     <>
                       {preview.anchorNames}
-                      {t("and the rest of the crew are already here. nobody's posted your exact days yet, so you'd be first.")}
+                      {t("and the others are already there. nobody's posted your exact days yet, so you'd be first.")}
                     </>
                   )}
                 </p>

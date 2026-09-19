@@ -277,6 +277,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
   )
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [justUnlocked, setJustUnlocked] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/trips?t=${token}`)
@@ -434,7 +435,25 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
                     message {lockedCount === overlap.count ? "them" : `the other ${lockedCount}`} · $19
                   </button>
                 )}
-                {overlap.access && (
+                <button
+              onClick={async () => {
+                const url = `https://irlpass.xyz/?screen=join&city=${trip.city}&starts=${trip.starts}&ends=${trip.ends}`
+                const text = `i'm in ${cityName(trip.city)} ${fmtRange(trip.starts, trip.ends)} — put your dates in and we'll see who else is around`
+                try {
+                  if (navigator.share) await navigator.share({ title: "irlpass", text, url })
+                  else { await navigator.clipboard.writeText(`${text} ${url}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+                } catch { /* share sheet dismissed */ }
+              }}
+              className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-lime-deep bg-lime/25 px-4 py-3.5 text-left"
+            >
+              <img src="/art/icon-people.png" alt="" className="h-11 w-11 shrink-0 object-contain" draggable="false" />
+              <div className="min-w-0">
+                <p className="text-[14.5px] font-bold leading-tight">{copied ? t("link copied") : t("traveling with someone?")}</p>
+                <p className="text-[12.5px] text-ink-soft">{t("send them your dates, they land straight in")}</p>
+              </div>
+            </button>
+
+            {overlap.access && (
                   <p className="mt-3 text-center text-[12px] text-ink-soft">
                     {overlap.access === "founding" && "founding member · messaging is free for you"}
                     {overlap.access === "pass" && "you have the pass · every city, every trip"}

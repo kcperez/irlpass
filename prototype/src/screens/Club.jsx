@@ -309,9 +309,20 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
               {me.name.toLowerCase()}
               {me.verified && <span title="verified" className="text-[14px] text-lime-deep">✓</span>}
             </p>
-            <p className="flex items-center gap-2 font-mono text-[11px] text-ink-soft">
-              {me.ig} · nº {me.memberNo}
-              {me.repScore != null && <span className="rounded-full bg-cream-deep px-1.5 py-0.5 text-[9.5px] font-semibold">⭐ {me.repScore.toFixed(1)} · {me.repCount} {t("vouches")}</span>}
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ink-soft">
+              <a
+                href={`https://instagram.com/${String(me.ig).replace(/^@/, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-ink underline underline-offset-2"
+              >
+                {me.ig}
+              </a>
+              {me.igFollowers != null && (
+                <span className="font-semibold">{me.igFollowers.toLocaleString()} {t("followers")}</span>
+              )}
+              <span>nº {me.memberNo}</span>
+              {isMod(me.memberNo) && <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold text-ink">{t("co-founder")}</span>}
             </p>
           </div>
         </div>
@@ -1006,7 +1017,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
         me={me}
         photoMap={photoMap}
         channel={me.city}
-        title={`${cityName} crew`}
+        title={`${cityName} chat`}
         onBack={() => setRoomOpen(false)}
       />
     )
@@ -1023,7 +1034,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
       >
         <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable="false" />
         <div className="min-w-0">
-          <p className="display text-[19px] font-bold leading-tight">{cityName} crew</p>
+          <p className="display text-[19px] font-bold leading-tight">{cityName} chat</p>
           <p className="text-[12.5px] text-ink-soft">{t("everyone in town right now")}</p>
         </div>
       </button>
