@@ -14,6 +14,10 @@ export default async function handler(req, res) {
 
   try {
     const slotsLeft = await foundingLeft()
+    const { count: memberCount } = await db
+      .from("members")
+      .select("member_no", { count: "exact", head: true })
+      .lt("member_no", "900")
     let members = []
     if (to === "all") {
       const { data } = await db
@@ -36,7 +40,9 @@ export default async function handler(req, res) {
           name: m.name,
           memberNo: m.member_no,
           slotsLeft,
+          members: memberCount || 182,
           url: `https://irlpass.xyz/?screen=app&t=${m.token}`,
+          unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
         }),
       })
       ;(mail.sent ? sent : failed).push(m.email)

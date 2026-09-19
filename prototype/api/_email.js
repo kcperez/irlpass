@@ -112,26 +112,47 @@ export const matchEmail = ({ name, who, city, starts, ends, url }) => ({
     </p>`,
 })
 
-// v2 relaunch: tell the existing members the app is a calendar now
-export const datesEmail = ({ name, memberNo, url, slotsLeft }) => ({
-  subject: "irlpass is different now — post your dates",
+// v2 launch email. deliberately not the plain login template: a big statement,
+// real numbers, and a sample of the calendar people are about to see.
+export const datesEmail = ({ name, memberNo, url, slotsLeft, members = 182, unsub }) => ({
+  subject: "irlpass v2 is live. never travel alone.",
   html: `
-    <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? name.toLowerCase() : "there"}.</h1>
-    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:14px 0 0">
-      irlpass changed. no more applying, no more waiting for a plan to show up.
+    <p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8a857a;margin:0">irlpass v2 · live now</p>
+    <h1 style="font-size:40px;line-height:0.98;margin:10px 0 0;letter-spacing:-1.2px;font-weight:800">
+      never travel<br>alone.
+    </h1>
+    <p style="font-size:16px;line-height:1.6;color:#57544a;margin:16px 0 0">
+      hey ${name ? name.toLowerCase() : "there"}, the whole app is one thing now: you post the dates
+      you'll be in a city, and you see every one of the ${members} travelers whose trip overlaps yours.
     </p>
-    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:12px 0 0">
-      you post the dates you'll be in a city. you see everyone whose trip overlaps yours.
-      that's the whole app now.
+
+    <div style="background:#1c1b17;border-radius:18px;padding:18px;margin-top:22px">
+      <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8a857a;margin:0">medellín · this week</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px">
+        <tr>
+          <td style="color:#f4f1ea;font-size:15px;font-weight:600;padding-bottom:9px">josh · mar 10 – 20<span style="color:#cdee45"> · surf, coffee</span></td>
+        </tr>
+        <tr>
+          <td style="color:#57544a;font-size:15px;font-weight:600;padding-bottom:9px">a•••••  · mar 12 – 18 · hiking</td>
+        </tr>
+        <tr>
+          <td style="color:#57544a;font-size:15px;font-weight:600">d••••• · mar 11 – 16 · climbing</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="font-size:16px;line-height:1.6;color:#1c1b17;margin:20px 0 0">
+      <strong>the first ${slotsLeft || 40} people to post dates message everyone free, forever.</strong>
+      after that it's $19 for a trip or $29 a month.
     </p>
-    <p style="font-size:15px;line-height:1.6;color:#1c1b17;margin:12px 0 0">
-      <strong>the first ${slotsLeft || 40} people to post dates message everyone for free, forever.</strong>
-      after that it's $19 a trip.
-    </p>
-    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:22px">
+
+    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:800;font-size:17px;text-align:center;border-radius:999px;padding:17px;margin-top:22px">
       post your dates
     </a>
-    <p style="font-size:12px;color:#8a857a;text-align:center;margin:14px 0 0">
-      nº ${memberNo} is still yours · <a href="https://irlpass.xyz/api/notify-off?t=${""}" style="color:#8a857a">turn off these emails</a>
+    <p style="font-size:13px;color:#8a857a;text-align:center;margin:14px 0 0">
+      takes 30 seconds · nº ${memberNo} is still yours
+    </p>
+    <p style="font-size:11px;color:#b3aea2;text-align:center;margin:16px 0 0">
+      <a href="${unsub || "https://irlpass.xyz"}" style="color:#b3aea2">turn off these emails</a>
     </p>`,
 })
