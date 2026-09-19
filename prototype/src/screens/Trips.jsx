@@ -5,6 +5,7 @@ import {
   Plus, Trash, X,
 } from "@phosphor-icons/react"
 import { CITY_INDEX, cityChip } from "../lib/cities"
+import { t } from "../lib/i18n"
 
 // v2: the calendar is the product. post your dates, see who overlaps them,
 // pay once to start conversations with them.
