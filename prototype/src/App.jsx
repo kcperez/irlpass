@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import Welcome from "./screens/Welcome"
 import Join from "./screens/Join"
+import Ops from "./screens/Ops"
 import CityPage from "./screens/CityPage"
 import Apply from "./screens/Apply"
 import Review from "./screens/Review"
@@ -20,7 +21,7 @@ const params = new URLSearchParams(window.location.search)
 const isAdminPath = window.location.pathname === "/admin"
 const initialScreen = isAdminPath
   ? "admin"
-  : ["pass", "info", "app", "auth", "invite", "redeem", "join", "offer"].includes(params.get("screen"))
+  : ["pass", "info", "app", "auth", "invite", "redeem", "join", "offer", "ops"].includes(params.get("screen"))
     ? params.get("screen")
     : "welcome"
 // demo mode (filming): review flows into the instant "you're in" pass reveal.
@@ -86,6 +87,7 @@ export default function App() {
                 </Suspense>
               )}
               {screen === "admin" && <Admin />}
+              {screen === "ops" && <Ops token={params.get("t")} />}
               {screen === "auth" && <Auth />}
               {screen === "invite" && <Invite activityId={params.get("a")} onApply={() => setScreen("apply")} />}
               {screen === "redeem" && (

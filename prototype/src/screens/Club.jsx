@@ -18,6 +18,7 @@ import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
 import { cityChip } from "../lib/cities"
+import { isMod } from "../lib/mods"
 
 const CITIES = [
   { slug: "medellin", name: "medellín", center: [-75.5812, 6.2442], live: true },
@@ -336,6 +337,16 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
         )}
 
         
+
+        {isMod(me.memberNo) && (
+          <a
+            href={`/?screen=ops&t=${token}`}
+            className="mt-4 flex items-center justify-between rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-3.5"
+          >
+            <span className="text-[14px] font-bold">{t("ops dashboard")}</span>
+            <span className="text-[12px] font-semibold">{t("co-founder")}</span>
+          </a>
+        )}
 
         {/* prove the handle is yours — a code in your bio, for a minute */}
         <VerifyCard token={token} me={me} onVerified={() => onSafety?.({ verified: true })} />

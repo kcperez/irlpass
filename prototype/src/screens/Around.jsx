@@ -19,6 +19,7 @@ const dayLetter = (isoDate) =>
   new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "narrow", timeZone: "UTC" })
 
 import { cityChip } from "../lib/cities"
+import { isMod } from "../lib/mods"
 
 export default function Around({ token, me, onOpenDM, onUnlock }) {
   const [data, setData] = useState(null)
@@ -118,6 +119,9 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
                 <p className="flex items-center gap-1.5 text-[15px] font-bold">
                   <span className={p.locked ? "blur-[4px] select-none" : ""}>{p.locked ? `${p.first} ••••` : p.name}</span>
                   {p.verified && <CheckCircle size={15} weight="fill" className="shrink-0 text-lime-deep" />}
+                  {isMod(p.memberNo) && (
+                    <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">{t("co-founder")}</span>
+                  )}
                 </p>
                 <p className="truncate text-[12px] text-ink-soft">
                   {fmt(p.starts)} – {fmt(p.ends)}

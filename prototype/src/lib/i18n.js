@@ -6,6 +6,8 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "ops dashboard": "panel de ops",
+  "co-founder": "co-fundador",
   "josh · irlpass": "josh · irlpass",
   "stuck on something? he answers": "¿algo no funciona? él responde",
   "sign out": "cerrar sesión",
