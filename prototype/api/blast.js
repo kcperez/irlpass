@@ -41,7 +41,7 @@ export default async function handler(req, res) {
           memberNo: m.member_no,
           slotsLeft,
           members: memberCount || 182,
-          url: `https://irlpass.xyz/?screen=app&t=${m.token}`,
+          url: `https://irlpass.xyz/?screen=app&t=${m.token}&post=month`,
           unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
         }),
       })

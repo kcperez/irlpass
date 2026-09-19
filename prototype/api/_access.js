@@ -13,11 +13,12 @@ export const overlaps = (aStart, aEnd, bStart, bEnd) => aStart <= bEnd && bStart
 // claim a founding slot for this member if any are left. returns the slot number
 // (or null). safe to call on every trip post — a member only ever claims once.
 export async function claimFoundingSlot(member) {
-  if (member.foundingFree) return member.foundingNo || null
+  if (member.foundingNo) return member.foundingNo
+  if (member.foundingFree) return null
   const { count } = await db
     .from("members")
     .select("member_no", { count: "exact", head: true })
-    .eq("founding_free", true)
+    .not("founding_no", "is", null)
   const taken = count || 0
   if (taken >= FOUNDING_SLOTS) return null
   const { data, error } = await db
@@ -34,7 +35,7 @@ export async function foundingLeft() {
   const { count } = await db
     .from("members")
     .select("member_no", { count: "exact", head: true })
-    .eq("founding_free", true)
+    .not("founding_no", "is", null)
   return Math.max(0, FOUNDING_SLOTS - (count || 0))
 }
 

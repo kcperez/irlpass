@@ -76,10 +76,10 @@ function PersonRow({ p, onMessage }) {
   )
 }
 
-function DateForm({ token, defaultCity, onPosted, onClose }) {
+function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
   const [city, setCity] = useState(defaultCity || "medellin")
   const [starts, setStarts] = useState(todayIso())
-  const [ends, setEnds] = useState(addDays(todayIso(), 6))
+  const [ends, setEnds] = useState(addDays(todayIso(), prefillMonth ? 29 : 6))
   const [flexible, setFlexible] = useState(false)
   const [note, setNote] = useState("")
   const [busy, setBusy] = useState(false)
@@ -276,7 +276,9 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
   const [founding, setFounding] = useState({ free: false, no: null, left: null })
   const [active, setActive] = useState(0) // index of the trip being viewed
   const [overlap, setOverlap] = useState(null)
-  const [formOpen, setFormOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("post") === "month"
+  )
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [justUnlocked, setJustUnlocked] = useState(false)
 
@@ -451,6 +453,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
           <DateForm
             token={token}
             defaultCity={me?.city}
+            prefillMonth={typeof window !== "undefined" && new URLSearchParams(window.location.search).get("post") === "month"}
             onClose={() => setFormOpen(false)}
             onPosted={(d) => {
               setFormOpen(false)
