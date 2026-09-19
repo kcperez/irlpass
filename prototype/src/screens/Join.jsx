@@ -161,12 +161,9 @@ export default function Join({ ig, onBack, onDone }) {
                 <span className="mr-1.5">{c.emoji}</span>
                 {c.name}
                 {byCity[c.slug] > 0 ? (
-                  <span className="ml-2 inline-flex items-center gap-1 align-middle">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-deep opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-lime-deep" />
-                    </span>
-                    <span className="text-[12px] font-bold">{byCity[c.slug]}</span>
+                  <span className="relative ml-2 inline-flex h-2 w-2 align-middle">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#5fd35f]" />
                   </span>
                 ) : null}
               </Bubble>
