@@ -29,6 +29,7 @@ export default async function handler(req, res) {
     photo: member.photo || null,
     canHost: member.canHost,
     paid: !!member.paid,
+    billing: !!member.stripeCustomer,
     gender: member.gender,
     verified: member.verified,
     igFollowers: member.igFollowers,

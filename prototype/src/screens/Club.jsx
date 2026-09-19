@@ -160,18 +160,6 @@ function ReviewSheet({ token, activity, onClose }) {
           {sent ? t("thanks 🤝") : t("post review")}
         </button>
 
-      {me.memberNo !== "002" && (
-        <button
-          onClick={() => setOpenWith({ memberNo: "002", name: "Josh", ig: "@jawshmac" })}
-          className="mt-2 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-line bg-white/70 px-4 py-3.5 text-left active:scale-[0.99]"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lime text-[18px]">👋</span>
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold leading-tight">{t("josh · irlpass")}</p>
-            <p className="text-[12.5px] text-ink-soft">{t("stuck on something? he answers")}</p>
-          </div>
-        </button>
-      )}
         <button onClick={report} className="mt-2 w-full py-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#b3461f]/80">
           {t("something felt off — report privately")}
         </button>
@@ -299,7 +287,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
         exit={{ y: 120 }}
         transition={{ type: "spring", stiffness: 260, damping: 26 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl bg-cream px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
+        className="max-h-[92%] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-cream px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
       >
         <div className="mx-auto h-1 w-10 rounded-full bg-line" />
         <div className="mt-5 flex items-center gap-4">
@@ -332,7 +320,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
         </label>
         {error && <p className="mt-2.5 text-center text-[12.5px] font-medium text-[#b3461f]">{error}</p>}
         <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft/70">
-          {t("your face shows on the members list and in chats")}
+          {t("your face shows next to your dates")}
         </p>
 
         {qr && (
@@ -417,8 +405,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
         >
           {t("view my pass")}
         </a>
-        <div className="mt-2 flex gap-2">
-          {me.paid && (
+        {me.billing && (
           <button
             onClick={async () => {
               const r = await fetch("/api/portal", {
@@ -428,21 +415,11 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
               }).then((x) => x.json()).catch(() => null)
               if (r?.url) window.location.href = r.url
             }}
-            className="w-full rounded-full border border-line py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft active:scale-[0.98]"
+            className="mt-2 w-full rounded-full border-2 border-line py-3 text-[12.5px] font-bold text-ink-soft"
           >
             {t("manage subscription")}
           </button>
         )}
-          <button
-            onClick={() => {
-              localStorage.removeItem("irlpass_member_token")
-              window.location.href = "/"
-            }}
-            className="w-full rounded-full border border-line py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft active:scale-[0.98]"
-          >
-            {t("log out")}
-          </button>
-        </div>
       </motion.div>
     </motion.div>
   )
@@ -1038,6 +1015,19 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
           <p className="text-[12.5px] text-ink-soft">{t("everyone in town right now")}</p>
         </div>
       </button>
+      {me.memberNo !== "002" && (
+        <button
+          onClick={() => setOpenWith({ memberNo: "002", name: "Josh", ig: "@jawshmac" })}
+          className="mt-2 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-line bg-white/70 px-4 py-3.5 text-left active:scale-[0.99]"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lime text-[18px]">👋</span>
+          <div className="min-w-0">
+            <p className="text-[15px] font-bold leading-tight">{t("josh · irlpass")}</p>
+            <p className="text-[12.5px] text-ink-soft">{t("stuck on something? he answers")}</p>
+          </div>
+        </button>
+      )}
+
       {!threads ? (
         <div className="mt-10 flex justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
       ) : threads.length === 0 ? (
