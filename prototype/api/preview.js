@@ -1,5 +1,5 @@
 import { db } from "./_db.js"
-import { isCity } from "./_cities.js"
+import { isCity, cityBySlug, OPEN_AT } from "./_cities.js"
 import { isDate, overlaps, today, foundingLeft } from "./_access.js"
 
 // No token needed: this is the reveal a brand new person sees before they hand
@@ -48,7 +48,18 @@ export default async function handler(req, res) {
     // how many land on the same day you do — the line that makes it feel real
     const sameDay = rows.filter((t) => t.starts === starts).length
 
+    const meta = cityBySlug(city)
+    const live = !!meta?.live
+    // for a city that isn't open yet, the honest number is how many have asked
+    const { count: asked } = live
+      ? { count: 0 }
+      : await db.from("trips").select("id", { count: "exact", head: true }).eq("city", city)
+
     return res.status(200).json({
+      live,
+      asked: asked || 0,
+      openAt: OPEN_AT,
+      cityName: meta?.name || city,
       city,
       starts,
       ends,

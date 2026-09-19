@@ -31,3 +31,7 @@ export function nearestCity(lat, lng) {
   // only call it "your city" if you're within ~150km of its center
   return best && bestD <= 150 ? best : null
 }
+
+// a city opens once this many people have posted dates for it. until then it
+// collects them: every "request" is a real trip, so an opened city starts full.
+export const OPEN_AT = Number(process.env.CITY_OPEN_AT || 10)

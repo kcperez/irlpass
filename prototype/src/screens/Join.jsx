@@ -7,12 +7,14 @@ import { t } from "../lib/i18n"
 // two taps and you're on the calendar: where + when, then how we reach you.
 
 const CITIES = [
-  { slug: "medellin", name: "Medellín", emoji: "🇨🇴" },
+  { slug: "medellin", name: "Medellín", emoji: "🇨🇴", live: true },
   { slug: "cdmx", name: "Mexico City", emoji: "🇲🇽" },
   { slug: "miami", name: "Miami", emoji: "🌴" },
   { slug: "lisboa", name: "Lisbon", emoji: "🇵🇹" },
   { slug: "bali", name: "Bali", emoji: "🌺" },
 ]
+const LIVE = CITIES.filter((c) => c.live)
+const SOON = CITIES.filter((c) => !c.live)
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const todayIso = () => iso(new Date())
@@ -123,13 +125,27 @@ export default function Join({ ig, onBack, onDone }) {
       title: t("where are you going?"),
       valid: !!city,
       body: (
-        <div className="flex flex-wrap gap-2">
-          {CITIES.map((c) => (
-            <Bubble key={c.slug} active={city === c.slug} onClick={() => setCity(c.slug)}>
-              <span className="mr-1.5">{c.emoji}</span>
-              {c.name}
-            </Bubble>
-          ))}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-2">
+            {LIVE.map((c) => (
+              <Bubble key={c.slug} active={city === c.slug} onClick={() => setCity(c.slug)}>
+                <span className="mr-1.5">{c.emoji}</span>
+                {c.name}
+                <span className="ml-2 inline-block h-2 w-2 rounded-full bg-lime-deep align-middle" />
+              </Bubble>
+            ))}
+          </div>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("opening next · your dates are the vote")}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {SOON.map((c) => (
+                <Bubble key={c.slug} active={city === c.slug} onClick={() => setCity(c.slug)} className="opacity-80">
+                  <span className="mr-1.5">{c.emoji}</span>
+                  {c.name}
+                </Bubble>
+              ))}
+            </div>
+          </div>
         </div>
       ),
     },
@@ -191,10 +207,14 @@ export default function Join({ ig, onBack, onDone }) {
             <>
               <div>
                 <p className="display text-[72px] font-bold leading-[0.85] tracking-tight">
-                  <CountUp to={preview.count} />
+                  <CountUp to={preview.live ? preview.count : preview.asked} />
                 </p>
                 <p className="display mt-1 text-[26px] font-bold leading-tight">
-                  {preview.count === 1 ? t("person is there on your dates") : t("people are there on your dates")}
+                  {!preview.live
+                    ? t("people want this city")
+                    : preview.count === 1
+                      ? t("person is there on your dates")
+                      : t("people are there on your dates")}
                 </p>
                 {preview.count > 0 && (
                   <p className="mt-1.5 text-[14px] text-ink-soft">
@@ -205,7 +225,16 @@ export default function Join({ ig, onBack, onDone }) {
                 )}
               </div>
 
-              {preview.count > 0 ? (
+              {!preview.live ? (
+                <div className="rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4">
+                  <p className="display text-[19px] font-bold leading-tight">
+                    {preview.cityName} {t("opens at")} {preview.openAt}
+                  </p>
+                  <p className="mt-1 text-[13.5px]">
+                    {preview.asked} {t("people have put dates in so far. yours counts, and we'll tell you the day it opens.")}
+                  </p>
+                </div>
+              ) : preview.count > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {preview.faces.map((f, i) => (
                     <motion.div
