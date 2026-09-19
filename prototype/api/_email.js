@@ -156,3 +156,18 @@ export const datesEmail = ({ name, memberNo, url, slotsLeft, members = 182, unsu
       <a href="${unsub || "https://irlpass.xyz"}" style="color:#b3aea2">turn off these emails</a>
     </p>`,
 })
+
+// a city hit critical mass: everyone who put dates there hears it first
+export const cityOpenEmail = ({ name, city, count, url }) => ({
+  subject: `${city} just opened on irlpass`,
+  html: `
+    <p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8a857a;margin:0">it's open</p>
+    <h1 style="font-size:34px;line-height:1;margin:10px 0 0;letter-spacing:-1px;font-weight:800">${city}<br>is live.</h1>
+    <p style="font-size:16px;line-height:1.6;color:#57544a;margin:16px 0 0">
+      hey ${name ? name.toLowerCase() : "there"}, you put dates in for ${city} when nobody was there yet.
+      ${count} people have now, so it's open.
+    </p>
+    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:800;font-size:17px;text-align:center;border-radius:999px;padding:17px;margin-top:22px">
+      see who's there
+    </a>`,
+})

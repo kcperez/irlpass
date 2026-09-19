@@ -32,3 +32,6 @@ create index if not exists unlocks_member_idx on unlocks (member_no);
 alter table members add column if not exists founding_free boolean not null default false;
 alter table members add column if not exists founding_no integer;         -- 1..N, order they claimed a slot
 create unique index if not exists members_founding_no_idx on members (founding_no) where founding_no is not null;
+
+-- remembers which city-opening email a member already got, so it only sends once
+alter table members add column if not exists city_opened text;

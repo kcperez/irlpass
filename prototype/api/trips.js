@@ -1,8 +1,8 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
-import { isCity, cityBySlug } from "./_cities.js"
+import { isCity, cityBySlug, OPEN_AT } from "./_cities.js"
 import { claimFoundingSlot, foundingLeft, myUnlocks, today, isDate, overlaps } from "./_access.js"
-import { sendEmail, matchEmail } from "./_email.js"
+import { sendEmail, matchEmail, cityOpenEmail } from "./_email.js"
 
 const MAX_TRIPS = 6
 const MAX_NIGHTS = 120
@@ -87,6 +87,8 @@ export default async function handler(req, res) {
       const foundingNo = await claimFoundingSlot(me)
       // tell the people already on those dates that someone new is coming
       notifyOverlap(me, trip).catch((e) => console.error("match email error:", e))
+      // did this trip just tip the city over the line? tell everyone waiting on it
+      maybeOpenCity(trip.city).catch((e) => console.error("city open error:", e))
 
       return res.status(200).json({
         trip: shape(trip),
@@ -164,5 +166,27 @@ async function notifyOverlap(me, trip) {
         url: `https://irlpass.xyz/?screen=app&t=${m.token}`,
       }),
     })
+  }
+}
+
+// a city opens the moment OPEN_AT people have dates in it. everyone who helped
+// get it there hears about it once (members.city_opened_sent keeps it to once).
+async function maybeOpenCity(city) {
+  const meta = cityBySlug(city)
+  if (!meta || meta.live) return
+  const { data: trips } = await db.from("trips").select("member_no").eq("city", city)
+  const nos = [...new Set((trips || []).map((t) => t.member_no))]
+  if (nos.length < OPEN_AT) return
+  const { data: members } = await db
+    .from("members")
+    .select("member_no, name, email, token, notify, city_opened")
+    .in("member_no", nos)
+  for (const m of members || []) {
+    if (!m.email || !m.notify || m.city_opened === city) continue
+    await sendEmail({
+      to: m.email,
+      ...cityOpenEmail({ name: m.name, city: meta.name, count: nos.length, url: `https://irlpass.xyz/?screen=app&t=${m.token}` }),
+    })
+    await db.from("members").update({ city_opened: city }).eq("member_no", m.member_no)
   }
 }
