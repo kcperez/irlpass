@@ -35,17 +35,18 @@ export default function Welcome({ onStart }) {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 140, damping: 18 }}
-        className="display relative z-10 mt-6 px-5 text-[44px] font-bold leading-[0.94] tracking-tight sm:text-[52px]"
+        className="display relative z-10 mt-6 px-5 font-bold leading-[0.86] tracking-[-0.035em]"
+        style={{ fontSize: "clamp(52px, 15vw, 72px)" }}
       >
-        {t("never travel")}
-        <br />
+        <span className="block">{t("never")}</span>
+        <span className="block">{t("travel")}</span>
         <span className="relative inline-block">
           {t("alone")}
           <motion.span
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ delay: 0.35, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute -bottom-1 left-0 h-3 w-full origin-left rounded-full bg-lime"
+            className="absolute -bottom-0.5 left-0 h-3.5 w-full origin-left rounded-full bg-lime"
             aria-hidden
           />
         </span>
