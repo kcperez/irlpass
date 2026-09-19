@@ -100,12 +100,18 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
   }
 
   return (
+    <>
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="absolute inset-0 z-30 bg-ink/40 backdrop-blur-[2px]"
+    />
     <motion.div
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
-      className="absolute inset-x-0 bottom-0 z-40 rounded-t-[1.75rem] border-t border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+      className="absolute inset-x-0 bottom-0 z-40 max-h-[86%] overflow-y-auto rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="display text-[20px]">your dates</h2>
@@ -178,6 +184,7 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
         anyone already there on those days gets told you're coming
       </p>
     </motion.div>
+    </>
   )
 }
 
@@ -266,7 +273,7 @@ function UnlockSheet({ token, trip, count, onClose, onDone }) {
   )
 }
 
-export default function Trips({ token, me, onOpenDM, unlockRequest }) {
+export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets }) {
   const [state, setState] = useState("loading")
   const [trips, setTrips] = useState([])
   const [active, setActive] = useState(0) // index of the trip being viewed
@@ -277,6 +284,9 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [justUnlocked, setJustUnlocked] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [prefillMonth] = useState(
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("post") === "month"
+  )
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/trips?t=${token}`)
@@ -287,8 +297,24 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
 
   useEffect(() => { load() }, [load])
 
+  // ?post=month opens the form once; drop it so it can't re-open later
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get("post")) {
+      p.delete("post")
+      window.history.replaceState({}, "", `${window.location.pathname}?${p}`)
+    }
+  }, [])
+
   // the dm screen bounced someone off the paywall: open the sheet here
   useEffect(() => { if (unlockRequest) setUnlockOpen(true) }, [unlockRequest])
+
+  // only one sheet at a time: the profile sheet closes these
+  useEffect(() => {
+    if (!closeSheets) return
+    setFormOpen(false)
+    setUnlockOpen(false)
+  }, [closeSheets])
 
   // back from stripe: confirm the payment, then drop the blur
   useEffect(() => {
@@ -456,9 +482,9 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
           <DateForm
             token={token}
             defaultCity={me?.city}
-            prefillMonth={typeof window !== "undefined" && new URLSearchParams(window.location.search).get("post") === "month"}
+            prefillMonth={prefillMonth}
             onClose={() => setFormOpen(false)}
-            onPosted={(d) => {
+            onPosted={() => {
               setFormOpen(false)
               setActive(0)
               load()

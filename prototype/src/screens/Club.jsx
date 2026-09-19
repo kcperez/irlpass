@@ -1075,6 +1075,7 @@ export default function Club({ token }) {
   const [photoMap, setPhotoMap] = useState({})
   const [setRefresh] = useState(0)
   const [unlockRequest, setUnlockRequest] = useState(0)
+  const [closeSheets, setCloseSheets] = useState(0)
 
   // photo lookup for avatars in chats and joined stacks
   useEffect(() => {
@@ -1151,9 +1152,9 @@ export default function Club({ token }) {
 
   return (
     <div className="relative flex h-[var(--app-h)] flex-col">
-      {!inThread && <TopBar me={me} onProfile={() => setProfileOpen(true)} />}
+      {!inThread && <TopBar me={me} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
+        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
         {tab === "members" && (
           <Around
             token={token}
