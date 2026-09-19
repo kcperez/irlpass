@@ -75,7 +75,7 @@ export default function Join({ ig, onBack, onDone }) {
   const [starts, setStarts] = useState(todayIso())
   const [ends, setEnds] = useState(addDays(todayIso(), 6))
   const [email, setEmail] = useState("")
-  const [birthday, setBirthday] = useState("")
+  const [adult, setAdult] = useState(false)
   const [preview, setPreview] = useState(null)
   const [byCity, setByCity] = useState({})
 
@@ -97,7 +97,7 @@ export default function Join({ ig, onBack, onDone }) {
           name: ig,
           ig: `@${ig}`,
           email: email.trim(),
-          birthday,
+          adult,
           city,
           dates: `${starts} to ${ends}`,
         }),
@@ -185,7 +185,7 @@ export default function Join({ ig, onBack, onDone }) {
               { key: "now", label: t("i'm here now"), s: todayIso(), e: addDays(todayIso(), 13), flex: false },
               { key: "week", label: t("next week"), s: addDays(todayIso(), 7), e: addDays(todayIso(), 13), flex: false },
               { key: "month", label: t("next month"), s: addDays(todayIso(), 30), e: addDays(todayIso(), 36), flex: false },
-              { key: "soon", label: t("sometime soon"), s: todayIso(), e: addDays(todayIso(), 59), flex: true },
+              { key: "soon", label: t("not sure yet"), s: todayIso(), e: addDays(todayIso(), 29), flex: true },
             ].map((q) => (
               <Bubble
                 key={q.key}
@@ -299,15 +299,18 @@ export default function Join({ ig, onBack, onDone }) {
                 </div>
               )}
 
-              <div className="rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-3.5">
-                <p className="display text-[18px] font-bold leading-tight">
-                  {preview.count > 0 ? t("claim your spot and say hi") : `${t("join the")} ${preview.cityName} ${t("crew")}`}
-                </p>
-                <p className="mt-1 text-[13px]">
-                  {preview.count > 0
-                    ? t("your dates go up, they get told you're coming.")
-                    : t("group chat with everyone in town, and we ping you the second someone matches your dates.")}
-                </p>
+              <div className="flex items-center gap-3 rounded-[1.75rem] bg-white/80 p-4">
+                <img src="/art/icon-chat.png" alt="" className="h-14 w-14 shrink-0 object-contain" draggable="false" />
+                <div className="min-w-0">
+                  <p className="display text-[18px] font-bold leading-tight">
+                    {preview.count > 0 ? t("message them before you land") : `${preview.cityName} ${t("group chat")}`}
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-ink-soft">
+                    {preview.count > 0
+                      ? t("they see your dates, you see theirs, you pick a day.")
+                      : t("everyone in town is in it. and we ping you the second someone matches your dates.")}
+                  </p>
+                </div>
               </div>
 
               {preview.foundingLeft > 0 && (
@@ -324,7 +327,7 @@ export default function Join({ ig, onBack, onDone }) {
       key: "you",
       art: "/art/icon-chat.png",
       title: t("where do we send your pass?"),
-      valid: EMAIL_RE.test(email.trim()) && !!birthday,
+      valid: EMAIL_RE.test(email.trim()) && adult,
       body: (
         <div className="flex flex-col gap-2.5">
           <input
@@ -333,14 +336,17 @@ export default function Join({ ig, onBack, onDone }) {
             placeholder={t("your email")}
             className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
-          <div>
-            <label htmlFor="join-bday" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("birthday · 18+ only")}</label>
-            <input
-              id="join-bday" type="date" value={birthday} max={addDays(todayIso(), -6570)}
-              onChange={(e) => setBirthday(e.target.value)}
-              className="mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-3 py-3 text-[16px] font-semibold"
-            />
-          </div>
+          <button
+            onClick={() => setAdult((a) => !a)}
+            className={`flex items-center gap-3 rounded-[1.4rem] border-2 px-4 py-3 text-left text-[15px] font-semibold ${
+              adult ? "border-ink bg-lime" : "border-line bg-white/70 text-ink-soft"
+            }`}
+          >
+            <span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${adult ? "border-ink bg-ink text-cream" : "border-line"}`}>
+              {adult ? "✓" : ""}
+            </span>
+            {t("i'm 18 or older")}
+          </button>
         </div>
       ),
     },

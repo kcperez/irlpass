@@ -388,8 +388,11 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
               <h2 className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
                 {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}
               </h2>
-              <button onClick={() => removeTrip(trip.id)} aria-label="remove these dates">
-                <Trash size={15} className="text-ink-soft/70" />
+              <button
+                onClick={() => removeTrip(trip.id)}
+                className="flex items-center gap-1.5 rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold text-ink-soft"
+              >
+                <Trash size={13} weight="bold" /> {t("remove")}
               </button>
             </div>
 

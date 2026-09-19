@@ -169,7 +169,6 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [qr, setQr] = useState(null)
-  const [past, setPast] = useState([])
   const [reviewOf, setReviewOf] = useState(null) // activity being reviewed
 
   const saveSafety = async (patch) => {
@@ -180,13 +179,6 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
       body: JSON.stringify({ t: token, ...patch }),
     }).catch(() => {})
   }
-
-  useEffect(() => {
-    fetch(`/api/activities?t=${token}&scope=past`)
-      .then((r) => r.json())
-      .then((d) => setPast(d.activities || []))
-      .catch(() => {})
-  }, [token])
 
   useEffect(() => {
     QRCode.toDataURL(`https://irlpass.xyz/?screen=app&t=${token}`, {
@@ -270,31 +262,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
           </div>
         )}
 
-        {past.length > 0 && (
-          <div className="mt-4 rounded-2xl border border-line bg-white/70 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("your memories")}</p>
-            <div className="mt-2 space-y-2">
-              {past.slice(0, 5).map((a) => {
-                const host = a.creator.memberNo !== me.memberNo
-                return (
-                  <div key={a.id} className="flex items-center justify-between gap-2">
-                    <p className="min-w-0 text-[13px] text-ink">
-                      {actEmojiOf(a)} {a.title} <span className="font-mono text-[10.5px] text-ink-soft">· {dayLabel(a.date)}</span>
-                    </p>
-                    {host && (
-                      <button
-                        onClick={() => setReviewOf(a)}
-                        className="shrink-0 rounded-full border border-line bg-cream px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft active:scale-95"
-                      >
-                        {t("review")}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        
 
         {/* women-safety controls — who can reach you, who sees your instagram */}
         {isWomanNb(me.gender) && (
@@ -330,6 +298,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
           {t("view my pass")}
         </a>
         <div className="mt-2 flex gap-2">
+          {me.paid && (
           <button
             onClick={async () => {
               const r = await fetch("/api/portal", {
@@ -343,6 +312,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
           >
             {t("manage subscription")}
           </button>
+        )}
           <button
             onClick={() => {
               localStorage.removeItem("irlpass_member_token")
@@ -411,7 +381,7 @@ function PaywallSheet({ token, city, reason = "city", onClose }) {
         <h3 className="display mt-1.5 text-[26px] font-bold leading-tight">{lines.head}</h3>
         <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{lines.sub}</p>
         <ul className="mt-4 space-y-2 text-[13.5px]">
-          {[t("join plans in any city you travel to"), t("host your own anywhere"), t("dm any member, not just shared plans"), t("the full member list, everywhere")].map((f) => (
+          {[t("message anyone whose dates overlap yours"), t("every city, every window"), t("no per-trip unlocks"), t("verified badge included")].map((f) => (
             <li key={f} className="flex items-start gap-2">
               <span className="mt-0.5 text-lime-deep">✦</span> {f}
             </li>
