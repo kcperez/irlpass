@@ -13,10 +13,6 @@ export default function Welcome({ onStart }) {
 
   return (
     <div className="relative flex min-h-[var(--app-h)] flex-col overflow-hidden lg:justify-center">
-      {/* soft blobs behind everything */}
-      <div aria-hidden className="pointer-events-none absolute -left-16 -top-10 h-56 w-56 rounded-full bg-lime/70 blur-3xl lg:h-96 lg:w-96" />
-      <div aria-hidden className="pointer-events-none absolute -right-20 top-24 h-52 w-52 rounded-full bg-peach/70 blur-3xl lg:h-96 lg:w-96" />
-
       <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] lg:absolute lg:inset-x-0 lg:top-0 lg:px-10 lg:pt-8">
         <span className="display text-[22px] font-bold lowercase tracking-tight lg:text-[26px]">
           irl<span className="ml-[3px] inline-block -rotate-3 rounded-[0.45em] bg-lime px-[0.3em] pb-[0.06em] leading-none">pass</span>

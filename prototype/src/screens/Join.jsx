@@ -174,9 +174,6 @@ export default function Join({ ig, onBack, onDone }) {
 
   return (
     <div className="relative flex min-h-[var(--app-h)] flex-col overflow-hidden px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
-      <div aria-hidden className="pointer-events-none absolute -right-16 -top-12 h-52 w-52 rounded-full bg-lime/60 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -left-20 bottom-24 h-52 w-52 rounded-full bg-peach/60 blur-3xl" />
-
       <div className="relative flex items-center gap-3">
         <button onClick={() => (step === 0 ? onBack() : setStep((s) => s - 1))} aria-label={t("back")}>
           <ArrowLeft size={22} weight="bold" />
