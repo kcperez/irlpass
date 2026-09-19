@@ -41,7 +41,7 @@ export default function App() {
     // one layout everywhere: the app fills a phone, and on bigger screens it
     // stays a single centered column on the same ground (no second panel).
     <div className="min-h-[100dvh] bg-cream">
-      <div className="relative mx-auto w-full max-w-[460px] bg-cream">
+      <div className={`relative mx-auto w-full bg-cream ${screen === "welcome" ? "max-w-[460px] lg:max-w-[1040px]" : "max-w-[460px]"}`}>
         <div className="grain h-full w-full">
           <AnimatePresence mode="wait">
             <motion.div
