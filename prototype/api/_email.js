@@ -111,3 +111,27 @@ export const matchEmail = ({ name, who, city, starts, ends, url }) => ({
       <a href="https://irlpass.xyz/api/notify-off?t=" style="color:#8a857a">turn off these emails</a>
     </p>`,
 })
+
+// v2 relaunch: tell the existing members the app is a calendar now
+export const datesEmail = ({ name, memberNo, url, slotsLeft }) => ({
+  subject: "irlpass is different now — post your dates",
+  html: `
+    <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? name.toLowerCase() : "there"}.</h1>
+    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:14px 0 0">
+      irlpass changed. no more applying, no more waiting for a plan to show up.
+    </p>
+    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:12px 0 0">
+      you post the dates you'll be in a city. you see everyone whose trip overlaps yours.
+      that's the whole app now.
+    </p>
+    <p style="font-size:15px;line-height:1.6;color:#1c1b17;margin:12px 0 0">
+      <strong>the first ${slotsLeft || 40} people to post dates message everyone for free, forever.</strong>
+      after that it's $19 a trip.
+    </p>
+    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:22px">
+      post your dates
+    </a>
+    <p style="font-size:12px;color:#8a857a;text-align:center;margin:14px 0 0">
+      nº ${memberNo} is still yours · <a href="https://irlpass.xyz/api/notify-off?t=${""}" style="color:#8a857a">turn off these emails</a>
+    </p>`,
+})
