@@ -8,6 +8,8 @@ import {
   PaperPlaneRight,
   Sparkle,
   CircleNotch,
+  CheckCircle,
+  SignOut,
   PushPin,
 } from "@phosphor-icons/react"
 import QRCode from "qrcode"
@@ -25,7 +27,6 @@ const CITIES = [
   { slug: "bali", name: "bali", center: [115.1889, -8.4095], live: false },
 ]
 const cityOf = (slug) => CITIES.find((c) => c.slug === slug) || CITIES[0]
-const isWomanNb = (g) => g === "woman" || g === "nonbinary"
 
 const emojiFor = (title = "") => {
   const t = title.toLowerCase()
@@ -165,6 +166,65 @@ function ReviewSheet({ token, activity, onClose }) {
   )
 }
 
+function VerifyCard({ token, me, onVerified }) {
+  const [code, setCode] = useState(null)
+  const [state, setState] = useState("idle") // idle | checking | failed
+  const [msg, setMsg] = useState("")
+
+  useEffect(() => {
+    fetch(`/api/verify?t=${token}`).then((r) => r.json()).then((d) => setCode(d.code)).catch(() => {})
+  }, [token])
+
+  const check = async () => {
+    setState("checking")
+    setMsg("")
+    const r = await fetch("/api/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token }),
+    }).then((x) => x.json()).catch(() => null)
+    if (r?.ok) { setState("done"); onVerified?.() }
+    else { setState("failed"); setMsg(r?.error || t("could not check right now")) }
+  }
+
+  if (me.verified || state === "done") {
+    return (
+      <div className="mt-4 flex items-center gap-2 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-3">
+        <CheckCircle size={20} weight="fill" />
+        <p className="text-[13.5px] font-bold">{t("instagram verified")}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("verify your instagram")}</p>
+      <p className="mt-1.5 text-[13.5px] leading-snug">
+        {t("paste this in your instagram bio, tap check, then delete it. it proves the account is yours.")}
+      </p>
+      <div className="mt-2.5 flex items-center gap-2">
+        <code className="flex-1 rounded-[1rem] border-2 border-dashed border-line bg-cream px-3 py-2.5 text-[15px] font-bold tracking-wide">
+          {code || "…"}
+        </code>
+        <button
+          onClick={() => { if (code) navigator.clipboard?.writeText(code) }}
+          className="rounded-full border-2 border-line px-3 py-2 text-[12px] font-bold"
+        >
+          {t("copy")}
+        </button>
+      </div>
+      <button
+        onClick={check}
+        disabled={state === "checking"}
+        className="mt-2.5 w-full rounded-full bg-ink py-3 text-[14px] font-bold text-cream disabled:opacity-50"
+      >
+        {state === "checking" ? t("checking…") : t("check my bio")}
+      </button>
+      {msg && <p className="mt-2 text-[12.5px] text-[#8f2b2b]">{msg}</p>}
+    </div>
+  )
+}
+
 function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -264,32 +324,57 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
 
         
 
-        {/* women-safety controls — who can reach you, who sees your instagram */}
-        {isWomanNb(me.gender) && (
-          <div className="mt-4 rounded-2xl border border-line bg-[#f3d9e6]/25 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">🌸 {t("safety")}</p>
-            <label className="mt-2.5 flex items-center justify-between">
-              <span className="text-[13px]">{t("allow dms from men")}</span>
-              <button
-                onClick={() => saveSafety({ allowDmFromMen: !me.allowDmFromMen })}
-                className={`relative h-6 w-11 rounded-full transition-colors ${me.allowDmFromMen ? "bg-lime-deep" : "bg-line"}`}
-              >
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.allowDmFromMen ? "left-[22px]" : "left-0.5"}`} />
-              </button>
-            </label>
-            <label className="mt-2 flex items-center justify-between">
-              <span className="text-[13px]">{t("show my instagram to men")}</span>
-              <button
-                onClick={() => saveSafety({ showIgToMen: !me.showIgToMen })}
-                className={`relative h-6 w-11 rounded-full transition-colors ${me.showIgToMen ? "bg-lime-deep" : "bg-line"}`}
-              >
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.showIgToMen ? "left-[22px]" : "left-0.5"}`} />
-              </button>
-            </label>
-          </div>
-        )}
+        {/* prove the handle is yours — a code in your bio, for a minute */}
+        <VerifyCard token={token} me={me} onVerified={() => onSafety?.({ verified: true })} />
+
+        {/* who can reach you. everyone gets these, not only women */}
+        <div className="mt-4 rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("who can message you")}</p>
+          <label className="mt-2.5 flex items-center justify-between">
+            <span className="text-[13.5px] font-semibold">{t("men can message me")}</span>
+            <button
+              onClick={() => saveSafety({ allowDmFromMen: !me.allowDmFromMen })}
+              className={`relative h-6 w-11 rounded-full transition-colors ${me.allowDmFromMen ? "bg-lime-deep" : "bg-line"}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.allowDmFromMen ? "left-[22px]" : "left-0.5"}`} />
+            </button>
+          </label>
+          <label className="mt-2 flex items-center justify-between">
+            <span className="text-[13.5px] font-semibold">{t("show my instagram")}</span>
+            <button
+              onClick={() => saveSafety({ showIgToMen: !me.showIgToMen })}
+              className={`relative h-6 w-11 rounded-full transition-colors ${me.showIgToMen ? "bg-lime-deep" : "bg-line"}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.showIgToMen ? "left-[22px]" : "left-0.5"}`} />
+            </button>
+          </label>
+          <p className="mt-2 text-[12px] text-ink-soft">{t("turn the first one off and only women and non-binary members can start a chat with you.")}</p>
+        </div>
 
         {reviewOf && <ReviewSheet token={token} activity={reviewOf} onClose={() => setReviewOf(null)} />}
+
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={() => {
+              try { localStorage.removeItem("irlpass_member_token") } catch { /* private mode */ }
+              window.location.href = "/"
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-line py-3 text-[13px] font-bold text-ink-soft"
+          >
+            <SignOut size={15} weight="bold" /> {t("sign out")}
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm(t("this deletes your account, your dates and your messages. it can't be undone."))) return
+              await fetch(`/api/account?t=${token}`, { method: "DELETE" }).catch(() => {})
+              try { localStorage.removeItem("irlpass_member_token") } catch { /* private mode */ }
+              window.location.href = "/"
+            }}
+            className="flex-1 rounded-full border-2 border-line py-3 text-[13px] font-bold text-[#8f2b2b]"
+          >
+            {t("delete account")}
+          </button>
+        </div>
 
         <a
           href={`/?screen=pass&t=${token}&name=${encodeURIComponent(me.name)}&n=${me.memberNo}&ig=${encodeURIComponent(me.ig)}`}

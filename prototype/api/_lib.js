@@ -30,7 +30,9 @@ export const rowToMember = (r) =>
     // freemium + reputation + safety (columns added by migration; undefined until then)
     gender: r.gender || null,
     birthday: r.birthday || null,
-    verified: !!r.verified_selfie,
+    verified: !!r.ig_verified || !!r.verified_selfie,
+    igFollowers: typeof r.ig_followers === "number" ? r.ig_followers : null,
+    igPrivate: r.ig_private === true,
     repScore: typeof r.rep_score === "number" ? r.rep_score : null,
     repCount: typeof r.rep_count === "number" ? r.rep_count : 0,
     interests: Array.isArray(r.interests) ? r.interests : [],

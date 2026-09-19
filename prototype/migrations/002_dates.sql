@@ -35,3 +35,10 @@ create unique index if not exists members_founding_no_idx on members (founding_n
 
 -- remembers which city-opening email a member already got, so it only sends once
 alter table members add column if not exists city_opened text;
+
+-- instagram enrichment + handle ownership proof
+alter table members add column if not exists ig_followers integer;
+alter table members add column if not exists ig_private boolean;
+alter table members add column if not exists ig_checked_at timestamptz;
+alter table members add column if not exists ig_verified boolean not null default false;
+alter table members add column if not exists ig_verified_at timestamptz;

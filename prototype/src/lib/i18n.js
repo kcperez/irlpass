@@ -6,6 +6,19 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "sign out": "cerrar sesión",
+  "delete account": "borrar cuenta",
+  "this deletes your account, your dates and your messages. it can't be undone.": "esto borra tu cuenta, tus fechas y tus mensajes. no se puede deshacer.",
+  "who can message you": "quién te puede escribir",
+  "men can message me": "los hombres me pueden escribir",
+  "show my instagram": "mostrar mi instagram",
+  "turn the first one off and only women and non-binary members can start a chat with you.": "apaga la primera y solo mujeres y personas no binarias podrán escribirte primero.",
+  "verify your instagram": "verifica tu instagram",
+  "paste this in your instagram bio, tap check, then delete it. it proves the account is yours.": "pega esto en tu bio de instagram, toca verificar, y luego bórralo. así probamos que la cuenta es tuya.",
+  "check my bio": "verificar mi bio",
+  "instagram verified": "instagram verificado",
+  "copy": "copiar",
+  "could not check right now": "no pudimos verificar ahora",
   "people in": "personas en",
   "and the rest of the crew are already here. nobody's posted your exact days yet, so you'd be first.": "y el resto de la crew ya están ahí. nadie puso tus días exactos todavía, así que serías la primera persona.",
   "claim your spot and say hi": "reserva tu cupo y saluda",

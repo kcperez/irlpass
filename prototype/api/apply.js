@@ -1,6 +1,7 @@
 import { put } from "@vercel/blob"
 import { createAcceptedMember } from "./accept.js"
 import { sendEmail, acceptanceEmail } from "./_email.js"
+import { enrichMember } from "./_instagram.js"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const VALID_GENDERS = ["woman", "man", "nonbinary"]
@@ -102,6 +103,9 @@ export default async function handler(req, res) {
       allowDmFromMen: record.allowDmFromMen,
       showIgToMen: record.showIgToMen,
     })
+
+    // pull their instagram photo and follower count in the background
+    enrichMember(memberNo, record.ig).catch((e) => console.error("enrich error:", e))
 
     // welcome email (preserves the existing email + token mechanics)
     try {

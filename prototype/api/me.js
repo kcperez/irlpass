@@ -27,6 +27,7 @@ export default async function handler(req, res) {
     paid: !!member.paid,
     gender: member.gender,
     verified: member.verified,
+    igFollowers: member.igFollowers,
     repScore: member.repScore,
     repCount: member.repCount,
     allowDmFromMen: member.allowDmFromMen,
