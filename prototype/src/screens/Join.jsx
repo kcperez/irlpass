@@ -314,11 +314,7 @@ export default function Join({ ig, onBack, onDone }) {
                 </div>
               </div>
 
-              {preview.foundingLeft > 0 && (
-                <p className="text-center text-[12.5px] font-semibold text-ink-soft">
-                  {preview.foundingLeft} {t("founding spots left · message everyone free, forever")}
-                </p>
-              )}
+
             </>
           )}
         </div>
@@ -395,9 +391,7 @@ export default function Join({ ig, onBack, onDone }) {
         {last ? t("let me in") : cur.key === "reveal" ? t("claim my spot") : t("next")}
         {!last && <ArrowRight size={18} weight="bold" />}
       </motion.button>
-      {last && (
-        <p className="relative pt-2 text-center text-[12px] text-ink-soft">{t("free · first 40 message everyone free")}</p>
-      )}
+
     </div>
   )
 }

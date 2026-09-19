@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     // cache-bust so the new photo shows immediately everywhere
     const url = `${process.env.SUPABASE_URL}/storage/v1/object/public/${path}?v=${Date.now()}`
-    const { error } = await db.from("members").update({ photo_url: url }).eq("token", me.token)
+    const { error } = await db.from("members").update({ photo_url: url, photo_source: "upload" }).eq("token", me.token)
     if (error) throw error
     return res.status(200).json({ ok: true, photo: url })
   } catch (e) {

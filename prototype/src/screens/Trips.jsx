@@ -269,7 +269,6 @@ function UnlockSheet({ token, trip, count, onClose, onDone }) {
 export default function Trips({ token, me, onOpenDM, unlockRequest }) {
   const [state, setState] = useState("loading")
   const [trips, setTrips] = useState([])
-  const [founding, setFounding] = useState({ free: false, no: null, left: null })
   const [active, setActive] = useState(0) // index of the trip being viewed
   const [overlap, setOverlap] = useState(null)
   const [formOpen, setFormOpen] = useState(
@@ -283,7 +282,6 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
     const r = await fetch(`/api/trips?t=${token}`)
     const d = await r.json()
     setTrips(d.trips || [])
-    setFounding({ free: !!d.foundingFree, no: d.foundingNo, left: d.foundingLeft })
     setState("ok")
   }, [token])
 
@@ -333,19 +331,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
     <div className="relative flex min-h-0 flex-1 flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-28 pt-2">
 
-        {founding.free ? (
-          <div className="mb-4 flex items-center gap-2 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
-            <CheckCircle size={18} weight="fill" />
-            <p className="text-[13px] font-semibold">
-              founding member nº {founding.no} · messaging is free for you, always
-            </p>
-          </div>
-        ) : founding.left > 0 ? (
-          <div className="mb-4 rounded-2xl border border-line bg-white/60 px-4 py-3">
-            <p className="text-[13px] font-semibold">{founding.left} founding spots left</p>
-            <p className="text-[12px] text-ink-soft">post your dates to claim one and message everyone for free</p>
-          </div>
-        ) : null}
+
 
         {/* my trips */}
         <div className="mb-4">
@@ -455,7 +441,6 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
 
             {overlap.access && (
                   <p className="mt-3 text-center text-[12px] text-ink-soft">
-                    {overlap.access === "founding" && "founding member · messaging is free for you"}
                     {overlap.access === "pass" && "you have the pass · every city, every trip"}
                     {overlap.access === "unlock" && "these dates are unlocked"}
                   </p>
@@ -476,7 +461,6 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
             onPosted={(d) => {
               setFormOpen(false)
               setActive(0)
-              setFounding({ free: !!d.foundingFree, no: d.foundingNo, left: d.foundingLeft })
               load()
             }}
           />

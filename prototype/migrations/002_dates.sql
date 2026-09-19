@@ -42,3 +42,6 @@ alter table members add column if not exists ig_private boolean;
 alter table members add column if not exists ig_checked_at timestamptz;
 alter table members add column if not exists ig_verified boolean not null default false;
 alter table members add column if not exists ig_verified_at timestamptz;
+
+-- where a member's photo came from, so the weekly refresh never overwrites an upload
+alter table members add column if not exists photo_source text;

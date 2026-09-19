@@ -96,3 +96,39 @@ async function storePhoto(url, memberNo) {
     return null
   }
 }
+
+// Re-check a member's instagram at most once a week, in the background. Their
+// own uploaded photo is never replaced — only one we pulled from instagram.
+const WEEK = 7 * 864e5
+
+export async function refreshIfStale(member) {
+  if (!member?.memberNo || !member.ig) return
+  const { data: row } = await db
+    .from("members")
+    .select("ig_checked_at, photo_url, photo_source")
+    .eq("member_no", member.memberNo)
+    .maybeSingle()
+  if (!row) return
+  const last = row.ig_checked_at ? Date.parse(row.ig_checked_at) : 0
+  if (Date.now() - last < WEEK) return
+
+  const p = await fetchIgProfile(member.ig)
+  if (!p) {
+    await db.from("members").update({ ig_checked_at: new Date().toISOString() }).eq("member_no", member.memberNo)
+    return
+  }
+  const patch = {
+    ig_followers: p.followers,
+    ig_private: p.private,
+    ig_checked_at: new Date().toISOString(),
+  }
+  // refresh the picture only when it came from instagram in the first place
+  if (p.photo && row.photo_source !== "upload") {
+    const stored = await storePhoto(p.photo, member.memberNo)
+    if (stored) {
+      patch.photo_url = stored
+      patch.photo_source = "instagram"
+    }
+  }
+  await db.from("members").update(patch).eq("member_no", member.memberNo)
+}
