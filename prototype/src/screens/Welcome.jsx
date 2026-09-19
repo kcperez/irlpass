@@ -27,6 +27,18 @@ export default function Welcome({ onStart }) {
       {/* phone: stacked. desktop: text left, art right, all on one horizon. */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12 lg:px-10">
         <div className="flex min-h-0 flex-1 flex-col lg:flex-none lg:order-1">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 150, damping: 20 }}
+            className="mx-5 mb-3 flex w-fit items-center gap-2 rounded-full border-2 border-line bg-white/70 px-3.5 py-1.5 lg:mx-0"
+          >
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-deep" />
+            <span className="text-[12.5px] font-bold">
+              <LiveCounter start={TRAVELERS_NOW} /> {t("travelers right now")}
+            </span>
+          </motion.div>
+
           <motion.h1
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -80,23 +92,10 @@ export default function Welcome({ onStart }) {
               {t("see who's around")} <ArrowRight size={18} weight="bold" />
             </motion.button>
 
-            <div className="grid grid-cols-3 gap-2 pt-2">
-              {[
-                { art: "/art/icon-dates.png", label: t("post your dates") },
-                { art: "/art/icon-people.png", label: t("see who overlaps") },
-                { art: "/art/icon-chat.png", label: t("say hi") },
-              ].map((x) => (
-                <div key={x.label} className="flex flex-col items-center gap-1 text-center">
-                  <img src={x.art} alt="" className="h-11 w-11 object-contain" draggable="false" />
-                  <span className="text-[11.5px] font-semibold leading-tight">{x.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-center gap-2 pt-0.5 text-[12px] text-ink-soft lg:justify-start">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-deep" />
-              <LiveCounter start={TRAVELERS_NOW} /> {t("travelers in medellín, cdmx, lisbon, miami + bali")}
-            </div>
+            <p className="pt-1.5 text-center text-[13px] font-semibold text-ink-soft lg:text-left">
+              {t("post your dates")} <span className="text-ink-soft/40">·</span> {t("see who overlaps")}{" "}
+              <span className="text-ink-soft/40">·</span> {t("say hi")}
+            </p>
           </motion.div>
         </div>
 

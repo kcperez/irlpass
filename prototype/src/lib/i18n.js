@@ -5,7 +5,8 @@ const raw = (typeof navigator !== "undefined" && (navigator.language || navigato
 export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
-const ES = {
+  const ES = {
+  "travelers right now": "viajeros ahora mismo",
   "type any city": "escribe cualquier ciudad",
   "is filling up": "se está llenando",
   "you're early. we'll ping you the moment someone's trip overlaps yours.": "llegaste temprano. te avisamos apenas el viaje de alguien coincida con el tuyo.",
