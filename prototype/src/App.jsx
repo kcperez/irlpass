@@ -1,5 +1,7 @@
 import { useState, lazy, Suspense } from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import Welcome from "./screens/Welcome"
+import Join from "./screens/Join"
 import CityPage from "./screens/CityPage"
 import Apply from "./screens/Apply"
 import Review from "./screens/Review"
@@ -18,9 +20,9 @@ const params = new URLSearchParams(window.location.search)
 const isAdminPath = window.location.pathname === "/admin"
 const initialScreen = isAdminPath
   ? "admin"
-  : ["city", "apply", "review", "received", "offer", "pass", "info", "app", "auth", "invite", "redeem"].includes(params.get("screen"))
+  : ["city", "apply", "review", "received", "offer", "pass", "info", "app", "auth", "invite", "redeem", "join"].includes(params.get("screen"))
     ? params.get("screen")
-    : "city"
+    : "welcome"
 // demo mode (filming): review flows into the instant "you're in" pass reveal.
 // real applicants land on the received screen — acceptance comes by dm/email after vetting.
 const demoMode = params.get("demo") === "1" || params.get("screen") === "pass"
@@ -33,6 +35,7 @@ const initialApplicant = {
 export default function App() {
   const [screen, setScreen] = useState(initialScreen)
   const [applicant, setApplicant] = useState(initialApplicant)
+  const [handle, setHandle] = useState(params.get("ig")?.replace(/^@+/, "") || "")
 
   return (
     // dark studio backdrop on desktop, invisible on phones
@@ -50,6 +53,16 @@ export default function App() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.22 }}
             >
+              {screen === "welcome" && (
+                <Welcome onStart={(ig) => { setHandle(ig); setScreen("join") }} />
+              )}
+              {screen === "join" && (
+                <Join
+                  ig={handle}
+                  onBack={() => setScreen("welcome")}
+                  onDone={(token) => { window.location.href = `/?screen=app&t=${token}` }}
+                />
+              )}
               {screen === "city" && <CityPage onApply={() => setScreen("apply")} />}
               {screen === "apply" && (
                 <Apply

@@ -31,12 +31,11 @@ export default async function handler(req, res) {
       allowDmFromMen, showIgToMen,
     } = req.body || {}
 
-    if (!name || !String(name).trim() || String(name).trim().length < 2) {
-      return res.status(400).json({ error: "name required" })
-    }
     if (!ig || String(ig).trim().length < 3) {
       return res.status(400).json({ error: "instagram required" })
     }
+    // name is optional now — the handle is the identity until they edit it
+    const displayName = String(name || ig).trim().replace(/^@+/, "")
     if (!email || !EMAIL_RE.test(String(email).trim())) {
       return res.status(400).json({ error: "valid email required" })
     }
@@ -51,20 +50,18 @@ export default async function handler(req, res) {
     if (gender && !VALID_GENDERS.includes(gender)) {
       return res.status(400).json({ error: "invalid gender" })
     }
-    if (!dates) {
-      return res.status(400).json({ error: "dates required" })
-    }
+
 
     const cleanInterests = Array.isArray(interests)
       ? interests.slice(0, 10).map((i) => String(i).slice(0, 40))
       : []
 
     const record = {
-      name: String(name).trim().slice(0, 80),
+      name: displayName.slice(0, 80),
       country: String(country || "").trim().slice(0, 60),
       ig: String(ig).trim().slice(0, 80),
       email: String(email).trim().toLowerCase().slice(0, 120),
-      dates: String(dates).slice(0, 60),
+      dates: String(dates || "").slice(0, 60),
       reasons: Array.isArray(reasons) ? reasons.slice(0, 10).map((r) => String(r).slice(0, 60)) : [],
       city: String(city || "medellin").slice(0, 40),
       gender: VALID_GENDERS.includes(gender) ? gender : null,

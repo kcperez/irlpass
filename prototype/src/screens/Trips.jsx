@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import {
-  CalendarBlank, CalendarPlus, CheckCircle, CircleNotch, LockSimple,
-  Plus, Trash, UsersThree, X,
+  CalendarPlus, CheckCircle, CircleNotch, LockSimple,
+  Plus, Trash, X,
 } from "@phosphor-icons/react"
 
 // v2: the calendar is the product. post your dates, see who overlaps them,
@@ -335,7 +335,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
       <div className="flex-1 overflow-y-auto px-4 pb-28 pt-2">
 
         {founding.free ? (
-          <div className="mb-4 flex items-center gap-2 rounded-2xl bg-lime px-4 py-3">
+          <div className="mb-4 flex items-center gap-2 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
             <CheckCircle size={18} weight="fill" />
             <p className="text-[13px] font-semibold">
               founding member nº {founding.no} · messaging is free for you, always
@@ -358,23 +358,21 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
           </div>
 
           {trips.length === 0 ? (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.97 }}
               onClick={() => setFormOpen(true)}
-              className="flex w-full flex-col items-start gap-1 rounded-3xl border border-dashed border-line bg-white/50 px-5 py-6 text-left"
+              className="flex w-full items-center gap-3 rounded-[1.75rem] border-2 border-ink bg-lime px-5 py-5 text-left"
             >
-              <CalendarBlank size={22} className="text-ink-soft" />
-              <span className="display text-[19px]">post your first dates</span>
-              <span className="text-[13px] text-ink-soft">
-                say where you'll be and when. you'll see everyone whose trip overlaps yours.
-              </span>
-            </button>
+              <img src="/art/icon-dates.png" alt="" className="h-16 w-16 shrink-0" draggable="false" />
+              <span className="display text-[22px] font-bold leading-tight">post your dates</span>
+            </motion.button>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {trips.map((t, i) => (
                 <button
                   key={t.id}
                   onClick={() => setActive(i)}
-                  className={`shrink-0 rounded-2xl border px-4 py-3 text-left ${
+                  className={`shrink-0 rounded-[1.4rem] border-2 px-4 py-3 text-left ${
                     i === active ? "border-ink bg-lime/60" : "border-line bg-white/60"
                   }`}
                 >
@@ -401,24 +399,22 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
             {!overlap ? (
               <div className="flex justify-center py-10"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
             ) : overlap.count === 0 ? (
-              <div className="rounded-3xl border border-line bg-white/50 px-5 py-7 text-center">
-                <UsersThree size={24} className="mx-auto text-ink-soft" />
-                <p className="display mt-2 text-[18px]">nobody yet on those days</p>
-                <p className="mt-1 text-[13px] text-ink-soft">
-                  we'll email you the moment someone posts dates that overlap yours.
-                </p>
+              <div className="rounded-[1.75rem] border-2 border-line bg-white/60 px-5 py-6 text-center">
+                <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20" draggable="false" />
+                <p className="display mt-1 text-[20px] font-bold">nobody yet</p>
+                <p className="mt-1 text-[13px] text-ink-soft">we'll ping you the second someone lands on your dates</p>
               </div>
             ) : (
               <>
                 <div className="mb-2 flex items-baseline gap-2">
-                  <span className="display text-[30px] leading-none">{overlap.count}</span>
+                  <span className="display text-[42px] font-bold leading-none">{overlap.count}</span>
                   <span className="text-[14px] text-ink-soft">
                     {overlap.count === 1 ? "person" : "people"} here on your dates
                     {overlap.women > 0 && ` · ${overlap.women} ${overlap.women === 1 ? "woman" : "women"}`}
                   </span>
                 </div>
 
-                <div className="overflow-hidden rounded-3xl border border-line bg-white/60">
+                <div className="overflow-hidden rounded-[1.75rem] border-2 border-line bg-white/70">
                   {overlap.people.map((p) => (
                     <PersonRow
                       key={`${p.memberNo}-${p.starts}`}
