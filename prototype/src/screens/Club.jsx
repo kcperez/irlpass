@@ -1741,7 +1741,10 @@ function DeniedScreen() {
 
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
+const CITY_LABEL = { medellin: "medellín", cdmx: "mexico city", miami: "miami", lisboa: "lisbon", bali: "bali" }
+
 function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }) {
+  const [roomOpen, setRoomOpen] = useState(false)
   const [threads, setThreads] = useState(null)
   const [convo, setConvo] = useState(null) // { with, messages }
   const [text, setText] = useState("")
@@ -1822,16 +1825,42 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
     )
   }
 
+  const cityName = CITY_LABEL[me.city] || me.city
+
+  if (roomOpen) {
+    return (
+      <Thread
+        token={token}
+        me={me}
+        photoMap={photoMap}
+        channel={me.city}
+        title={`${cityName} crew`}
+        onBack={() => setRoomOpen(false)}
+      />
+    )
+  }
+
   // the inbox
   return (
     <div className="px-5 pb-28 pt-4">
-      <h2 className="display text-[26px] font-bold">{t("messages")}</h2>
+      <h2 className="display text-[30px] font-bold">{t("chat")}</h2>
+
+      <button
+        onClick={() => setRoomOpen(true)}
+        className="mt-4 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left active:scale-[0.99]"
+      >
+        <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0" draggable="false" />
+        <div className="min-w-0">
+          <p className="display text-[19px] font-bold leading-tight">{cityName} crew</p>
+          <p className="text-[12.5px] text-ink-soft">{t("everyone in town right now")}</p>
+        </div>
+      </button>
       {!threads ? (
         <div className="mt-10 flex justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
       ) : threads.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-line p-6 text-center">
-          <p className="text-[15px] font-medium">{t("no messages yet")}</p>
-          <p className="mt-1 text-[13px] text-ink-soft">{t("join a plan, meet people, then message them here.")}</p>
+          <p className="text-[15px] font-semibold">{t("no dms yet")}</p>
+          <p className="mt-1 text-[13px] text-ink-soft">{t("say hi to someone on your dates and it lands here.")}</p>
         </div>
       ) : (
         <div className="mt-4 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
@@ -1931,10 +1960,9 @@ export default function Club({ token }) {
   }
 
   const TABS = [
-    { key: "trips", label: "dates", icon: CalendarPlus },
-    { key: "members", label: t("members"), icon: UsersThree },
-    { key: "dms", label: t("dms"), icon: PaperPlaneRight },
-    { key: "chats", label: t("chats"), icon: ChatsCircle },
+    { key: "trips", label: t("dates"), icon: CalendarPlus },
+    { key: "members", label: t("people"), icon: UsersThree },
+    { key: "dms", label: t("chat"), icon: ChatsCircle },
   ]
   const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith)
 
