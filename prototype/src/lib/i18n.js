@@ -6,6 +6,8 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "josh · irlpass": "josh · irlpass",
+  "stuck on something? he answers": "¿algo no funciona? él responde",
   "sign out": "cerrar sesión",
   "delete account": "borrar cuenta",
   "this deletes your account, your dates and your messages. it can't be undone.": "esto borra tu cuenta, tus fechas y tus mensajes. no se puede deshacer.",

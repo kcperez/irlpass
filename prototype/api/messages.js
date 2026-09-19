@@ -1,10 +1,12 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { notifyMemberNo } from "./_notify.js"
+import { isMod } from "./_mods.js"
 
-// channels: "medellin" (lobby, all members) or an activity id (joined members only)
+// channels: a city slug (everyone in that city, plus mods) or a legacy activity id
 async function canAccess(channel, me) {
-  if (channel === "medellin") return true
+  if (isMod(me.memberNo)) return true
+  if (/^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) return true
   if (!/^[a-f0-9]{16}$/.test(channel)) return false
   const { data } = await db.from("activities").select("joined").eq("id", channel).single()
   return !!data && data.joined.some((j) => j.memberNo === me.memberNo)

@@ -158,6 +158,19 @@ function ReviewSheet({ token, activity, onClose }) {
         <button onClick={submit} disabled={!rating || sent} className="mt-5 w-full rounded-full bg-ink py-3 text-[14px] font-semibold text-cream disabled:opacity-35">
           {sent ? t("thanks 🤝") : t("post review")}
         </button>
+
+      {me.memberNo !== "002" && (
+        <button
+          onClick={() => setOpenWith({ memberNo: "002", name: "Josh", ig: "@jawshmac" })}
+          className="mt-2 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-line bg-white/70 px-4 py-3.5 text-left active:scale-[0.99]"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lime text-[18px]">👋</span>
+          <div className="min-w-0">
+            <p className="text-[15px] font-bold leading-tight">{t("josh · irlpass")}</p>
+            <p className="text-[12.5px] text-ink-soft">{t("stuck on something? he answers")}</p>
+          </div>
+        </button>
+      )}
         <button onClick={report} className="mt-2 w-full py-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#b3461f]/80">
           {t("something felt off — report privately")}
         </button>
