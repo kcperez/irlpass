@@ -365,7 +365,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
               onClick={() => setFormOpen(true)}
               className="flex w-full items-center gap-3 rounded-[1.75rem] border-2 border-ink bg-lime px-5 py-5 text-left"
             >
-              <img src="/art/icon-dates.png" alt="" className="h-16 w-16 shrink-0" draggable="false" />
+              <img src="/art/icon-dates.png" alt="" className="h-16 w-16 shrink-0 object-contain" draggable="false" />
               <span className="display text-[22px] font-bold leading-tight">post your dates</span>
             </motion.button>
           ) : (
@@ -402,7 +402,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest }) {
               <div className="flex justify-center py-10"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
             ) : overlap.count === 0 ? (
               <div className="rounded-[1.75rem] border-2 border-line bg-white/60 px-5 py-6 text-center">
-                <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20" draggable="false" />
+                <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
                 <p className="display mt-1 text-[20px] font-bold">nobody yet</p>
                 <p className="mt-1 text-[13px] text-ink-soft">we'll ping you the second someone lands on your dates</p>
               </div>

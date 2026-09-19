@@ -342,7 +342,7 @@ export default function Join({ ig, onBack, onDone }) {
 
       <AnimatePresence mode="wait">
         <motion.div key={cur.key} variants={slide} initial="enter" animate="center" exit="exit" className="relative flex flex-1 flex-col justify-center py-6">
-          {!cur.hideArt && <img src={cur.art} alt="" className="h-24 w-24 select-none" draggable="false" />}
+          {!cur.hideArt && <img src={cur.art} alt="" className="h-24 w-24 select-none object-contain" draggable="false" />}
           {cur.title && <h1 className="display mt-2 text-[32px] font-bold leading-[0.98] tracking-tight">{cur.title}</h1>}
           <div className={cur.hideArt ? "" : "mt-5"}>{cur.body}</div>
         </motion.div>

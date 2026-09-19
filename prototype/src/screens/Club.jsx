@@ -943,7 +943,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
         onClick={() => setRoomOpen(true)}
         className="mt-4 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left active:scale-[0.99]"
       >
-        <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0" draggable="false" />
+        <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable="false" />
         <div className="min-w-0">
           <p className="display text-[19px] font-bold leading-tight">{cityName} crew</p>
           <p className="text-[12.5px] text-ink-soft">{t("everyone in town right now")}</p>

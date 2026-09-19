@@ -97,7 +97,7 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
 
       {visible.length === 0 ? (
         <div className="mt-4 rounded-[1.75rem] border-2 border-dashed border-line bg-white/50 px-5 py-7 text-center">
-          <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20" draggable="false" />
+          <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
           <p className="display mt-1 text-[20px] font-bold">{t("nobody in these two weeks")}</p>
           <p className="mt-1 text-[13px] text-ink-soft">{t("try later dates, or post yours and get told when someone lands.")}</p>
         </div>

@@ -1,13 +1,17 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowRight, InstagramLogo } from "@phosphor-icons/react"
-import { LiveCounter } from "../components/bits"
-import { TRAVELERS_NOW } from "../data"
 import { t } from "../lib/i18n"
 
 // the whole pitch in one glance: never travel alone, drop your instagram, go.
 export default function Welcome({ onStart }) {
   const [ig, setIg] = useState("")
+  const [stats, setStats] = useState(null)
+
+  // real numbers, straight from the database
+  useEffect(() => {
+    fetch("/api/stats").then((r) => r.json()).then(setStats).catch(() => {})
+  }, [])
   const memberToken = typeof localStorage !== "undefined" && localStorage.getItem("irlpass_member_token")
   const handle = ig.replace(/^@+/, "").trim()
 
@@ -27,18 +31,6 @@ export default function Welcome({ onStart }) {
       {/* phone: stacked. desktop: text left, art right, all on one horizon. */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12 lg:px-10">
         <div className="flex min-h-0 flex-1 flex-col lg:flex-none lg:order-1">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 150, damping: 20 }}
-            className="mx-5 mb-3 flex w-fit items-center gap-2 rounded-full border-2 border-line bg-white/70 px-3.5 py-1.5 lg:mx-0"
-          >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-deep" />
-            <span className="text-[12.5px] font-bold">
-              <LiveCounter start={TRAVELERS_NOW} /> {t("travelers right now")}
-            </span>
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -92,10 +84,21 @@ export default function Welcome({ onStart }) {
               {t("see who's around")} <ArrowRight size={18} weight="bold" />
             </motion.button>
 
-            <p className="pt-1.5 text-center text-[13px] font-semibold text-ink-soft lg:text-left">
-              {t("post your dates")} <span className="text-ink-soft/40">·</span> {t("see who overlaps")}{" "}
-              <span className="text-ink-soft/40">·</span> {t("say hi")}
-            </p>
+            <div className="flex flex-col items-center gap-1 pt-2 lg:items-start">
+              <p className="flex items-center gap-2 text-[13.5px] font-bold">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-deep" />
+                {stats?.members ?? 200} {t("travelers")}
+                {stats?.travelling > 0 && (
+                  <span className="font-semibold text-ink-soft">
+                    · {stats.travelling} {t("with dates up")}
+                  </span>
+                )}
+              </p>
+              <p className="text-[12.5px] text-ink-soft">
+                {t("post your dates")} <span className="text-ink-soft/40">·</span> {t("see who overlaps")}{" "}
+                <span className="text-ink-soft/40">·</span> {t("say hi")}
+              </p>
+            </div>
           </motion.div>
         </div>
 
