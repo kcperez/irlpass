@@ -38,13 +38,28 @@ export default function App() {
   const [handle, setHandle] = useState(params.get("ig")?.replace(/^@+/, "") || "")
 
   return (
-    // dark studio backdrop on desktop, invisible on phones
-    <div className="md:flex md:min-h-[100dvh] md:items-center md:justify-center md:bg-[#12110d] md:py-6">
-      {/* phone bezel (desktop only) */}
-      <div className="relative w-full max-w-[430px] md:h-[var(--app-h)] md:w-[396px] md:overflow-hidden md:rounded-[3.2rem] md:shadow-[0_50px_120px_-30px_rgba(0,0,0,0.9)] md:ring-[10px] md:ring-[#26241e]">
-        {/* dynamic island */}
-        <div className="absolute left-1/2 top-2.5 z-50 hidden h-[26px] w-[110px] -translate-x-1/2 rounded-full bg-black md:block" />
-        <div className="grain mx-auto h-full w-full bg-cream md:overflow-y-auto md:overscroll-contain">
+    // one responsive app: full screen on phones, a centered column beside a
+    // brand panel on desktop. no fake phone bezel.
+    <div className="min-h-[100dvh] bg-cream md:flex md:items-stretch md:justify-center md:gap-10 md:bg-cream-deep/40 md:p-8">
+      {/* desktop-only brand panel */}
+      <aside className="relative hidden w-[420px] shrink-0 flex-col justify-center overflow-hidden rounded-[2rem] bg-cream px-10 py-12 lg:flex">
+        <div aria-hidden className="pointer-events-none absolute -left-16 top-10 h-64 w-64 rounded-full bg-lime/60 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -right-16 bottom-16 h-64 w-64 rounded-full bg-peach/60 blur-3xl" />
+        <span className="display relative text-[26px] font-bold lowercase tracking-tight">
+          irl<span className="ml-[3px] inline-block -rotate-3 rounded-[0.45em] bg-lime px-[0.3em] pb-[0.06em] leading-none">pass</span>
+        </span>
+        <h2 className="display relative mt-4 text-[44px] font-bold leading-[0.95] tracking-tight">
+          never travel<br />alone
+        </h2>
+        <p className="relative mt-3 max-w-[26ch] text-[16px] text-ink-soft">
+          post the dates you'll be in a city, see who else is there, say hi.
+        </p>
+        <img src="/art/hero.png" alt="" className="relative mt-6 w-full select-none" draggable="false" />
+      </aside>
+
+      {/* the app itself */}
+      <div className="relative mx-auto w-full max-w-[430px] overflow-hidden bg-cream md:h-[min(900px,calc(100dvh-4rem))] md:rounded-[2rem] md:shadow-[0_40px_90px_-50px_rgba(58,50,44,0.55)]">
+        <div className="grain h-full w-full overflow-y-auto overscroll-contain">
           <AnimatePresence mode="wait">
             <motion.div
               key={screen}

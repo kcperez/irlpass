@@ -35,7 +35,7 @@ export default function Welcome({ onStart }) {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 140, damping: 18 }}
-        className="display relative mt-5 px-5 text-[46px] font-bold leading-[0.92] tracking-tight"
+        className="display relative z-10 mt-6 px-5 text-[44px] font-bold leading-[0.94] tracking-tight sm:text-[52px]"
       >
         {t("never travel")}
         <br />
@@ -58,7 +58,7 @@ export default function Welcome({ onStart }) {
         initial={{ opacity: 0, scale: 0.94, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 110, damping: 18, delay: 0.1 }}
-        className="relative -mt-2 w-full select-none"
+        className="relative z-0 mx-auto w-[92%] max-w-[420px] flex-1 select-none object-contain py-2"
         draggable="false"
       />
 
@@ -66,7 +66,7 @@ export default function Welcome({ onStart }) {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, type: "spring", stiffness: 140, damping: 20 }}
-        className="relative -mt-8 flex flex-col gap-2 px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))]"
+        className="relative z-10 flex flex-col gap-2 px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))]"
       >
         <div className="flex items-center gap-2 rounded-[1.6rem] border-2 border-ink bg-white/85 px-4 py-3 shadow-[0_18px_40px_-24px_rgba(58,50,44,0.7)]">
           <InstagramLogo size={22} weight="duotone" className="shrink-0" />
