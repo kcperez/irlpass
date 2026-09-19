@@ -85,3 +85,12 @@ textarea {
   width: max-content;
   animation: marquee 18s linear infinite;
 }
+
+/* full-bleed brand wash: lives on the page so it reaches every edge, on any screen */
+.wash {
+  background:
+    radial-gradient(62% 46% at 10% 6%, color-mix(in srgb, var(--color-lime) 85%, transparent) 0%, transparent 62%),
+    radial-gradient(54% 42% at 94% 20%, color-mix(in srgb, var(--color-peach) 85%, transparent) 0%, transparent 64%),
+    radial-gradient(80% 55% at 50% 104%, var(--color-cream-deep) 0%, transparent 72%),
+    var(--color-cream);
+}

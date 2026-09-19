@@ -42,7 +42,7 @@ export default function App() {
     // stays a single centered column on the same ground (no second panel).
     <div className="relative min-h-[100dvh] overflow-hidden bg-cream">
       {/* the wash lives on the page, not on a column, so it reaches every edge */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(60%_44%_at_12%_8%,var(--color-lime)_0%,transparent_62%),radial-gradient(52%_40%_at_92%_22%,var(--color-peach)_0%,transparent_64%),radial-gradient(70%_50%_at_50%_100%,#efe8df_0%,transparent_70%)] opacity-[0.75]" />
+      <div aria-hidden className="wash pointer-events-none fixed inset-0 z-0" />
       <div className={`relative z-10 mx-auto w-full ${screen === "welcome" ? "max-w-[460px] lg:max-w-[1040px]" : "max-w-[460px]"}`}>
         <div className="grain h-full w-full">
           <AnimatePresence mode="wait">
