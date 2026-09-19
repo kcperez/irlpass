@@ -24,6 +24,9 @@ const addDays = (isoDate, n) => {
   d.setUTCDate(d.getUTCDate() + n)
   return iso(d)
 }
+const fmtShort = (isoDate) =>
+  new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 const slide = {
@@ -68,6 +71,8 @@ export default function Join({ ig, onBack, onDone }) {
   const [city, setCity] = useState("medellin")
   const [cityName, setCityName] = useState("Medellín")
   const [customCity, setCustomCity] = useState("")
+  const [flexible, setFlexible] = useState(false)
+  const [here, setHere] = useState(null) // null until they say now or later
   const [starts, setStarts] = useState(todayIso())
   const [ends, setEnds] = useState(addDays(todayIso(), 6))
   const [email, setEmail] = useState("")
@@ -173,43 +178,92 @@ export default function Join({ ig, onBack, onDone }) {
     {
       key: "when",
       art: "/art/icon-dates.png",
-      title: t("when?"),
-      valid: starts && ends && ends >= starts,
+      title: here === null ? t("are you there now?") : here ? t("until when?") : t("when are you going?"),
+      valid: here !== null && !!starts && !!ends && ends >= starts,
       body: (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           <div className="flex gap-2">
-            {[
-              { label: t("this week"), s: todayIso(), e: addDays(todayIso(), 6) },
-              { label: t("this month"), s: todayIso(), e: addDays(todayIso(), 29) },
-            ].map((q) => (
-              <Bubble
-                key={q.label}
-                active={starts === q.s && ends === q.e}
-                onClick={() => { setStarts(q.s); setEnds(q.e) }}
-                className="flex-1"
-              >
-                {q.label}
+            <Bubble
+              active={here === true}
+              onClick={() => { setHere(true); setStarts(todayIso()); setEnds(addDays(todayIso(), 13)) }}
+              className="flex-1"
+            >
+              {t("i'm here now")}
+            </Bubble>
+            <Bubble
+              active={here === false}
+              onClick={() => { setHere(false); setStarts(addDays(todayIso(), 7)); setEnds(addDays(todayIso(), 13)) }}
+              className="flex-1"
+            >
+              {t("i'm going soon")}
+            </Bubble>
+          </div>
+
+          {here === true && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: t("another week"), e: addDays(todayIso(), 6), flex: false },
+                { label: t("another month"), e: addDays(todayIso(), 29), flex: false },
+                { label: t("i live here"), e: addDays(todayIso(), 89), flex: true },
+              ].map((q) => (
+                <Bubble
+                  key={q.label}
+                  active={ends === q.e}
+                  onClick={() => { setStarts(todayIso()); setEnds(q.e); setFlexible(q.flex) }}
+                  className="flex-1"
+                >
+                  {q.label}
+                </Bubble>
+              ))}
+            </div>
+          )}
+
+          {here === false && (
+            <>
+              <div className="flex gap-2">
+                {[
+                  { label: t("next week"), s: addDays(todayIso(), 7), e: addDays(todayIso(), 13) },
+                  { label: t("next month"), s: addDays(todayIso(), 30), e: addDays(todayIso(), 36) },
+                ].map((q) => (
+                  <Bubble
+                    key={q.label}
+                    active={starts === q.s && ends === q.e}
+                    onClick={() => { setStarts(q.s); setEnds(q.e) }}
+                    className="flex-1"
+                  >
+                    {q.label}
+                  </Bubble>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label htmlFor="join-start" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("from")}</label>
+                  <input
+                    id="join-start" type="date" value={starts} min={todayIso()}
+                    onChange={(e) => { setStarts(e.target.value); if (ends < e.target.value) setEnds(e.target.value) }}
+                    className="mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-3 py-3 text-[16px] font-semibold"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="join-end" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("until")}</label>
+                  <input
+                    id="join-end" type="date" value={ends} min={starts}
+                    onChange={(e) => setEnds(e.target.value)}
+                    className="mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-3 py-3 text-[16px] font-semibold"
+                  />
+                </div>
+              </div>
+              <Bubble active={flexible} onClick={() => setFlexible((f) => !f)}>
+                {t("dates aren't locked in yet")}
               </Bubble>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label htmlFor="join-start" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("arrive")}</label>
-              <input
-                id="join-start" type="date" value={starts} min={todayIso()}
-                onChange={(e) => { setStarts(e.target.value); if (ends < e.target.value) setEnds(e.target.value) }}
-                className="mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-3 py-3 text-[16px] font-semibold"
-              />
-            </div>
-            <div className="flex-1">
-              <label htmlFor="join-end" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("leave")}</label>
-              <input
-                id="join-end" type="date" value={ends} min={starts}
-                onChange={(e) => setEnds(e.target.value)}
-                className="mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-3 py-3 text-[16px] font-semibold"
-              />
-            </div>
-          </div>
+            </>
+          )}
+
+          {here !== null && (
+            <p className="text-[12.5px] text-ink-soft">
+              {fmtShort(starts)} → {fmtShort(ends)}{flexible ? ` · ${t("flexible")}` : ""}
+            </p>
+          )}
         </div>
       ),
     },

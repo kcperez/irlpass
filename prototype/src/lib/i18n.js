@@ -6,6 +6,18 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "are you there now?": "¿ya estás allá?",
+  "until when?": "¿hasta cuándo?",
+  "when are you going?": "¿cuándo vas?",
+  "i'm here now": "ya estoy aquí",
+  "i'm going soon": "voy pronto",
+  "another week": "una semana más",
+  "another month": "un mes más",
+  "i live here": "vivo aquí",
+  "next week": "la próxima semana",
+  "next month": "el próximo mes",
+  "from": "desde", "until": "hasta",
+  "dates aren't locked in yet": "las fechas aún no son fijas",
   "travelers": "viajeros",
   "with dates up": "con fechas puestas",
   "travelers right now": "viajeros ahora mismo",
