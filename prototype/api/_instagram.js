@@ -110,7 +110,9 @@ export async function refreshIfStale(member) {
     .maybeSingle()
   if (!row) return
   const last = row.ig_checked_at ? Date.parse(row.ig_checked_at) : 0
-  if (Date.now() - last < WEEK) return
+  // someone still without a photo gets retried daily; everyone else weekly
+  const wait = row.photo_url ? WEEK : 864e5
+  if (Date.now() - last < wait) return
 
   const p = await fetchIgProfile(member.ig)
   if (!p) {

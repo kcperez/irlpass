@@ -14,28 +14,26 @@ const shell = (inner) => `<!DOCTYPE html>
   body, table { margin:0; padding:0; }
   u + .body .gmail-fix { display:none; }
   @media (prefers-color-scheme: dark) {
-    .ink-bg { background:#1c1b17 !important; }
-    .cream-card { background:#f4f1ea !important; }
-    .ink-text { color:#1c1b17 !important; }
+    .paper { background:#f7f3ed !important; }
+    .card { background:#fffdfa !important; }
+    .ink { color:#3a322c !important; }
+    .muted { color:#837a70 !important; }
   }
 </style>
 </head>
-<body class="body" style="margin:0;padding:0;background:#1c1b17">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ink-bg" style="background:#1c1b17">
-<tr><td align="center" style="padding:36px 16px">
+<body class="body" style="margin:0;padding:0;background:#f7f3ed">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="paper" style="background:#f7f3ed">
+<tr><td align="center" style="padding:28px 16px 40px">
   <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%">
-    <tr><td>
-      <a href="https://irlpass.xyz" style="text-decoration:none">
-        <img src="https://irlpass.xyz/logo.png" alt="irlpass" height="44" style="display:block;height:44px;width:auto;border:0" />
-      </a>
+    <tr><td style="padding-bottom:14px">
+      <span style="font:800 22px/1 Archivo,'Helvetica Neue',Arial,sans-serif;letter-spacing:-0.6px;color:#3a322c">irl<span style="background:#ddd0f6;border-radius:7px;padding:1px 6px">pass</span></span>
     </td></tr>
-    <tr><td style="height:20px;line-height:20px;font-size:0">&nbsp;</td></tr>
-    <tr><td class="cream-card ink-text" style="background:#f4f1ea;border-radius:20px;padding:28px 24px;color:#1c1b17">
+    <tr><td class="card ink" style="background:#fffdfa;border-radius:24px;padding:26px 24px;color:#3a322c">
       ${inner}
     </td></tr>
-    <tr><td style="padding-top:16px;text-align:center">
-      <span style="color:#8a857a;font-size:11px;letter-spacing:1px;text-transform:uppercase">
-        the vetted travel club · <a href="https://irlpass.xyz" style="color:#8a857a">irlpass.xyz</a>
+    <tr><td style="padding-top:14px;text-align:center">
+      <span class="muted" style="color:#837a70;font:400 11px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;letter-spacing:1px;text-transform:uppercase">
+        never travel alone · <a href="https://irlpass.xyz" style="color:#837a70">irlpass.xyz</a>
       </span>
     </td></tr>
   </table>
@@ -72,14 +70,14 @@ export const acceptanceEmail = ({ name, memberNo, url }) => ({
   html: `
     <p style="font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#7a9c0a;font-weight:700;margin:0">application approved</p>
     <h1 style="font-size:30px;margin:8px 0 0;letter-spacing:-0.5px">congrats, ${name.toLowerCase()}.</h1>
-    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:14px 0 0">
+    <p style="font-size:15px;line-height:1.6;color:#655c53;margin:14px 0 0">
       a founder read your application and you're in. founding member nº ${memberNo} of 050 has your
       name on it: the vetted club, the activity board, the city lobby, the thursday tables.
     </p>
-    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:22px">
+    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:22px">
       claim spot nº ${memberNo}
     </a>
-    <p style="font-size:12px;color:#8a857a;text-align:center;margin:12px 0 0">
+    <p style="font-size:12px;color:#837a70;text-align:center;margin:12px 0 0">
       this link is yours only. your spot is held for 24 hours.
     </p>`,
 })
@@ -88,10 +86,10 @@ export const loginEmail = ({ name, url, label }) => ({
   subject: "your irlpass login link",
   html: `
     <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? name.toLowerCase() : "there"}.</h1>
-    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:12px 0 0">
+    <p style="font-size:15px;line-height:1.6;color:#655c53;margin:12px 0 0">
       tap below to get back in. this link signs you in on this device.
     </p>
-    <a href="${url}" style="display:block;background:#1c1b17;color:#f4f1ea;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:20px">
+    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:20px">
       ${label}
     </a>`,
 })
@@ -101,73 +99,55 @@ export const matchEmail = ({ name, who, city, starts, ends, url }) => ({
   subject: `${who} will be in ${city} on your dates`,
   html: `
     <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? name.toLowerCase() : "there"}.</h1>
-    <p style="font-size:15px;line-height:1.6;color:#57544a;margin:12px 0 0">
+    <p style="font-size:15px;line-height:1.6;color:#655c53;margin:12px 0 0">
       ${who} just posted <strong>${starts} to ${ends}</strong> in ${city}, which overlaps your trip.
     </p>
-    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:20px">
+    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:20px">
       see who else is there
     </a>
-    <p style="font-size:12px;color:#8a857a;text-align:center;margin:12px 0 0">
-      <a href="https://irlpass.xyz/api/notify-off?t=" style="color:#8a857a">turn off these emails</a>
+    <p style="font-size:12px;color:#837a70;text-align:center;margin:12px 0 0">
+      <a href="https://irlpass.xyz/api/notify-off?t=" style="color:#837a70">turn off these emails</a>
     </p>`,
 })
 
-// v2 launch email. deliberately not the plain login template: a big statement,
-// real numbers, and a sample of the calendar people are about to see.
-export const datesEmail = ({ name, memberNo, url, slotsLeft, members = 182, unsub }) => ({
-  subject: "irlpass v2 is live. never travel alone.",
+// v2 launch email. hook is CC-2 negative framing: people act on "you're
+// invisible" far faster than on "we shipped something".
+export const datesEmail = ({ name, memberNo, url, members = 200, unsub }) => ({
+  subject: "you're on irlpass, but nobody can see you",
   html: `
-    <p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8a857a;margin:0">irlpass v2 · live now</p>
-    <h1 style="font-size:40px;line-height:0.98;margin:10px 0 0;letter-spacing:-1.2px;font-weight:800">
-      never travel<br>alone.
+    <img src="https://irlpass.xyz/art/hero.png" alt="" width="240" style="display:block;margin:0 auto 6px;width:240px;max-width:100%;height:auto;border:0" />
+    <h1 style="font:800 34px/0.98 Archivo,'Helvetica Neue',Arial,sans-serif;letter-spacing:-1.1px;margin:0;color:#3a322c">
+      you're invisible<br>until you post<br>your dates.
     </h1>
-    <p style="font-size:16px;line-height:1.6;color:#57544a;margin:16px 0 0">
-      hey ${name ? name.toLowerCase() : "there"}, the whole app is one thing now: you post the dates
-      you'll be in a city, and you see every one of the ${members} travelers whose trip overlaps yours.
+    <p style="font:400 16px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#655c53;margin:16px 0 0">
+      hey ${name ? name.toLowerCase() : "there"}, irlpass is one thing now. you put up where you'll be and when,
+      and you see every traveler whose trip crosses yours.
+    </p>
+    <p style="font:400 16px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#655c53;margin:12px 0 0">
+      the catch: people with no dates up don't show anywhere. ${members} of us are in here and the calendar is still empty,
+      so whoever goes first gets found first.
     </p>
 
-    <div style="background:#1c1b17;border-radius:18px;padding:18px;margin-top:22px">
-      <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8a857a;margin:0">medellín · this week</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px">
-        <tr>
-          <td style="color:#f4f1ea;font-size:15px;font-weight:600;padding-bottom:9px">josh · mar 10 – 20<span style="color:#cdee45"> · surf, coffee</span></td>
-        </tr>
-        <tr>
-          <td style="color:#57544a;font-size:15px;font-weight:600;padding-bottom:9px">a•••••  · mar 12 – 18 · hiking</td>
-        </tr>
-        <tr>
-          <td style="color:#57544a;font-size:15px;font-weight:600">d••••• · mar 11 – 16 · climbing</td>
-        </tr>
-      </table>
+    <div style="background:#f2ecfc;border-radius:18px;padding:16px;margin-top:20px">
+      <p style="font:700 11px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#837a70;margin:0">medellín · your week</p>
+      <p style="font:700 16px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#3a322c;margin:10px 0 0">
+        you · <span style="background:#ddd0f6;border-radius:6px;padding:1px 6px">the days you pick</span>
+      </p>
+      <p style="font:700 16px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#b8afa5;margin:6px 0 0">
+        a•••••  · whoever lands those days
+      </p>
+      <p style="font:700 16px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#b8afa5;margin:6px 0 0">
+        d•••••  · and whoever's already there
+      </p>
     </div>
 
-    <p style="font-size:16px;line-height:1.6;color:#1c1b17;margin:20px 0 0">
-      <strong>the first ${slotsLeft || 40} people to post dates message everyone free, forever.</strong>
-      after that it's $19 for a trip or $29 a month.
-    </p>
-
-    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:800;font-size:17px;text-align:center;border-radius:999px;padding:17px;margin-top:22px">
+    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font:700 17px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;text-align:center;border-radius:999px;padding:17px;margin-top:20px">
       post your dates
     </a>
-    <p style="font-size:13px;color:#8a857a;text-align:center;margin:14px 0 0">
+    <p style="font:400 13px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#837a70;text-align:center;margin:12px 0 0">
       takes 30 seconds · nº ${memberNo} is still yours
     </p>
-    <p style="font-size:11px;color:#b3aea2;text-align:center;margin:16px 0 0">
-      <a href="${unsub || "https://irlpass.xyz"}" style="color:#b3aea2">turn off these emails</a>
+    <p style="font:400 11px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#b8afa5;text-align:center;margin:14px 0 0">
+      <a href="${unsub || "https://irlpass.xyz"}" style="color:#b8afa5">turn off these emails</a>
     </p>`,
-})
-
-// a city hit critical mass: everyone who put dates there hears it first
-export const cityOpenEmail = ({ name, city, count, url }) => ({
-  subject: `${city} just opened on irlpass`,
-  html: `
-    <p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8a857a;margin:0">it's open</p>
-    <h1 style="font-size:34px;line-height:1;margin:10px 0 0;letter-spacing:-1px;font-weight:800">${city}<br>is live.</h1>
-    <p style="font-size:16px;line-height:1.6;color:#57544a;margin:16px 0 0">
-      hey ${name ? name.toLowerCase() : "there"}, you put dates in for ${city} when nobody was there yet.
-      ${count} people have now, so it's open.
-    </p>
-    <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:800;font-size:17px;text-align:center;border-radius:999px;padding:17px;margin-top:22px">
-      see who's there
-    </a>`,
 })
