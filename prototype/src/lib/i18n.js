@@ -6,6 +6,7 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "we'll look at the next month and ping you when someone matches": "miramos el próximo mes y te avisamos cuando alguien coincida",
   "they're already there. nobody's posted your exact days yet, so you'd be first.": "ya están ahí. nadie puso tus días exactos todavía, así que serías la primera persona.",
   "i'm 18 or older": "tengo 18 años o más",
   "followers": "seguidores",

@@ -229,7 +229,9 @@ export default function Join({ ig, onBack, onDone }) {
 
           {picked && (
             <p className="text-[13px] font-semibold text-ink-soft">
-              {fmtShort(starts)} → {fmtShort(ends)}{flexible ? ` · ${t("flexible")}` : ""}
+              {flexible
+                ? t("we'll look at the next month and ping you when someone matches")
+                : `${fmtShort(starts)} → ${fmtShort(ends)}`}
             </p>
           )}
         </div>
