@@ -40,13 +40,13 @@ export default async function handler(req, res) {
     if (!email || !EMAIL_RE.test(String(email).trim())) {
       return res.status(400).json({ error: "valid email required" })
     }
-    // 18+ hard gate
+    // 18+ gate: a confirmed checkbox, or a birthday if they gave one
     const age = ageFrom(birthday)
-    if (age === null) {
-      return res.status(400).json({ error: "birthday required" })
-    }
-    if (age < 18) {
+    if (age !== null && age < 18) {
       return res.status(403).json({ error: "you've got to be 18+ to join" })
+    }
+    if (age === null && req.body?.adult !== true) {
+      return res.status(400).json({ error: "confirm you're 18 or older" })
     }
     if (gender && !VALID_GENDERS.includes(gender)) {
       return res.status(400).json({ error: "invalid gender" })
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       reasons: Array.isArray(reasons) ? reasons.slice(0, 10).map((r) => String(r).slice(0, 60)) : [],
       city: String(city || "medellin").slice(0, 40),
       gender: VALID_GENDERS.includes(gender) ? gender : null,
-      birthday: String(birthday).slice(0, 10),
+      birthday: birthday ? String(birthday).slice(0, 10) : null,
       interests: cleanInterests,
       verifiedSelfie: !!verifiedSelfie,
       allowDmFromMen: allowDmFromMen !== false,

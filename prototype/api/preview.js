@@ -52,9 +52,9 @@ export default async function handler(req, res) {
     // anchors first: comped founders (kevin, josh) then anyone with a photo
     const anchors = [...locals].sort((a, b) => (b.comped === true) - (a.comped === true) || (!!b.photo_url - !!a.photo_url))
     const cityFaces = anchors.slice(0, 8).map((m) => ({
-      first: String(m.name || "").trim().split(/\s+/)[0] || "someone",
+      // initial only: a stranger sees faces and numbers, never names
+      first: (String(m.name || "?").trim()[0] || "?").toUpperCase(),
       photo: m.photo_url || null,
-      anchor: !!m.comped,
     }))
 
     // how many land on the same day you do — the line that makes it feel real
@@ -81,12 +81,6 @@ export default async function handler(req, res) {
       sameDay,
       inCity,
       cityFaces,
-      anchorNames: cityFaces
-        .filter((f) => f.anchor)
-        .slice(0, 2)
-        .map((f) => f.first.toLowerCase())
-        .join(" and ") + (cityFaces.some((f) => f.anchor) ? " " : ""),
-      faces: people.slice(0, 8).map((p) => ({ first: p.first, photo: p.photo })),
       foundingLeft: await foundingLeft(),
     })
   } catch (e) {

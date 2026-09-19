@@ -267,8 +267,7 @@ export default function Join({ ig, onBack, onDone }) {
                     </>
                   ) : (
                     <>
-                      {preview.anchorNames}
-                      {t("and the others are already there. nobody's posted your exact days yet, so you'd be first.")}
+                      {t("they're already there. nobody's posted your exact days yet, so you'd be first.")}
                     </>
                   )}
                 </p>
