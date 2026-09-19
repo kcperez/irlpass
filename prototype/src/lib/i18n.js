@@ -6,6 +6,8 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
 const ES = {
+  "see who overlaps": "mira quién coincide",
+  "travelers in medellín, cdmx, lisbon, miami + bali": "viajeros en medellín, cdmx, lisboa, miami + bali",
   "never travel": "nunca viajes",
   "alone": "solo",
   "drop your instagram, post your dates, see who's there.": "pon tu instagram, pon tus fechas, mira quién está ahí.",

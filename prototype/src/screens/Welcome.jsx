@@ -84,9 +84,23 @@ export default function Welcome({ onStart }) {
               {t("see who's around")} <ArrowRight size={18} weight="bold" />
             </motion.button>
 
-            <div className="flex items-center justify-center gap-2 pt-1 text-[12px] text-ink-soft lg:justify-start">
+            <div className="flex items-center justify-between gap-1 pt-2">
+              {[
+                { art: "/art/icon-dates.png", label: t("post your dates") },
+                { art: "/art/icon-people.png", label: t("see who overlaps") },
+                { art: "/art/icon-chat.png", label: t("say hi") },
+              ].map((x, i) => (
+                <div key={x.label} className="flex flex-1 items-center gap-1.5">
+                  <img src={x.art} alt="" className="h-9 w-9 shrink-0" draggable="false" />
+                  <span className="text-[12px] font-semibold leading-tight">{x.label}</span>
+                  {i < 2 && <span className="text-ink-soft/40">›</span>}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-0.5 text-[12px] text-ink-soft lg:justify-start">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-deep" />
-              <LiveCounter start={TRAVELERS_NOW} /> {t("travelers moving right now")}
+              <LiveCounter start={TRAVELERS_NOW} /> {t("travelers in medellín, cdmx, lisbon, miami + bali")}
             </div>
           </motion.div>
         </div>
