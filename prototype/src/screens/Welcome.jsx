@@ -29,8 +29,8 @@ export default function Welcome({ onStart }) {
       </header>
 
       {/* phone: stacked. desktop: text left, art right, all on one horizon. */}
-      <div className="relative z-10 flex flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12 lg:px-10">
-        <div className="flex flex-col lg:order-1">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12 lg:px-10">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-none lg:order-1">
           <motion.h1
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -111,7 +111,7 @@ export default function Welcome({ onStart }) {
           initial={{ opacity: 0, scale: 0.94, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 110, damping: 18, delay: 0.1 }}
-          className="mx-auto w-[94%] max-w-[420px] flex-1 select-none object-contain lg:order-2 lg:w-full lg:max-w-none lg:flex-none"
+          className="mx-auto min-h-0 w-[94%] max-w-[420px] flex-1 select-none object-contain py-2 lg:order-2 lg:w-full lg:max-w-none lg:flex-none lg:py-0"
           draggable="false"
         />
       </div>
