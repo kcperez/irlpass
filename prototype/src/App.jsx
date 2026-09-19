@@ -48,17 +48,17 @@ export default function App() {
         <span className="display relative text-[26px] font-bold lowercase tracking-tight">
           irl<span className="ml-[3px] inline-block -rotate-3 rounded-[0.45em] bg-lime px-[0.3em] pb-[0.06em] leading-none">pass</span>
         </span>
-        <h2 className="display relative mt-4 text-[44px] font-bold leading-[0.95] tracking-tight">
-          never travel<br />alone
-        </h2>
-        <p className="relative mt-3 max-w-[26ch] text-[16px] text-ink-soft">
+        <img src="/art/hero.png" alt="" className="relative mt-8 w-full select-none" draggable="false" />
+        <p className="relative mt-6 max-w-[24ch] text-[18px] font-medium leading-snug">
           post the dates you'll be in a city, see who else is there, say hi.
         </p>
-        <img src="/art/hero.png" alt="" className="relative mt-6 w-full select-none" draggable="false" />
+        <p className="relative mt-3 text-[13px] text-ink-soft">
+          works on your phone too — add it to your home screen
+        </p>
       </aside>
 
       {/* the app itself */}
-      <div className="relative mx-auto w-full max-w-[430px] overflow-hidden bg-cream md:h-[min(900px,calc(100dvh-4rem))] md:rounded-[2rem] md:shadow-[0_40px_90px_-50px_rgba(58,50,44,0.55)]">
+      <div className="relative mx-auto w-full max-w-[430px] overflow-hidden bg-cream md:mx-0 md:h-[min(900px,calc(100dvh-4rem))] md:rounded-[2rem] md:shadow-[0_40px_90px_-50px_rgba(58,50,44,0.55)]">
         <div className="grain h-full w-full overflow-y-auto overscroll-contain">
           <AnimatePresence mode="wait">
             <motion.div
