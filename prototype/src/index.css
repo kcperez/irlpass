@@ -5,13 +5,17 @@
   --font-sans: "Geist", system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 
-  --color-cream: #f4f1ea;
-  --color-cream-deep: #ebe6da;
-  --color-ink: #1c1b17;
-  --color-ink-soft: #57544a;
-  --color-lime: #cdee45;
-  --color-lime-deep: #b5da2e;
-  --color-line: #dcd6c8;
+  /* v2 palette: warm paper, soft plum ink, lilac accent with a peach second.
+     token names are kept so every existing class keeps working. */
+  --color-cream: #f7f3ed;
+  --color-cream-deep: #efe8df;
+  --color-ink: #3a322c;
+  --color-ink-soft: #837a70;
+  --color-lime: #ddd0f6;
+  --color-lime-deep: #c7b4ee;
+  --color-peach: #f8d9c6;
+  --color-plum: #4a3f52;
+  --color-line: #e3dad0;
 }
 
 html,

@@ -4,7 +4,7 @@ import { avatarUrl, MEMBERS } from "../data"
 
 // the wordmark. default = official 3d logo image; text variant for surfaces
 // where the lime pill would blend in (e.g. the lime pass card)
-export function Logo({ size = "text-[20px]", pill = "bg-lime text-ink", className = "", text = false, h = "h-11" }) {
+export function Logo({ size = "text-[20px]", pill = "bg-lime text-ink", className = "", text = true, h = "h-11" }) {
   if (!text) {
     return <img src="/logo.png" alt="irlpass" className={`${h} w-auto ${className}`} />
   }

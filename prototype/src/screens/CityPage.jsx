@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShieldCheck, ChatCircleDots, GlobeHemisphereWest, Ticket, ArrowRight, CalendarPlus } from "@phosphor-icons/react"
+import { ShieldCheck, GlobeHemisphereWest, Ticket, ArrowRight, CalendarPlus } from "@phosphor-icons/react"
 import { CITIES, TRAVELERS_NOW } from "../data"
 import { Logo, Squiggle, LiveDot, LiveCounter, AvatarStack, Marquee, BigButton } from "../components/bits"
 import { signInWithGoogle } from "../lib/auth"
 import { t } from "../lib/i18n"
 
-const POSTCARDS = [
-  { src: "/medellin/guatape.jpg", alt: "guatapé day trip", rot: -7, x: "-2%", y: 0, delay: 0.25 },
-  { src: "/medellin/night-terraza.jpg", alt: "thursday night, members table", rot: 4, x: "0%", y: 14, delay: 0.38 },
-  { src: "/medellin/rooftop.jpg", alt: "rooftop in el poblado", rot: -3, x: "2%", y: -6, delay: 0.51 },
-]
 
 const stagger = {
   hidden: {},
@@ -28,7 +23,7 @@ const FOUNDERS = [
     ig: "kevcas",
     title: "co-founder · member 001",
     note:
-      "we got tired of landing in cities where the only people you meet are trying to sell you something. so we're building the members club we wished existed. and the first 50 build it with us.",
+      "you can spend a month somewhere and never meet anyone. so we built the thing we always wanted: put your dates up, see who else is there, go do something. the first 40 people get it free for good.",
   },
   {
     img: "/josh.jpg",
@@ -36,7 +31,7 @@ const FOUNDERS = [
     ig: "jawshmac",
     title: "co-founder · member 002",
     note:
-      "half my dms are people asking how to travel a place right. who to trust, where to go, how to not be alone out there. this is the answer i always wished i could send.",
+      "half my dms are people asking when to come, who to meet, how to not be alone out there. now i can just say: post your dates and look at the calendar.",
   },
 ]
 
@@ -155,29 +150,40 @@ export default function CityPage({ onApply }) {
         </div>
       </motion.section>
 
-      {/* scattered postcards — medellín as proof-of-life, not the ceiling */}
-      <motion.section variants={rise} className="relative mt-7 px-5">
+      {/* what the calendar actually looks like, city-agnostic */}
+      <motion.section variants={rise} className="mt-7 px-5">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
-          {t("city one · medellín · live now")}
+          {t("what you see when you post dates")}
         </p>
-        <div
-          className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-lime/50 blur-3xl"
-          aria-hidden
-        />
-        <div className="relative grid grid-cols-3 gap-2">
-          {POSTCARDS.map((p) => (
-            <motion.div
-              key={p.src}
-              initial={{ opacity: 0, y: 26, rotate: 0 }}
-              animate={{ opacity: 1, y: p.y, rotate: p.rot }}
-              transition={{ type: "spring", stiffness: 120, damping: 16, delay: p.delay }}
-              className="overflow-hidden rounded-xl border border-line bg-white p-1 shadow-[0_14px_28px_-18px_rgba(28,27,23,0.45)]"
-              style={{ x: p.x }}
-            >
-              <img src={p.src} alt={p.alt} className="aspect-[3/4] w-full rounded-lg object-cover" />
-            </motion.div>
+        <div className="overflow-hidden rounded-3xl border border-line bg-white/70">
+          <div className="flex items-center justify-between border-b border-line/70 px-4 py-3">
+            <span className="text-[14px] font-semibold">Medellín · mar 12 – 18</span>
+            <span className="rounded-full bg-lime px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em]">
+              {t("9 here")}
+            </span>
+          </div>
+          {[
+            { n: "josh m.", d: "mar 10 – 20", w: "surf, coffee", open: true },
+            { n: "ana p.", d: "mar 12 – 18", w: "hiking, salsa", open: false },
+            { n: "daniel s.", d: "mar 11 – 16", w: "climbing", open: false },
+          ].map((r) => (
+            <div key={r.n} className="flex items-center gap-3 border-b border-line/60 px-4 py-3 last:border-b-0">
+              <span className={`h-9 w-9 shrink-0 rounded-full bg-cream-deep ${r.open ? "" : "blur-[3px]"}`} />
+              <div className="min-w-0 flex-1">
+                <p className={`text-[14px] font-semibold ${r.open ? "" : "blur-[3px] select-none"}`}>{r.n}</p>
+                <p className="text-[12px] text-ink-soft">{r.d} · {r.w}</p>
+              </div>
+              {r.open ? (
+                <span className="rounded-full bg-ink px-3 py-1.5 text-[11px] font-semibold text-cream">{t("say hi")}</span>
+              ) : (
+                <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">{t("locked")}</span>
+              )}
+            </div>
           ))}
         </div>
+        <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+          {t("first 40 members message everyone free")}
+        </p>
       </motion.section>
 
       {/* the practical strip — NomadTable structure, no cards, divided rows */}

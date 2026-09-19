@@ -6,6 +6,11 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
 const ES = {
+  "what you see when you post dates": "lo que ves cuando pones tus fechas",
+  "9 here": "9 aquí",
+  "say hi": "saluda",
+  "locked": "bloqueado",
+  "first 40 members message everyone free": "los primeros 40 miembros escriben a todos gratis",
   // ── v2: the calendar ──
   "post your dates. see who's there.": "pon tus fechas. mira quién está ahí.",
   "say when you're in a city. see everyone whose trip overlaps yours, and message them.":
