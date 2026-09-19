@@ -38,28 +38,11 @@ export default function App() {
   const [handle, setHandle] = useState(params.get("ig")?.replace(/^@+/, "") || "")
 
   return (
-    // one responsive app: full screen on phones, a centered column beside a
-    // brand panel on desktop. no fake phone bezel.
-    <div className="min-h-[100dvh] bg-cream md:flex md:items-stretch md:justify-center md:gap-10 md:bg-cream-deep/40 md:p-8">
-      {/* desktop-only brand panel */}
-      <aside className="relative hidden w-[420px] shrink-0 flex-col justify-center overflow-hidden rounded-[2rem] bg-cream px-10 py-12 lg:flex">
-        <div aria-hidden className="pointer-events-none absolute -left-16 top-10 h-64 w-64 rounded-full bg-lime/60 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -right-16 bottom-16 h-64 w-64 rounded-full bg-peach/60 blur-3xl" />
-        <span className="display relative text-[26px] font-bold lowercase tracking-tight">
-          irl<span className="ml-[3px] inline-block -rotate-3 rounded-[0.45em] bg-lime px-[0.3em] pb-[0.06em] leading-none">pass</span>
-        </span>
-        <img src="/art/hero.png" alt="" className="relative mt-8 w-full select-none" draggable="false" />
-        <p className="relative mt-6 max-w-[24ch] text-[18px] font-medium leading-snug">
-          post the dates you'll be in a city, see who else is there, say hi.
-        </p>
-        <p className="relative mt-3 text-[13px] text-ink-soft">
-          works on your phone too — add it to your home screen
-        </p>
-      </aside>
-
-      {/* the app itself */}
-      <div className="relative mx-auto w-full max-w-[430px] overflow-hidden bg-cream md:mx-0 md:h-[min(900px,calc(100dvh-4rem))] md:rounded-[2rem] md:shadow-[0_40px_90px_-50px_rgba(58,50,44,0.55)]">
-        <div className="grain h-full w-full overflow-y-auto overscroll-contain">
+    // one layout everywhere: the app fills a phone, and on bigger screens it
+    // stays a single centered column on the same ground (no second panel).
+    <div className="min-h-[100dvh] bg-cream">
+      <div className="relative mx-auto w-full max-w-[460px] bg-cream">
+        <div className="grain h-full w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={screen}
