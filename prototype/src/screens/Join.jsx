@@ -309,7 +309,7 @@ export default function Join({ ig, onBack, onDone }) {
   const last = step === steps.length - 1
 
   return (
-    <div className="relative flex min-h-[var(--app-h)] flex-col overflow-hidden px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="relative flex min-h-[var(--app-h)] flex-col px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <div className="relative flex items-center gap-3">
         <button onClick={() => (step === 0 ? onBack() : setStep((s) => s - 1))} aria-label={t("back")}>
           <ArrowLeft size={22} weight="bold" />
@@ -323,9 +323,9 @@ export default function Join({ ig, onBack, onDone }) {
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div key={cur.key} variants={slide} initial="enter" animate="center" exit="exit" className="relative flex flex-1 flex-col pt-6">
-          {!cur.hideArt && <img src={cur.art} alt="" className="h-28 w-28 select-none" draggable="false" />}
-          {cur.title && <h1 className="display mt-3 text-[34px] font-bold leading-[0.95] tracking-tight">{cur.title}</h1>}
+        <motion.div key={cur.key} variants={slide} initial="enter" animate="center" exit="exit" className="relative flex flex-1 flex-col justify-center py-6">
+          {!cur.hideArt && <img src={cur.art} alt="" className="h-24 w-24 select-none" draggable="false" />}
+          {cur.title && <h1 className="display mt-2 text-[32px] font-bold leading-[0.98] tracking-tight">{cur.title}</h1>}
           <div className={cur.hideArt ? "" : "mt-5"}>{cur.body}</div>
         </motion.div>
       </AnimatePresence>
