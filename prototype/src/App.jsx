@@ -20,7 +20,7 @@ const params = new URLSearchParams(window.location.search)
 const isAdminPath = window.location.pathname === "/admin"
 const initialScreen = isAdminPath
   ? "admin"
-  : ["city", "apply", "review", "received", "offer", "pass", "info", "app", "auth", "invite", "redeem", "join"].includes(params.get("screen"))
+  : ["pass", "info", "app", "auth", "invite", "redeem", "join", "offer"].includes(params.get("screen"))
     ? params.get("screen")
     : "welcome"
 // demo mode (filming): review flows into the instant "you're in" pass reveal.

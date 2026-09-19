@@ -6,6 +6,12 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
 const ES = {
+  "person with dates": "persona con fechas", "people with dates": "personas con fechas",
+  "earlier": "antes", "later": "después", "flexible": "flexible",
+  "same days as you": "mismos días que tú",
+  "nobody in these two weeks": "nadie en estas dos semanas",
+  "try later dates, or post yours and get told when someone lands.": "mira fechas más adelante, o pon las tuyas y te avisamos cuando alguien llegue.",
+  "unlock": "desbloquear",
   "opening next · your dates are the vote": "próximas ciudades · tus fechas son el voto",
   "opens at": "abre con",
   "people have put dates in so far. yours counts, and we'll tell you the day it opens.": "personas ya pusieron fechas. la tuya cuenta, y te avisamos el día que abra.",

@@ -1,34 +1,101 @@
-import { getUser } from "./_lib.js"
+import { getUser, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
+import { isCity } from "./_cities.js"
+import { canReach, today, overlaps } from "./_access.js"
 
+// v2: you only exist here once you've posted dates. a member with no upcoming
+// trip is not listed and cannot be messaged — there is nothing to meet about.
 export default async function handler(req, res) {
   const me = await getUser(req.query?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
-  // free users (paid=false) are part of the community now. only the *full* list
-  // is gated — free viewers get a truncated slice (client decides), so we still
-  // return everyone non-banned here and flag who's paid for badges/reputation.
+
+  const city = isCity(req.query?.city) ? req.query.city : me.city || "medellin"
+  const horizon = addDays(today(), 90)
+
   try {
-    const { data, error } = await db
-      .from("members")
-      .select("name, ig, member_no, country, photo_url, paid, verified_selfie, rep_score, rep_count")
-      .eq("banned", false)
-      .order("member_no", { ascending: true })
-    if (error) throw error
+    const { data: trips } = await db
+      .from("trips")
+      .select("member_no, starts, ends, flexible, note")
+      .eq("city", city)
+      .gte("ends", today())
+      .lte("starts", horizon)
+      .order("starts")
+      .limit(300)
+
+    // my own windows, so we can mark who overlaps me and price the unlock
+    const { data: mine } = await db
+      .from("trips")
+      .select("starts, ends")
+      .eq("member_no", me.memberNo)
+      .eq("city", city)
+      .gte("ends", today())
+
+    const nos = [...new Set((trips || []).map((t) => t.member_no))].filter((n) => n !== me.memberNo)
+    const { data: rows } = nos.length
+      ? await db.from("members").select("*").in("member_no", nos)
+      : { data: [] }
+    const byNo = new Map((rows || []).map((r) => [r.member_no, rowToMember(r)]))
+
+    // people already talking to me are never hidden
+    const { data: threads } = await db
+      .from("dm_threads")
+      .select("a_no, b_no")
+      .or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`)
+    const known = new Set((threads || []).map((t) => (t.a_no === me.memberNo ? t.b_no : t.a_no)))
+
+    const out = []
+    const days = {}
+    for (const trip of trips || []) {
+      for (const d of eachDay(trip.starts, trip.ends)) days[d] = (days[d] || 0) + 1
+      if (trip.member_no === me.memberNo) continue
+      const m = byNo.get(trip.member_no)
+      if (!m || m.banned) continue
+
+      const mineOverlap = (mine || []).find((x) => overlaps(x.starts, x.ends, trip.starts, trip.ends))
+      const access = mineOverlap ? await canReach(me, city, mineOverlap.starts, mineOverlap.ends) : { ok: false }
+      const open = access.ok || known.has(m.memberNo)
+      const blocked = me.gender === "man" && m.allowDmFromMen === false
+
+      out.push({
+        memberNo: m.memberNo,
+        first: String(m.name || "").trim().split(/\s+/)[0] || "someone",
+        name: open ? m.name : null,
+        ig: open ? m.ig : null,
+        photo: open ? m.photo : null,
+        verified: m.verified,
+        repScore: m.repScore,
+        repCount: m.repCount,
+        starts: trip.starts,
+        ends: trip.ends,
+        flexible: !!trip.flexible,
+        note: open ? trip.note || "" : "",
+        overlapsMe: !!mineOverlap,
+        locked: !open,
+        canMessage: open && !blocked,
+        womenOnly: m.allowDmFromMen === false,
+      })
+    }
+
     return res.status(200).json({
-      viewerPaid: !!me.paid,
-      members: data.map((m) => ({
-        name: m.name,
-        ig: m.ig,
-        memberNo: m.member_no,
-        country: m.country || "",
-        photo: m.photo_url || null,
-        verified: !!m.verified_selfie,
-        repScore: typeof m.rep_score === "number" ? m.rep_score : null,
-        repCount: typeof m.rep_count === "number" ? m.rep_count : 0,
-      })),
+      city,
+      days,                       // head count per day, for the calendar strip
+      people: out,
+      myTrips: mine || [],
+      total: out.length,
     })
   } catch (e) {
     console.error("members error:", e)
-    return res.status(500).json({ error: "could not load members" })
+    return res.status(500).json({ error: "could not load who's around" })
   }
+}
+
+function addDays(iso, n) {
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+function eachDay(from, to) {
+  const out = []
+  for (let d = from; d <= to && out.length < 180; d = addDays(d, 1)) out.push(d)
+  return out
 }
