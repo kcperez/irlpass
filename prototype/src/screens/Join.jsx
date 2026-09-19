@@ -73,6 +73,12 @@ export default function Join({ ig, onBack, onDone }) {
   const [email, setEmail] = useState("")
   const [birthday, setBirthday] = useState("")
   const [preview, setPreview] = useState(null)
+  const [byCity, setByCity] = useState({})
+
+  // live head count per city, so a chip can show what's actually happening
+  useEffect(() => {
+    fetch("/api/stats").then((r) => r.json()).then((d) => setByCity(d.byCity || {})).catch(() => {})
+  }, [])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState("")
 
@@ -149,7 +155,15 @@ export default function Join({ ig, onBack, onDone }) {
               >
                 <span className="mr-1.5">{c.emoji}</span>
                 {c.name}
-                {c.live && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-lime-deep align-middle" />}
+                {byCity[c.slug] > 0 ? (
+                  <span className="ml-2 inline-flex items-center gap-1 align-middle">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-deep opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-lime-deep" />
+                    </span>
+                    <span className="text-[12px] font-bold">{byCity[c.slug]}</span>
+                  </span>
+                ) : null}
               </Bubble>
             ))}
           </div>
