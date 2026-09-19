@@ -7,7 +7,7 @@ import { t } from "../lib/i18n"
 const PERKS = [
   "the medellín club. everyone in it got vetted like you did",
   "create and join activities: dinners, day trips, padel, whatever",
-  "a private chat for every plan, plus the city lobby",
+  "the city group chat, plus dms with anyone on your dates",
   "a seat at the thursday table before anyone else",
   "your nº is permanent. city 30 will know you were at city one",
 ]

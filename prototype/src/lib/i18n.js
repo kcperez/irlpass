@@ -6,6 +6,10 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
 const ES = {
+  "medellín crew": "la crew de medellín",
+  "everyone in town right now": "todos los que están en la ciudad ahora",
+  "say hi, say where you're at, find someone to go with.": "saluda, di dónde estás, y encuentra con quién ir.",
+  "the city group chat, plus dms with anyone on your dates": "el chat de la ciudad, y dms con quien coincida en tus fechas",
   "checking who's there…": "viendo quién está ahí…",
   "people are there on your dates": "personas están ahí en tus fechas",
   "person is there on your dates": "persona está ahí en tus fechas",

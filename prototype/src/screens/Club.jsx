@@ -1461,7 +1461,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold leading-tight">{title}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
-            {channel === "medellin" ? t("city lobby · all members") : t("private · joined members only")}
+            {channel === me.city ? t("everyone in town right now") : t("private · joined members only")}
           </p>
         </div>
       </div>
@@ -1472,7 +1472,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
           <PushPin size={14} weight="fill" className="mt-0.5 shrink-0 text-ink-soft" />
           <div>
             <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-soft/70">{t("pinned")}</p>
-            <p className="mt-0.5 text-[12.5px] leading-snug text-ink">{t("the medellín lobby. say where you're staying and what you're into, then post a plan when you want company.")}</p>
+            <p className="mt-0.5 text-[12.5px] leading-snug text-ink">{t("say hi, say where you're at, find someone to go with.")}</p>
           </div>
         </div>
       )}
@@ -1656,10 +1656,10 @@ function Chats({ token, me, active, setActive, photoMap }) {
     <div className="px-5 pb-28 pt-4">
       <h2 className="display text-[26px] font-bold">chats</h2>
       <div className="mt-4 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
-        <button onClick={() => setActive({ channel: "medellin", title: t("medellín lobby") })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
+        <button onClick={() => setActive({ channel: "medellin", title: t("medellín crew") })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lime/60"><ColombiaFlag className="h-3 w-4.5" /></span>
           <div>
-            <p className="text-[15px] font-semibold leading-tight">{t("medellín lobby")}</p>
+            <p className="text-[15px] font-semibold leading-tight">{t("medellín crew")}</p>
             <p className="font-mono text-[10.5px] text-ink-soft">{t("all members · plans start here")}</p>
           </div>
         </button>
@@ -1963,11 +1963,13 @@ export default function Club({ token }) {
         {paywall && <PaywallSheet token={token} city={me.city} reason={paywall} onClose={() => setPaywall(null)} />}
       </AnimatePresence>
       {!inThread && (
-        <nav className="sticky bottom-0 z-10 flex border-t border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
+        <nav className="sticky bottom-0 z-10 flex border-t-2 border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
           {TABS.map((tb) => (
             <button key={tb.key} onClick={() => { setTab(tb.key); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
-              <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={tab === tb.key ? "text-ink" : "text-ink-soft/60"} />
-              <span className={`font-mono text-[9px] uppercase tracking-[0.12em] ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`}>{tb.label}</span>
+              <span className={`flex h-9 w-14 items-center justify-center rounded-full transition-colors ${tab === tb.key ? "bg-lime" : ""}`}>
+                <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={tab === tb.key ? "text-ink" : "text-ink-soft/60"} />
+              </span>
+              <span className={`text-[10px] font-bold ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`}>{tb.label}</span>
             </button>
           ))}
         </nav>
