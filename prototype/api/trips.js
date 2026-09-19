@@ -1,6 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
-import { isCity, cityBySlug, OPEN_AT } from "./_cities.js"
+import { isValidCity, cityLabel, OPEN_AT, cityBySlug } from "./_cities.js"
 import { claimFoundingSlot, foundingLeft, myUnlocks, today, isDate, overlaps } from "./_access.js"
 import { sendEmail, matchEmail, cityOpenEmail } from "./_email.js"
 
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const city = String(req.query?.city || "")
       if (city) {
-        if (!isCity(city)) return res.status(400).json({ error: "unknown city" })
+        if (!isValidCity(city)) return res.status(400).json({ error: "unknown city" })
         const from = isDate(req.query?.from) ? req.query.from : today()
         const to = isDate(req.query?.to) ? req.query.to : addDays(from, 60)
         const { data } = await db
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       const { city, starts, ends, flexible, note } = req.body || {}
-      if (!isCity(city)) return res.status(400).json({ error: "pick a city" })
+      if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
       if (ends < starts) return res.status(400).json({ error: "the end date is before the start date" })
       if (starts < today()) return res.status(400).json({ error: "those dates have already passed" })
@@ -152,7 +152,7 @@ async function notifyOverlap(me, trip) {
     .from("members")
     .select("member_no, name, email, token, notify")
     .in("member_no", nos)
-  const cityName = cityBySlug(trip.city)?.name || trip.city
+  const cityName = cityLabel(trip.city)
   for (const m of members || []) {
     if (!m.email || !m.notify) continue
     await sendEmail({

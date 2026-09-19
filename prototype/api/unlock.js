@@ -1,6 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
-import { isCity, cityBySlug } from "./_cities.js"
+import { isValidCity, cityLabel } from "./_cities.js"
 import { isDate, today } from "./_access.js"
 
 // v2 pricing. Prices are built inline (price_data) so a new city or window
@@ -19,11 +19,11 @@ export default async function handler(req, res) {
 
   const { city, starts, ends } = req.body || {}
   const plan = req.body?.plan === "pass" ? "pass" : "trip"
-  if (!isCity(city)) return res.status(400).json({ error: "unknown city" })
+  if (!isValidCity(city)) return res.status(400).json({ error: "unknown city" })
   if (!isDate(starts) || !isDate(ends) || ends < starts) return res.status(400).json({ error: "bad dates" })
   if (ends < today()) return res.status(400).json({ error: "those dates have passed" })
 
-  const cityName = cityBySlug(city)?.name || city
+  const cityName = cityLabel(city)
   const token = req.body.t
   const base = "https://irlpass.xyz"
 

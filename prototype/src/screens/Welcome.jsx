@@ -80,16 +80,15 @@ export default function Welcome({ onStart }) {
               {t("see who's around")} <ArrowRight size={18} weight="bold" />
             </motion.button>
 
-            <div className="flex items-center justify-between gap-1 pt-2">
+            <div className="grid grid-cols-3 gap-2 pt-2">
               {[
                 { art: "/art/icon-dates.png", label: t("post your dates") },
                 { art: "/art/icon-people.png", label: t("see who overlaps") },
                 { art: "/art/icon-chat.png", label: t("say hi") },
-              ].map((x, i) => (
-                <div key={x.label} className="flex flex-1 items-center gap-1.5">
-                  <img src={x.art} alt="" className="h-9 w-9 shrink-0" draggable="false" />
-                  <span className="text-[12px] font-semibold leading-tight">{x.label}</span>
-                  {i < 2 && <span className="text-ink-soft/40">›</span>}
+              ].map((x) => (
+                <div key={x.label} className="flex flex-col items-center gap-1 text-center">
+                  <img src={x.art} alt="" className="h-11 w-11 object-contain" draggable="false" />
+                  <span className="text-[11.5px] font-semibold leading-tight">{x.label}</span>
                 </div>
               ))}
             </div>

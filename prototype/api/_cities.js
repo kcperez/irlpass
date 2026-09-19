@@ -35,3 +35,19 @@ export function nearestCity(lat, lng) {
 // a city opens once this many people have posted dates for it. until then it
 // collects them: every "request" is a real trip, so an opened city starts full.
 export const OPEN_AT = Number(process.env.CITY_OPEN_AT || 10)
+
+// v2: anywhere is allowed. known cities carry metadata (map centre, live flag);
+// anything else becomes a clean slug and fills up until it hits OPEN_AT.
+export const slugifyCity = (name) =>
+  String(name || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+
+export const isValidCity = (slug) => /^[a-z0-9][a-z0-9-]{1,39}$/.test(String(slug || ""))
+
+export const cityLabel = (slug) =>
+  cityBySlug(slug)?.name ||
+  String(slug || "").split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")

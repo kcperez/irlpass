@@ -13,8 +13,9 @@ const CITIES = [
   { slug: "lisboa", name: "Lisbon", emoji: "🇵🇹" },
   { slug: "bali", name: "Bali", emoji: "🌺" },
 ]
-const LIVE = CITIES.filter((c) => c.live)
-const SOON = CITIES.filter((c) => !c.live)
+const slugify = (name) =>
+  String(name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40)
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const todayIso = () => iso(new Date())
@@ -65,6 +66,8 @@ function Bubble({ active, children, onClick, className = "" }) {
 export default function Join({ ig, onBack, onDone }) {
   const [step, setStep] = useState(0)
   const [city, setCity] = useState("medellin")
+  const [cityName, setCityName] = useState("Medellín")
+  const [customCity, setCustomCity] = useState("")
   const [starts, setStarts] = useState(todayIso())
   const [ends, setEnds] = useState(addDays(todayIso(), 6))
   const [email, setEmail] = useState("")
@@ -123,28 +126,32 @@ export default function Join({ ig, onBack, onDone }) {
       key: "where",
       art: "/art/icon-globe.png",
       title: t("where are you going?"),
-      valid: !!city,
+      valid: !!city && city.length > 1,
       body: (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <input
+            id="join-city"
+            value={customCity}
+            onChange={(e) => {
+              setCustomCity(e.target.value)
+              const slug = slugify(e.target.value)
+              if (slug) { setCity(slug); setCityName(e.target.value.trim()) }
+            }}
+            placeholder={t("type any city")}
+            className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+          />
           <div className="flex flex-wrap gap-2">
-            {LIVE.map((c) => (
-              <Bubble key={c.slug} active={city === c.slug} onClick={() => setCity(c.slug)}>
+            {CITIES.map((c) => (
+              <Bubble
+                key={c.slug}
+                active={city === c.slug}
+                onClick={() => { setCity(c.slug); setCityName(c.name); setCustomCity("") }}
+              >
                 <span className="mr-1.5">{c.emoji}</span>
                 {c.name}
-                <span className="ml-2 inline-block h-2 w-2 rounded-full bg-lime-deep align-middle" />
+                {c.live && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-lime-deep align-middle" />}
               </Bubble>
             ))}
-          </div>
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("opening next · your dates are the vote")}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {SOON.map((c) => (
-                <Bubble key={c.slug} active={city === c.slug} onClick={() => setCity(c.slug)} className="opacity-80">
-                  <span className="mr-1.5">{c.emoji}</span>
-                  {c.name}
-                </Bubble>
-              ))}
-            </div>
           </div>
         </div>
       ),
@@ -211,7 +218,7 @@ export default function Join({ ig, onBack, onDone }) {
                 </p>
                 <p className="display mt-1 text-[26px] font-bold leading-tight">
                   {!preview.live
-                    ? t("people want this city")
+                    ? t("people headed there")
                     : preview.count === 1
                       ? t("person is there on your dates")
                       : t("people are there on your dates")}
@@ -228,10 +235,21 @@ export default function Join({ ig, onBack, onDone }) {
               {!preview.live ? (
                 <div className="rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4">
                   <p className="display text-[19px] font-bold leading-tight">
-                    {preview.cityName} {t("opens at")} {preview.openAt}
+                    {preview.cityName} {t("is filling up")}
                   </p>
                   <p className="mt-1 text-[13.5px]">
-                    {preview.asked} {t("people have put dates in so far. yours counts, and we'll tell you the day it opens.")}
+                    {t("you're early. we'll ping you the moment someone's trip overlaps yours.")}
+                  </p>
+                  <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-white/60">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, Math.round(((preview.asked + 1) / preview.openAt) * 100))}%` }}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      className="h-full rounded-full bg-ink"
+                    />
+                  </div>
+                  <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em]">
+                    {preview.asked + 1} / {preview.openAt} {t("before it goes live")}
                   </p>
                 </div>
               ) : preview.count > 0 ? (

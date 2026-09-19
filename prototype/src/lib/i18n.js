@@ -6,6 +6,11 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
 const ES = {
+  "type any city": "escribe cualquier ciudad",
+  "is filling up": "se está llenando",
+  "you're early. we'll ping you the moment someone's trip overlaps yours.": "llegaste temprano. te avisamos apenas el viaje de alguien coincida con el tuyo.",
+  "before it goes live": "para que se active",
+  "people headed there": "personas van para allá",
   "person with dates": "persona con fechas", "people with dates": "personas con fechas",
   "earlier": "antes", "later": "después", "flexible": "flexible",
   "same days as you": "mismos días que tú",

@@ -1,6 +1,6 @@
 import { getUser, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
-import { isCity } from "./_cities.js"
+import { isValidCity } from "./_cities.js"
 import { canReach, isDate, overlaps, today } from "./_access.js"
 
 // GET ?t=&city=&starts=&ends=  -> everyone whose dates overlap that window.
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const city = String(req.query?.city || "")
   const starts = req.query?.starts
   const ends = req.query?.ends
-  if (!isCity(city)) return res.status(400).json({ error: "unknown city" })
+  if (!isValidCity(city)) return res.status(400).json({ error: "unknown city" })
   if (!isDate(starts) || !isDate(ends) || ends < starts) return res.status(400).json({ error: "bad dates" })
 
   try {

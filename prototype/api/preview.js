@@ -1,5 +1,5 @@
 import { db } from "./_db.js"
-import { isCity, cityBySlug, OPEN_AT } from "./_cities.js"
+import { isValidCity, cityBySlug, cityLabel, OPEN_AT } from "./_cities.js"
 import { isDate, overlaps, today, foundingLeft } from "./_access.js"
 
 // No token needed: this is the reveal a brand new person sees before they hand
@@ -7,7 +7,7 @@ import { isDate, overlaps, today, foundingLeft } from "./_access.js"
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
   const { city, starts, ends } = req.body || {}
-  if (!isCity(city)) return res.status(400).json({ error: "unknown city" })
+  if (!isValidCity(city)) return res.status(400).json({ error: "unknown city" })
   if (!isDate(starts) || !isDate(ends) || ends < starts) return res.status(400).json({ error: "bad dates" })
 
   try {
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       live,
       asked: asked || 0,
       openAt: OPEN_AT,
-      cityName: meta?.name || city,
+      cityName: cityLabel(city),
       city,
       starts,
       ends,

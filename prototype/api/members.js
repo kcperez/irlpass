@@ -1,6 +1,6 @@
 import { getUser, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
-import { isCity } from "./_cities.js"
+import { isValidCity } from "./_cities.js"
 import { canReach, today, overlaps } from "./_access.js"
 
 // v2: you only exist here once you've posted dates. a member with no upcoming
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const me = await getUser(req.query?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
 
-  const city = isCity(req.query?.city) ? req.query.city : me.city || "medellin"
+  const city = isValidCity(req.query?.city) ? req.query.city : me.city || "medellin"
   const horizon = addDays(today(), 90)
 
   try {
