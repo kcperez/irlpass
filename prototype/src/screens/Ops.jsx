@@ -52,6 +52,7 @@ export default function Ops({ token }) {
         <Stat n={d.members.verified} label="verified ig" />
         <Stat n={d.members.withPhoto} label="with photo" />
         <Stat n={d.members.paying} label="paying" />
+        <Stat n={d.members.comped} label="comped" />
       </div>
 
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">the calendar</p>

@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
     const { data: members } = await db
       .from("members")
-      .select("member_no, name, ig, email, city, accepted_at, photo_url, ig_verified, ig_followers, paid, founding_no, banned")
+      .select("member_no, name, ig, email, city, accepted_at, photo_url, ig_verified, ig_followers, paid, comped, stripe_customer, founding_no, banned")
       .lt("member_no", "900")
       .order("accepted_at", { ascending: false })
       .limit(400)
@@ -58,7 +58,9 @@ export default async function handler(req, res) {
         week: joinedSince(7),
         verified: all.filter((m) => m.ig_verified).length,
         withPhoto: all.filter((m) => m.photo_url).length,
-        paying: all.filter((m) => m.paid).length,
+        // only real stripe customers count as paying; comped founders are not revenue
+        paying: all.filter((m) => m.stripe_customer).length,
+        comped: all.filter((m) => m.comped || (m.paid && !m.stripe_customer)).length,
         founding: all.filter((m) => m.founding_no).length,
       },
       calendar: {
