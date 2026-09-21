@@ -369,6 +369,15 @@ export default function Join({ ig, onBack, onDone }) {
         <span className="font-mono text-[11px] text-ink-soft">{step > 0 ? `${chip.emoji} ${chip.name}` : `@${ig}`}</span>
       </div>
 
+      {params.get("by") && step === 0 && (
+        <div className="relative mt-4 flex items-center gap-2 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+          <img src="/art/icon-people.png" alt="" className="h-9 w-9 shrink-0 object-contain" draggable="false" />
+          <p className="text-[13.5px] font-bold leading-tight">
+            @{params.get("by")} {t("invited you. their dates are already in.")}
+          </p>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         <motion.div key={cur.key} variants={slide} initial="enter" animate="center" exit="exit" className="relative flex flex-1 flex-col justify-center py-6">
           {!cur.hideArt && <img src={cur.art} alt="" className="h-24 w-24 select-none object-contain" draggable="false" />}

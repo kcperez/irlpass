@@ -188,6 +188,64 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
   )
 }
 
+function InviteSheet({ me, trip, onClose }) {
+  const [copied, setCopied] = useState(false)
+  const url = `https://irlpass.xyz/?screen=join&city=${trip.city}&starts=${trip.starts}&ends=${trip.ends}&by=${String(me?.ig || "").replace(/^@/, "")}`
+  const text = `i'm in ${cityName(trip.city)} ${fmtRange(trip.starts, trip.ends)}. put your dates in and we'll see who else is around`
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2200)
+    } catch { /* clipboard blocked */ }
+  }
+
+  const share = async () => {
+    try { if (navigator.share) await navigator.share({ title: "irlpass", text, url }); else copy() }
+    catch { /* share sheet dismissed */ }
+  }
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 z-40 bg-ink/40 backdrop-blur-[2px]"
+      />
+      <motion.div
+        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        className="absolute inset-x-0 bottom-0 z-50 max-h-[88%] overflow-y-auto rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+      >
+        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+        <h2 className="display text-[22px] font-bold leading-tight">{t("invite someone to these dates")}</h2>
+        <p className="mt-1 text-[13px] text-ink-soft">
+          {t("they get your dates already filled in, so they're on the calendar in two taps.")}
+        </p>
+
+        <div className="mt-4 rounded-[1.4rem] border-2 border-line bg-white/80 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("what they'll get")}</p>
+          <p className="mt-2 text-[14px] leading-snug">{text}</p>
+          <p className="mt-2 break-all text-[12px] text-ink-soft">{url}</p>
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <button onClick={copy} className="flex-1 rounded-full border-2 border-line py-3.5 text-[14px] font-bold">
+            {copied ? t("link copied") : t("copy link")}
+          </button>
+          <button onClick={share} className="flex-1 rounded-full bg-ink py-3.5 text-[14px] font-bold text-cream">
+            {t("share")}
+          </button>
+        </div>
+        <button onClick={onClose} className="mt-2 w-full py-2 text-center text-[13px] text-ink-soft underline">
+          {t("close")}
+        </button>
+      </motion.div>
+    </>
+  )
+}
+
 function UnlockSheet({ token, trip, count, onClose, onDone }) {
   const [plan, setPlan] = useState("trip")
   const [busy, setBusy] = useState(false)
@@ -283,7 +341,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets 
   )
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [justUnlocked, setJustUnlocked] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [prefillMonth] = useState(
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("post") === "month"
   )
@@ -314,6 +372,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets 
     if (!closeSheets) return
     setFormOpen(false)
     setUnlockOpen(false)
+    setInviteOpen(false)
   }, [closeSheets])
 
   // back from stripe: confirm the payment, then drop the blur
@@ -448,21 +507,17 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets 
                   </button>
                 )}
                 <button
-              onClick={async () => {
-                const url = `https://irlpass.xyz/?screen=join&city=${trip.city}&starts=${trip.starts}&ends=${trip.ends}`
-                const text = `i'm in ${cityName(trip.city)} ${fmtRange(trip.starts, trip.ends)} — put your dates in and we'll see who else is around`
-                try {
-                  if (navigator.share) await navigator.share({ title: "irlpass", text, url })
-                  else { await navigator.clipboard.writeText(`${text} ${url}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-                } catch { /* share sheet dismissed */ }
-              }}
+              onClick={() => setInviteOpen(true)}
               className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-lime-deep bg-lime/25 px-4 py-3.5 text-left"
             >
               <img src="/art/icon-people.png" alt="" className="h-11 w-11 shrink-0 object-contain" draggable="false" />
-              <div className="min-w-0">
-                <p className="text-[14.5px] font-bold leading-tight">{copied ? t("link copied") : t("traveling with someone?")}</p>
-                <p className="text-[12.5px] text-ink-soft">{t("send them your dates, they land straight in")}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14.5px] font-bold leading-tight">{t("invite someone to these dates")}</p>
+                <p className="text-[12.5px] text-ink-soft">
+                  {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}
+                </p>
               </div>
+              <span className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-[12px] font-bold text-cream">{t("invite")}</span>
             </button>
 
             {overlap.access && (
@@ -491,6 +546,10 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets 
             }}
           />
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {inviteOpen && trip && <InviteSheet me={me} trip={trip} onClose={() => setInviteOpen(false)} />}
       </AnimatePresence>
 
       <AnimatePresence>

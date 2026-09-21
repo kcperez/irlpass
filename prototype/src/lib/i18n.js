@@ -6,6 +6,13 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "invite someone to these dates": "invita a alguien a estas fechas",
+  "they get your dates already filled in, so they're on the calendar in two taps.": "les llegan tus fechas ya puestas, así entran al calendario en dos toques.",
+  "what they'll get": "lo que les llega",
+  "copy link": "copiar link",
+  "share": "compartir",
+  "close": "cerrar",
+  "invited you. their dates are already in.": "te invitó. sus fechas ya están puestas.",
   "people can message me": "la gente me puede escribir",
   "off means only women and non-binary members can start a chat with you.": "apagado significa que solo mujeres y personas no binarias pueden escribirte primero.",
   "your face shows next to your dates": "tu foto aparece junto a tus fechas",
