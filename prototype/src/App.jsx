@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import Welcome from "./screens/Welcome"
 import Join from "./screens/Join"
 import Ops from "./screens/Ops"
+import InviteAccept from "./screens/InviteAccept"
 import { cityChip } from "./lib/cities"
 import CityPage from "./screens/CityPage"
 import Apply from "./screens/Apply"
@@ -34,6 +35,15 @@ const initialApplicant = {
   memberNo: params.get("n") || null,
 }
 
+// an invite link carries the city, the dates and who sent it
+const inviteFromUrl =
+  params.get("by") && params.get("starts") && params.get("ends")
+    ? { city: params.get("city") || "medellin", starts: params.get("starts"), ends: params.get("ends") }
+    : null
+const savedToken = (() => {
+  try { return localStorage.getItem("irlpass_member_token") } catch { return null }
+})()
+
 export default function App() {
   const [screen, setScreen] = useState(initialScreen)
   const [applicant, setApplicant] = useState(initialApplicant)
@@ -55,7 +65,11 @@ export default function App() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.22 }}
             >
-              {(screen === "welcome" || (screen === "join" && !handle)) && (
+              {/* already a member and handed an invite: one button, no signup */}
+              {inviteFromUrl && savedToken && (screen === "welcome" || screen === "join") && (
+                <InviteAccept token={savedToken} invite={inviteFromUrl} invitedBy={params.get("by")} />
+              )}
+              {!(inviteFromUrl && savedToken) && (screen === "welcome" || (screen === "join" && !handle)) && (
                 <Welcome
                   invitedBy={params.get("by")}
                   invite={
@@ -70,7 +84,7 @@ export default function App() {
                   onStart={(ig) => { setHandle(ig); setScreen("join") }}
                 />
               )}
-              {screen === "join" && handle && (
+              {!(inviteFromUrl && savedToken) && screen === "join" && handle && (
                 <Join
                   ig={handle}
                   onBack={() => setScreen("welcome")}
