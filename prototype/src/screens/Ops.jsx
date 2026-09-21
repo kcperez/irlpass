@@ -4,7 +4,7 @@ import { cityChip } from "../lib/cities"
 
 // founders only: the numbers that say whether this thing is working.
 const fmtDay = (iso) =>
-  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
 
 function Stat({ n, label, tone = "" }) {
   return (
@@ -20,6 +20,7 @@ export default function Ops({ token }) {
   const [err, setErr] = useState("")
   const [at, setAt] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [openCity, setOpenCity] = useState(null)
 
   const load = useCallback(async () => {
     setBusy(true)
@@ -95,11 +96,52 @@ export default function Ops({ token }) {
       </div>
 
       {d.calendar.cities.length > 0 && (
-        <div className="mt-3 overflow-hidden rounded-[1.25rem] border-2 border-line bg-white/70">
+        <div className="mt-3 flex flex-col gap-2">
           {d.calendar.cities.map((c) => (
-            <div key={c.city} className="flex items-center justify-between border-b border-line/60 px-4 py-2.5 last:border-b-0">
-              <span className="text-[14px] font-semibold">{cityChip(c.city).emoji} {cityChip(c.city).name}</span>
-              <span className="text-[14px] font-bold">{c.people}</span>
+            <div key={c.city} className="overflow-hidden rounded-[1.25rem] border-2 border-line bg-white/70">
+              <button
+                onClick={() => setOpenCity(openCity === c.city ? null : c.city)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <span className="text-[15px] font-bold">{cityChip(c.city).emoji} {cityChip(c.city).name}</span>
+                <span className="flex items-center gap-2">
+                  <span className="rounded-full bg-lime px-2.5 py-0.5 text-[12px] font-bold">{c.people}</span>
+                  <span className="text-[12px] font-bold text-ink-soft">{openCity === c.city ? "−" : "+"}</span>
+                </span>
+              </button>
+
+              {openCity === c.city && (
+                <div className="border-t border-line/60">
+                  {c.roster.map((p, i) => (
+                    <div key={`${p.memberNo}-${i}`} className="flex items-center gap-2 border-b border-line/50 px-4 py-2.5 last:border-b-0">
+                      {p.photo ? (
+                        <img src={p.photo} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[12px] font-bold text-ink-soft">
+                          {(p.name || p.ig)[0]?.toUpperCase()}
+                        </span>
+                      )}
+                      <a
+                        href={`https://instagram.com/${String(p.ig).replace(/^@/, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 flex-1 truncate text-[13.5px] font-semibold underline-offset-2 hover:underline"
+                      >
+                        {p.ig}
+                      </a>
+                      {p.local && <span className="shrink-0 rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">local</span>}
+                      {p.verified && <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">✓</span>}
+                      <span className="shrink-0 text-[11.5px] text-ink-soft">{fmtDay(p.starts)} – {fmtDay(p.ends)}</span>
+                      <a
+                        href={`/?screen=app&t=${token}&dm=${p.memberNo}`}
+                        className="shrink-0 rounded-full border-2 border-line px-2 py-0.5 text-[10px] font-bold text-ink-soft"
+                      >
+                        dm
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

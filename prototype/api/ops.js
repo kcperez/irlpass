@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     const { data: trips } = await db
       .from("trips")
-      .select("id, member_no, city, starts, ends, flexible, created_at")
+      .select("id, member_no, city, starts, ends, flexible, local, created_at")
       .gte("ends", today())
       .order("created_at", { ascending: false })
 
@@ -45,8 +45,31 @@ export default async function handler(req, res) {
       byCity[t.city] = byCity[t.city] || new Set()
       byCity[t.city].add(t.member_no)
     }
+    const byNo = new Map(all.map((m) => [m.member_no, m]))
     const cities = Object.entries(byCity)
-      .map(([city, set]) => ({ city, people: set.size }))
+      .map(([city, set]) => ({
+        city,
+        people: set.size,
+        // who is actually there, with their dates, so you can see the room
+        roster: (trips || [])
+          .filter((t) => t.city === city)
+          .sort((a, b) => (a.starts < b.starts ? -1 : 1))
+          .map((t) => {
+            const m = byNo.get(t.member_no)
+            return {
+              memberNo: t.member_no,
+              ig: m?.ig || t.member_no,
+              name: m?.name || null,
+              photo: m?.photo_url || null,
+              followers: m?.ig_followers ?? null,
+              verified: !!m?.ig_verified,
+              starts: t.starts,
+              ends: t.ends,
+              local: !!t.local,
+              flexible: !!t.flexible,
+            }
+          }),
+      }))
       .sort((a, b) => b.people - a.people)
 
     const withTrips = new Set((trips || []).map((t) => t.member_no))

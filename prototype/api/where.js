@@ -38,10 +38,11 @@ export default async function handler(req, res) {
     }
 
     // openstreetmap hands back things like "Perímetro Urbano Medellín"
-    name = String(name || "")
+    const cleaned = String(name || "")
       .replace(/per[ií]metro urbano/i, "")
       .replace(/\b(municipality|municipio|city of|ciudad de)\b/gi, "")
       .trim()
+    name = cleaned || name
 
     if (!name) return res.status(404).json({ error: "could not place you" })
     const slug = canonicalCity(name)
