@@ -1,4 +1,4 @@
-import { canonicalCity, cityLabel } from "./_cities.js"
+import { canonicalCity, cityLabel, nearestKnown } from "./_cities.js"
 
 // GET ?lat=&lng= -> which city those coordinates are in.
 // Used by the "use my location" button, never silently in the background.
@@ -8,6 +8,9 @@ export default async function handler(req, res) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return res.status(400).json({ error: "bad coordinates" })
 
   try {
+    const known = nearestKnown(lat, lng)
+    if (known) return res.status(200).json({ slug: known, name: cityLabel(known) })
+
     const key = process.env.GOOGLE_MAPS_KEY
     let name = null
 
@@ -30,8 +33,15 @@ export default async function handler(req, res) {
         { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }
       )
       const d = await r.json()
-      name = d?.address?.city || d?.address?.town || d?.address?.state || null
+      const a = d?.address || {}
+      name = a.city || a.town || a.village || a.municipality || a.county || a.state || null
     }
+
+    // openstreetmap hands back things like "Perímetro Urbano Medellín"
+    name = String(name || "")
+      .replace(/per[ií]metro urbano/i, "")
+      .replace(/\b(municipality|municipio|city of|ciudad de)\b/gi, "")
+      .trim()
 
     if (!name) return res.status(404).json({ error: "could not place you" })
     const slug = canonicalCity(name)

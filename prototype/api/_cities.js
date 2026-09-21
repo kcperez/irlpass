@@ -77,3 +77,10 @@ export const canonicalCity = (input) => {
   const slug = slugifyCity(input)
   return ALIASES[slug] || slug
 }
+
+// coordinates inside a city we already know get that city, whatever the
+// geocoder calls the district
+export const nearestKnown = (lat, lng) => {
+  const c = nearestCity(lat, lng)
+  return c ? c.slug : null
+}
