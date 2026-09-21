@@ -1122,24 +1122,7 @@ export default function Club({ token }) {
         setState("ok")
         // remember this device so irlpass.xyz recognizes the member next visit
         localStorage.setItem("irlpass_member_token", token)
-        // geolocate: your phone's city becomes your free home city. silently
-        // updates me.city server-side so the join gate follows where you actually are.
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              fetch("/api/set-city", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ t: token, lat: pos.coords.latitude, lng: pos.coords.longitude }),
-              })
-                .then((r) => r.json())
-                .then((d) => { if (d?.matched && d.city) setMe((cur) => (cur ? { ...cur, city: d.city } : cur)) })
-                .catch(() => {})
-            },
-            () => {}, // denied / unavailable -> keep saved city
-            { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
-          )
-        }
+        // no geolocation: where you are is where your dates say you are
       })
       .catch(() => setState("denied"))
   }, [token])
