@@ -4,7 +4,7 @@ import { ArrowRight, InstagramLogo } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 
 // the whole pitch in one glance: never travel alone, drop your instagram, go.
-export default function Welcome({ onStart }) {
+export default function Welcome({ onStart, invitedBy }) {
   const [ig, setIg] = useState("")
   const [stats, setStats] = useState(null)
 
@@ -31,6 +31,13 @@ export default function Welcome({ onStart }) {
       {/* phone: stacked. desktop: text left, art right, all on one horizon. */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12 lg:px-10">
         <div className="flex min-h-0 flex-1 flex-col lg:flex-none lg:order-1">
+          {invitedBy && (
+            <div className="mx-5 mb-3 flex w-fit items-center gap-2 rounded-full border-2 border-ink bg-lime px-3.5 py-1.5 lg:mx-0">
+              <img src="/art/icon-people.png" alt="" className="h-5 w-5 object-contain" draggable="false" />
+              <span className="text-[12.5px] font-bold">@{invitedBy} {t("invited you")}</span>
+            </div>
+          )}
+
           <motion.h1
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}

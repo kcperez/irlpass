@@ -54,10 +54,13 @@ export default function App() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.22 }}
             >
-              {screen === "welcome" && (
-                <Welcome onStart={(ig) => { setHandle(ig); setScreen("join") }} />
+              {(screen === "welcome" || (screen === "join" && !handle)) && (
+                <Welcome
+                  invitedBy={params.get("by")}
+                  onStart={(ig) => { setHandle(ig); setScreen("join") }}
+                />
               )}
-              {screen === "join" && (
+              {screen === "join" && handle && (
                 <Join
                   ig={handle}
                   onBack={() => setScreen("welcome")}
