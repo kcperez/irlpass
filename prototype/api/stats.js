@@ -22,6 +22,15 @@ export default async function handler(req, res) {
       byCity[t.city].add(t.member_no)
     }
     const counts = Object.fromEntries(Object.entries(byCity).map(([c, set]) => [c, set.size]))
+    // how many members belong to each city, dates or not
+    const { data: cityMembers } = await db
+      .from("members")
+      .select("city")
+      .eq("banned", false)
+      .lt("member_no", "900")
+    const membersByCity = {}
+    for (const m of cityMembers || []) membersByCity[m.city] = (membersByCity[m.city] || 0) + 1
+
     const cities = Object.keys(counts)
     const travelling = new Set((trips || []).map((t) => t.member_no)).size
 
@@ -31,6 +40,7 @@ export default async function handler(req, res) {
       travelling,          // members with dates up right now
       cities: cities.length,
       byCity: counts,
+      membersByCity,
     })
   } catch (e) {
     console.error("stats error:", e)

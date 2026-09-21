@@ -916,6 +916,11 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
   const [rooms, setRooms] = useState([])
   const [roomCity, setRoomCity] = useState(me.city || "medellin")
 
+  const [cityCounts, setCityCounts] = useState({})
+  useEffect(() => {
+    fetch("/api/stats").then((r) => r.json()).then((d) => setCityCounts(d.membersByCity || {})).catch(() => {})
+  }, [])
+
   // every city you have dates in gets its own room
   useEffect(() => {
     fetch(`/api/trips?t=${token}`)
@@ -1037,7 +1042,9 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
           <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable="false" />
           <div className="min-w-0">
             <p className="display text-[19px] font-bold leading-tight">{cityChip(c).name.toLowerCase()} {t("chat")}</p>
-            <p className="text-[12.5px] text-ink-soft">{t("everyone in town right now")}</p>
+            <p className="text-[12.5px] text-ink-soft">
+              {cityCounts[c] ? `${cityCounts[c]} ${t("here")}` : t("everyone in town right now")}
+            </p>
           </div>
         </button>
       ))}

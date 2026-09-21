@@ -225,6 +225,44 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
         </div>
       )}
       </>)}
+
+      {data.others?.length > 0 && (
+        <>
+          <div className="mt-6 flex items-baseline justify-between">
+            <h3 className="display text-[19px] font-bold">
+              {t("also in")} {cityChip(city).name.toLowerCase()}
+            </h3>
+            <span className="text-[12px] text-ink-soft">{data.others.length}</span>
+          </div>
+          <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("here, but no dates up yet")}</p>
+          <div className="mt-2 overflow-hidden rounded-[1.75rem] border-2 border-line bg-white/60">
+            {data.others.slice(0, 40).map((p) => (
+              <div key={p.memberNo} className="flex items-center gap-3 border-b border-line/60 px-4 py-2.5 last:border-b-0">
+                <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-cream-deep">
+                  {p.photo ? (
+                    <img src={p.photo} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[13px] font-bold text-ink-soft">
+                      {(p.name || p.first)[0]?.toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-semibold">{p.name || p.first}</p>
+                  <p className="text-[11.5px] text-ink-soft">
+                    {p.hasDates ? `${fmt(p.starts)} – ${fmt(p.ends)}` : t("no dates posted")}
+                  </p>
+                </div>
+                {p.canMessage && (
+                  <button onClick={() => onOpenDM(p)} className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-[11.5px] font-bold text-cream">
+                    {t("say hi")}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

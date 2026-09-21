@@ -78,10 +78,43 @@ export default async function handler(req, res) {
       })
     }
 
+    // everyone else who belongs to this city: chat regulars, people between
+    // trips, locals who haven't put dates up. coordination needs them visible.
+    const listed = new Set(out.map((p) => p.memberNo))
+    const { data: cityRows } = await db
+      .from("members")
+      .select("*")
+      .eq("city", city)
+      .eq("banned", false)
+      .lt("member_no", "900")
+      .limit(200)
+
+    const others = []
+    for (const r of cityRows || []) {
+      if (r.member_no === me.memberNo || listed.has(r.member_no)) continue
+      const m = rowToMember(r)
+      const blocked = me.gender === "man" && m.allowDmFromMen === false
+      const anyTrip = (trips || []).find((tr) => tr.member_no === m.memberNo)
+      others.push({
+        memberNo: m.memberNo,
+        first: String(m.name || "").trim().split(/\s+/)[0] || "someone",
+        name: m.name,
+        photo: m.photo,
+        verified: m.verified,
+        hasDates: !!anyTrip,
+        starts: anyTrip?.starts || null,
+        ends: anyTrip?.ends || null,
+        canMessage: known.has(m.memberNo) && !blocked,
+        womenOnly: m.allowDmFromMen === false,
+      })
+    }
+
     return res.status(200).json({
       city,
       days,                       // head count per day, for the calendar strip
       people: out,
+      others,
+      inCity: (cityRows || []).length,
       myTrips: mine || [],
       total: out.length,
     })
