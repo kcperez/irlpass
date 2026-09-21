@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { ArrowLeft, CircleNotch } from "@phosphor-icons/react"
+import { useCallback, useEffect, useState } from "react"
+import { ArrowLeft, CircleNotch, ArrowsClockwise } from "@phosphor-icons/react"
 import { cityChip } from "../lib/cities"
 
 // founders only: the numbers that say whether this thing is working.
@@ -18,13 +18,37 @@ function Stat({ n, label, tone = "" }) {
 export default function Ops({ token }) {
   const [d, setD] = useState(null)
   const [err, setErr] = useState("")
+  const [at, setAt] = useState(null)
+  const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    fetch(`/api/ops?t=${token}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("founders only"))))
-      .then(setD)
-      .catch((e) => setErr(e.message))
+  const load = useCallback(async () => {
+    setBusy(true)
+    try {
+      const r = await fetch(`/api/ops?t=${token}`, { cache: "no-store" })
+      if (!r.ok) throw new Error("founders only")
+      setD(await r.json())
+      setAt(new Date())
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setBusy(false)
+    }
   }, [token])
+
+  useEffect(() => { load() }, [load])
+
+  // keep it current: every 60s, and whenever you come back to the tab
+  useEffect(() => {
+    const id = setInterval(load, 60000)
+    const onFocus = () => load()
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onFocus)
+    return () => {
+      clearInterval(id)
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onFocus)
+    }
+  }, [load])
 
   if (err) {
     return <div className="flex min-h-[var(--app-h)] items-center justify-center text-[14px] text-ink-soft">{err}</div>
@@ -38,7 +62,15 @@ export default function Ops({ token }) {
       <div className="flex items-center gap-3">
         <a href={`/?screen=app&t=${token}`} aria-label="back"><ArrowLeft size={22} weight="bold" /></a>
         <h1 className="display text-[26px] font-bold">ops</h1>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={load}
+            aria-label="refresh"
+            className="flex items-center gap-1.5 rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold"
+          >
+            <ArrowsClockwise size={13} weight="bold" className={busy ? "animate-spin" : ""} />
+            {at ? at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}
+          </button>
           <a href={`/?screen=app&t=${token}`} className="rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold">app</a>
           <a href={`/?screen=app&t=${token}&tab=chat`} className="rounded-full bg-ink px-3 py-1.5 text-[12px] font-bold text-cream">chat</a>
         </div>
