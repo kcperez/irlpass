@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import Welcome from "./screens/Welcome"
 import Join from "./screens/Join"
 import Ops from "./screens/Ops"
+import { cityChip } from "./lib/cities"
 import CityPage from "./screens/CityPage"
 import Apply from "./screens/Apply"
 import Review from "./screens/Review"
@@ -57,6 +58,15 @@ export default function App() {
               {(screen === "welcome" || (screen === "join" && !handle)) && (
                 <Welcome
                   invitedBy={params.get("by")}
+                  invite={
+                    params.get("by") && params.get("starts") && params.get("ends")
+                      ? {
+                          cityName: cityChip(params.get("city") || "medellin").name,
+                          starts: params.get("starts"),
+                          ends: params.get("ends"),
+                        }
+                      : null
+                  }
                   onStart={(ig) => { setHandle(ig); setScreen("join") }}
                 />
               )}

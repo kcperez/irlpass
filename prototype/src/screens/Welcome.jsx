@@ -4,7 +4,10 @@ import { ArrowRight, InstagramLogo } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 
 // the whole pitch in one glance: never travel alone, drop your instagram, go.
-export default function Welcome({ onStart, invitedBy }) {
+const fmtD = (iso) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+
+export default function Welcome({ onStart, invitedBy, invite }) {
   const [ig, setIg] = useState("")
   const [stats, setStats] = useState(null)
 
@@ -45,9 +48,9 @@ export default function Welcome({ onStart, invitedBy }) {
             className="display mt-5 whitespace-nowrap px-5 font-bold leading-[0.95] tracking-[-0.035em] lg:mt-0 lg:px-0"
             style={{ fontSize: "clamp(28px, 7.4vw, 46px)" }}
           >
-            {t("never travel")}{" "}
+            {invite ? t("come meet them") : t("never travel")}{" "}
             <span className="relative inline-block">
-              {t("alone")}
+              {invite ? invite.cityName.toLowerCase() : t("alone")}
               <motion.span
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
@@ -59,7 +62,9 @@ export default function Welcome({ onStart, invitedBy }) {
           </motion.h1>
 
           <p className="mt-3 px-5 text-[16px] text-ink-soft lg:px-0 lg:text-[19px]">
-            {t("drop your instagram, post your dates, see who's there.")}
+            {invite
+              ? `@${invitedBy} ${t("is there")} ${fmtD(invite.starts)} – ${fmtD(invite.ends)}. ${t("drop your instagram and we'll put you on the same days.")}`
+              : t("drop your instagram, post your dates, see who's there.")}
           </p>
 
           <motion.div
@@ -88,7 +93,7 @@ export default function Welcome({ onStart, invitedBy }) {
               onClick={() => onStart(handle)}
               className="flex items-center justify-center gap-2 rounded-full bg-ink py-4 text-[17px] font-bold text-cream disabled:opacity-40"
             >
-              {t("see who's around")} <ArrowRight size={18} weight="bold" />
+              {invite ? t("join them") : t("see who's around")} <ArrowRight size={18} weight="bold" />
             </motion.button>
 
             <div className="flex flex-col items-center gap-1 pt-2 lg:items-start">

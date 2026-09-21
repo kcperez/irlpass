@@ -61,7 +61,9 @@ function Bubble({ active, children, onClick, className = "" }) {
 const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams()
 
 export default function Join({ ig, onBack, onDone }) {
-  const [step, setStep] = useState(0)
+  // invited with a city and dates already: go straight to the payoff
+  const invited = !!(params.get("by") && params.get("starts") && params.get("ends"))
+  const [step, setStep] = useState(invited ? 2 : 0)
   const [city, setCity] = useState(params.get("city") || "medellin")
   const [customCity, setCustomCity] = useState("")
   const [flexible, setFlexible] = useState(false)
@@ -132,6 +134,12 @@ export default function Join({ ig, onBack, onDone }) {
       setPreview({ count: 0, faces: [], inCity: 0 })
     }
   }
+
+  // invited people land on the reveal, so it has to load itself
+  useEffect(() => {
+    if (invited) loadPreview()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const steps = [
     {

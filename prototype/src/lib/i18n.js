@@ -6,6 +6,10 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "come meet them": "ven a conocerles",
+  "is there": "está ahí",
+  "drop your instagram and we'll put you on the same days.": "pon tu instagram y te ponemos en los mismos días.",
+  "join them": "únete",
   "invited you": "te invitó",
   "invite someone to these dates": "invita a alguien a estas fechas",
   "they get your dates already filled in, so they're on the calendar in two taps.": "les llegan tus fechas ya puestas, así entran al calendario en dos toques.",
