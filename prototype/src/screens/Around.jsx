@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
+import YearView from "./YearView"
 
 // who is actually around: only people with dates posted. no dates, no listing,
 // no dm — there is nothing to meet about yet.
@@ -27,6 +28,7 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
   const [city, setCity] = useState(me.city || "medellin")
   const [picking, setPicking] = useState(false)
   const [typed, setTyped] = useState("")
+  const [view, setView] = useState("weeks") // weeks | year
 
   const load = useCallback(() => {
     fetch(`/api/members?t=${token}&city=${city}`)
@@ -103,6 +105,30 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
         </div>
       )}
 
+      <div className="mt-3 flex gap-1.5">
+        {[
+          { key: "weeks", label: t("next 2 weeks") },
+          { key: "year", label: t("the year") },
+        ].map((v) => (
+          <button
+            key={v.key}
+            onClick={() => setView(v.key)}
+            className={`rounded-full border-2 px-3.5 py-1.5 text-[12.5px] font-bold ${
+              view === v.key ? "border-ink bg-lime" : "border-line bg-white/60 text-ink-soft"
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {view === "year" && (
+        <div className="mt-3">
+          <YearView token={token} city={city} onPosted={load} />
+        </div>
+      )}
+
+      {view === "weeks" && (<>
       {/* two weeks at a glance: taller bar = busier day. a quiet city gets a thin
           strip instead of a chart that shouts about two people. */}
       <div className={`mt-4 rounded-[1.75rem] border-2 border-line bg-white/70 ${data.total >= 8 ? "p-4" : "px-4 py-3"}`}>
@@ -198,6 +224,7 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
           ))}
         </div>
       )}
+      </>)}
     </div>
   )
 }

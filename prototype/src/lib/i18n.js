@@ -6,6 +6,14 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "next 2 weeks": "próximas 2 semanas",
+  "the year": "el año",
+  "nobody": "nadie", "a few": "algunos", "busy": "lleno",
+  "pick your last day": "elige tu último día",
+  "post these dates": "publicar estas fechas",
+  "saving…": "guardando…",
+  "clear": "borrar",
+  "person": "persona",
   "📍 use my location": "📍 usar mi ubicación",
   "finding you…": "buscándote…",
   "look at another city": "mira otra ciudad",
