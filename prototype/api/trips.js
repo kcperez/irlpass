@@ -55,12 +55,15 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { starts, ends, flexible, note, local } = req.body || {}
+      let { starts } = req.body || {}
+      const { ends, flexible, note, local } = req.body || {}
       const city = canonicalCity(req.body?.city)
       if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
       if (ends < starts) return res.status(400).json({ error: "the end date is before the start date" })
-      if (starts < today()) return res.status(400).json({ error: "those dates have already passed" })
+      if (ends < today()) return res.status(400).json({ error: "those dates have already passed" })
+      // a trip that's already underway is fine: it starts today from our side
+      if (starts < today()) starts = today()
       if (nights(starts, ends) > MAX_NIGHTS) return res.status(400).json({ error: "keep a trip under 120 days" })
 
       const { count } = await db

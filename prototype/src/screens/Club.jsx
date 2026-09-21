@@ -913,6 +913,21 @@ function DeniedScreen() {
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
 function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }) {
   const [roomOpen, setRoomOpen] = useState(false)
+  const [rooms, setRooms] = useState([])
+  const [roomCity, setRoomCity] = useState(me.city || "medellin")
+
+  // every city you have dates in gets its own room
+  useEffect(() => {
+    fetch(`/api/trips?t=${token}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const cities = [...new Set((d.trips || []).map((x) => x.city))]
+        setRooms(cities.length ? cities : [me.city || "medellin"])
+        if (cities.length && !cities.includes(roomCity)) setRoomCity(cities[0])
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
   const [threads, setThreads] = useState(null)
   const [convo, setConvo] = useState(null) // { with, messages }
   const [text, setText] = useState("")
@@ -993,7 +1008,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
     )
   }
 
-  const cityName = cityChip(me.city).name.toLowerCase()
+  const cityName = cityChip(roomCity).name.toLowerCase()
 
   if (roomOpen) {
     return (
@@ -1001,7 +1016,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
         token={token}
         me={me}
         photoMap={photoMap}
-        channel={me.city}
+        channel={roomCity}
         title={`${cityName} chat`}
         onBack={() => setRoomOpen(false)}
       />
@@ -1013,16 +1028,19 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
     <div className="px-5 pb-28 pt-4">
       <h2 className="display text-[30px] font-bold">{t("chat")}</h2>
 
-      <button
-        onClick={() => setRoomOpen(true)}
-        className="mt-4 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left active:scale-[0.99]"
-      >
-        <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable="false" />
-        <div className="min-w-0">
-          <p className="display text-[19px] font-bold leading-tight">{cityName} chat</p>
-          <p className="text-[12.5px] text-ink-soft">{t("everyone in town right now")}</p>
-        </div>
-      </button>
+      {rooms.map((c) => (
+        <button
+          key={c}
+          onClick={() => { setRoomCity(c); setRoomOpen(true) }}
+          className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left active:scale-[0.99]"
+        >
+          <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable="false" />
+          <div className="min-w-0">
+            <p className="display text-[19px] font-bold leading-tight">{cityChip(c).name.toLowerCase()} {t("chat")}</p>
+            <p className="text-[12.5px] text-ink-soft">{t("everyone in town right now")}</p>
+          </div>
+        </button>
+      ))}
       {me.memberNo !== "002" && (
         <button
           onClick={() => setOpenWith({ memberNo: "002", name: "Josh", ig: "@jawshmac" })}
