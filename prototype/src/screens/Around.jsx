@@ -18,19 +18,22 @@ const fmt = (isoDate) =>
 const dayLetter = (isoDate) =>
   new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "narrow", timeZone: "UTC" })
 
-import { cityChip } from "../lib/cities"
+import { cityChip, searchCities, slugify, CITY_INDEX } from "../lib/cities"
 import { isMod } from "../lib/mods"
 
 export default function Around({ token, me, onOpenDM, onUnlock }) {
   const [data, setData] = useState(null)
   const [week, setWeek] = useState(0) // which 14-day window we're looking at
+  const [city, setCity] = useState(me.city || "medellin")
+  const [picking, setPicking] = useState(false)
+  const [typed, setTyped] = useState("")
 
   const load = useCallback(() => {
-    fetch(`/api/members?t=${token}&city=${me.city}`)
+    fetch(`/api/members?t=${token}&city=${city}`)
       .then((r) => r.json())
       .then(setData)
       .catch(() => setData({ people: [], days: {} }))
-  }, [token, me.city])
+  }, [token, city])
   useEffect(() => { load() }, [load])
 
   const from = addDays(todayIso(), week * 14)
@@ -56,20 +59,59 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
   return (
     <div className="px-5 pb-28 pt-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="display text-[30px] font-bold">{cityChip(me.city).name.toLowerCase()}</h2>
+        <button onClick={() => setPicking((p) => !p)} className="flex items-baseline gap-1.5">
+          <h2 className="display text-[30px] font-bold">{cityChip(city).name.toLowerCase()}</h2>
+          <span className="text-[13px] font-bold text-ink-soft">{picking ? "×" : "▾"}</span>
+        </button>
         <span className="text-[13px] font-semibold text-ink-soft">
           {data.total} {data.total === 1 ? t("person with dates") : t("people with dates")}
         </span>
       </div>
+      <p className="mt-1 text-[14px] text-ink-soft">
+        {t("people here on your dates. say hi to join them.")}
+      </p>
 
-      {/* two weeks at a glance: taller bar = busier day */}
-      <div className="mt-4 rounded-[1.75rem] border-2 border-line bg-white/70 p-4">
-        <div className="flex items-end justify-between gap-1">
+      {picking && (
+        <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/80 p-3">
+          <input
+            id="around-city"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            autoComplete="off"
+            placeholder={t("look at another city")}
+            className="w-full rounded-[1.1rem] border-2 border-line bg-white px-3 py-2.5 text-[15px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+          />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {(typed.trim() ? searchCities(typed) : CITY_INDEX.slice(0, 6)).map((c) => (
+              <button
+                key={c.slug}
+                onClick={() => { setCity(c.slug); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
+                className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12.5px] font-bold"
+              >
+                {c.emoji} {c.name}
+              </button>
+            ))}
+            {typed.trim() && searchCities(typed).length === 0 && (
+              <button
+                onClick={() => { setCity(slugify(typed)); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
+                className="rounded-full border-2 border-ink bg-lime px-3 py-1.5 text-[12.5px] font-bold"
+              >
+                📍 {typed}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* two weeks at a glance: taller bar = busier day. a quiet city gets a thin
+          strip instead of a chart that shouts about two people. */}
+      <div className={`mt-4 rounded-[1.75rem] border-2 border-line bg-white/70 ${data.total >= 8 ? "p-4" : "px-4 py-3"}`}>
+        <div className={`flex items-end justify-between gap-1 ${data.total >= 8 ? "" : "h-8"}`}>
           {strip.map((s) => (
             <div key={s.d} className="flex flex-1 flex-col items-center gap-1">
               <motion.div
                 initial={{ height: 4 }}
-                animate={{ height: Math.max(4, Math.round((s.n / peak) * 54)) }}
+                animate={{ height: Math.max(4, Math.round((s.n / peak) * (data.total >= 8 ? 54 : 18))) }}
                 transition={{ type: "spring", stiffness: 160, damping: 20 }}
                 className={`w-full rounded-full ${s.n ? "bg-lime-deep" : "bg-cream-deep"}`}
               />
@@ -119,14 +161,23 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
                 <p className="flex items-center gap-1.5 text-[15px] font-bold">
                   <span className={p.locked ? "blur-[4px] select-none" : ""}>{p.locked ? `${p.first} ••••` : p.name}</span>
                   {p.verified && <CheckCircle size={15} weight="fill" className="shrink-0 text-lime-deep" />}
+                  {p.local && (
+                    <span className="shrink-0 rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">
+                      {cityChip(city).name.toLowerCase()} {t("local")}
+                    </span>
+                  )}
                   {isMod(p.memberNo) && (
                     <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">{t("co-founder")}</span>
                   )}
                 </p>
+                {p.overlapsMe && (
+                  <p className="mt-0.5 w-fit rounded-full bg-lime px-2 py-0.5 text-[11px] font-bold">
+                    {t("same days as you")}
+                  </p>
+                )}
                 <p className="truncate text-[12px] text-ink-soft">
                   {fmt(p.starts)} – {fmt(p.ends)}
-                  {p.flexible && ` · ${t("flexible")}`}
-                  {p.overlapsMe && ` · ${t("same days as you")}`}
+                  {p.flexible && !p.local ? ` · ${t("flexible")}` : ""}
                   {p.note ? ` · ${p.note}` : ""}
                 </p>
               </div>

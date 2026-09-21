@@ -45,3 +45,6 @@ alter table members add column if not exists ig_verified_at timestamptz;
 
 -- where a member's photo came from, so the weekly refresh never overwrites an upload
 alter table members add column if not exists photo_source text;
+
+-- locals: people who live in a city rather than passing through
+alter table trips add column if not exists local boolean not null default false;

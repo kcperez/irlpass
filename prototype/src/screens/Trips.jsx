@@ -4,7 +4,7 @@ import {
   CalendarPlus, CheckCircle, CircleNotch, LockSimple,
   Plus, Trash, X,
 } from "@phosphor-icons/react"
-import { CITY_INDEX, cityChip } from "../lib/cities"
+import { CITY_INDEX, cityChip, searchCities, slugify } from "../lib/cities"
 import { t } from "../lib/i18n"
 
 // v2: the calendar is the product. post your dates, see who overlaps them,
@@ -39,7 +39,7 @@ function Initials({ name, photo, locked, size = "h-11 w-11" }) {
   )
 }
 
-function PersonRow({ p, onMessage }) {
+function PersonRow({ p, onMessage, cityLabel }) {
   return (
     <div className="flex items-center gap-3 border-b border-line/60 px-4 py-3 last:border-b-0">
       <Initials name={p.name || p.first} photo={p.photo} locked={p.locked} />
@@ -49,10 +49,15 @@ function PersonRow({ p, onMessage }) {
             {p.locked ? `${p.first} ${"•".repeat(6)}` : p.name || p.first}
           </span>
           {p.verified && <CheckCircle size={15} weight="fill" className="shrink-0 text-lime-deep" />}
+          {p.local && (
+            <span className="shrink-0 rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">
+              {cityLabel} {t("local")}
+            </span>
+          )}
         </div>
         <p className="truncate text-[12px] text-ink-soft">
           {fmtRange(p.starts, p.ends)}
-          {p.flexible && " · flexible"}
+          {p.flexible && !p.local ? " · flexible" : ""}
           {p.note ? ` · ${p.note}` : p.interests?.length ? ` · ${p.interests.slice(0, 2).join(", ")}` : ""}
         </p>
       </div>
@@ -74,9 +79,11 @@ function PersonRow({ p, onMessage }) {
 
 function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
   const [city, setCity] = useState(defaultCity || "medellin")
+  const [typed, setTyped] = useState("")
   const [starts, setStarts] = useState(todayIso())
   const [ends, setEnds] = useState(addDays(todayIso(), prefillMonth ? 29 : 6))
   const [flexible, setFlexible] = useState(false)
+  const [local, setLocal] = useState(false)
   const [note, setNote] = useState("")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState("")
@@ -88,7 +95,7 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
       const r = await fetch("/api/trips", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ t: token, city, starts, ends, flexible, note }),
+        body: JSON.stringify({ t: token, city, starts, ends, flexible, note, local }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || "could not save your dates")
@@ -118,17 +125,25 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
         <button onClick={onClose} aria-label="close"><X size={20} className="text-ink-soft" /></button>
       </div>
 
-      <label className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">city</label>
-      <div className="mb-3 mt-1.5 flex flex-wrap gap-1.5">
-        {CITIES.map((c) => (
+      <label htmlFor="trip-city" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">city</label>
+      <input
+        id="trip-city"
+        value={typed}
+        onChange={(e) => { setTyped(e.target.value); const s = slugify(e.target.value); if (s) setCity(s) }}
+        autoComplete="off"
+        placeholder={t("type any city")}
+        className="mb-2 mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-4 py-3 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+      />
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {(typed.trim() ? searchCities(typed) : CITIES).map((c) => (
           <button
             key={c.slug}
-            onClick={() => setCity(c.slug)}
-            className={`rounded-full border px-3.5 py-2 text-[13px] font-medium ${
+            onClick={() => { setCity(c.slug); setTyped(c.name) }}
+            className={`rounded-full border-2 px-3.5 py-2 text-[13px] font-semibold ${
               city === c.slug ? "border-ink bg-lime text-ink" : "border-line bg-white/60 text-ink-soft"
             }`}
           >
-            {c.name}
+            {c.emoji} {c.name}
           </button>
         ))}
       </div>
@@ -151,6 +166,18 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
           />
         </div>
       </div>
+
+      <button
+        onClick={() => setLocal((l) => !l)}
+        className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[14px] font-medium ${
+          local ? "border-ink bg-lime/60" : "border-line bg-white/60 text-ink-soft"
+        }`}
+      >
+        {t("i live here")}
+        <span className={`h-5 w-9 rounded-full ${local ? "bg-ink" : "bg-line"} relative`}>
+          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-cream transition-all ${local ? "left-[1.15rem]" : "left-0.5"}`} />
+        </span>
+      </button>
 
       <button
         onClick={() => setFlexible((f) => !f)}
@@ -492,6 +519,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets 
                     <PersonRow
                       key={`${p.memberNo}-${p.starts}`}
                       p={p}
+                      cityLabel={cityName(trip.city).toLowerCase()}
                       onMessage={(person) => onOpenDM({ memberNo: person.memberNo, name: person.name, ig: person.ig, photo: person.photo })}
                     />
                   ))}

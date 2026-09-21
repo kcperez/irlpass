@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   try {
     const { data: trips } = await db
       .from("trips")
-      .select("member_no, starts, ends")
+      .select("member_no, starts, ends, local")
       .eq("city", city)
       .lte("starts", ends)
       .gte("ends", starts)
@@ -60,6 +60,7 @@ export default async function handler(req, res) {
 
     // how many land on the same day you do — the line that makes it feel real
     const sameDay = rows.filter((t) => t.starts === starts).length
+    const localsHere = rows.filter((t) => t.local).length
 
     const meta = cityBySlug(city)
     const live = !!meta?.live
@@ -80,6 +81,7 @@ export default async function handler(req, res) {
       women: people.filter((p) => p.gender === "woman").length,
       men: people.filter((p) => p.gender === "man").length,
       sameDay,
+      locals: localsHere,
       inCity,
       cityFaces,
       foundingLeft: await foundingLeft(),

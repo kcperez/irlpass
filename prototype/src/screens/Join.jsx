@@ -69,6 +69,7 @@ export default function Join({ ig, onBack, onDone }) {
   const [flexible, setFlexible] = useState(false)
   const [picked, setPicked] = useState(params.get("starts") ? "shared" : null) // which preset, or "exact"
   const [exact, setExact] = useState(false)
+  const [local, setLocal] = useState(false)
   const matches = (() => {
     const found = searchCities(customCity)
     const slug = slugify(customCity)
@@ -111,7 +112,7 @@ export default function Join({ ig, onBack, onDone }) {
       await fetch("/api/trips", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ t: d.token, city, starts, ends }),
+        body: JSON.stringify({ t: d.token, city, starts, ends, local }),
       }).catch(() => {})
       localStorage.setItem("irlpass_member_token", d.token)
       onDone(d.token)
@@ -192,6 +193,7 @@ export default function Join({ ig, onBack, onDone }) {
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2">
             {[
+              { key: "local", label: t("i live here"), s: todayIso(), e: addDays(todayIso(), 89), flex: true, local: true },
               { key: "now", label: t("i'm here now"), s: todayIso(), e: addDays(todayIso(), 13), flex: false },
               { key: "week", label: t("next week"), s: addDays(todayIso(), 7), e: addDays(todayIso(), 13), flex: false },
               { key: "month", label: t("next month"), s: addDays(todayIso(), 30), e: addDays(todayIso(), 36), flex: false },
@@ -200,7 +202,7 @@ export default function Join({ ig, onBack, onDone }) {
               <Bubble
                 key={q.key}
                 active={picked === q.key}
-                onClick={() => { setPicked(q.key); setStarts(q.s); setEnds(q.e); setFlexible(q.flex); setExact(false) }}
+                onClick={() => { setPicked(q.key); setStarts(q.s); setEnds(q.e); setFlexible(q.flex); setLocal(!!q.local); setExact(false) }}
               >
                 {q.label}
               </Bubble>
@@ -237,9 +239,11 @@ export default function Join({ ig, onBack, onDone }) {
 
           {picked && (
             <p className="text-[13px] font-semibold text-ink-soft">
-              {flexible
-                ? t("we'll look at the next month and ping you when someone matches")
-                : `${fmtShort(starts)} → ${fmtShort(ends)}`}
+              {local
+                ? t("you'll show up for anyone landing here")
+                : flexible
+                  ? t("we'll look at the next month and ping you when someone matches")
+                  : `${fmtShort(starts)} → ${fmtShort(ends)}`}
             </p>
           )}
         </div>
@@ -274,6 +278,8 @@ export default function Join({ ig, onBack, onDone }) {
                       {preview.women > 0 && `${preview.women} ${preview.women === 1 ? t("woman") : t("women")} · `}
                       {preview.men > 0 && `${preview.men} ${preview.men === 1 ? t("man") : t("men")}`}
                       {preview.sameDay > 0 && ` · ${preview.sameDay} ${t("land the same day as you")}`}
+                      {preview.locals > 0 &&
+                        ` · ${preview.locals} ${preview.cityName.toLowerCase()} ${preview.locals === 1 ? t("local") : t("locals")}`}
                     </>
                   ) : (
                     <>

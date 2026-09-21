@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     const { data: trips } = await db
       .from("trips")
-      .select("member_no, starts, ends, flexible, note")
+      .select("member_no, starts, ends, flexible, note, local")
       .eq("city", city)
       .gte("ends", today())
       .lte("starts", horizon)
@@ -46,8 +46,9 @@ export default async function handler(req, res) {
     const out = []
     const days = {}
     for (const trip of trips || []) {
-      for (const d of eachDay(trip.starts, trip.ends)) days[d] = (days[d] || 0) + 1
+      // the chart counts the same people the list does: everyone but you
       if (trip.member_no === me.memberNo) continue
+      for (const d of eachDay(trip.starts, trip.ends)) days[d] = (days[d] || 0) + 1
       const m = byNo.get(trip.member_no)
       if (!m || m.banned) continue
 
@@ -68,6 +69,7 @@ export default async function handler(req, res) {
         starts: trip.starts,
         ends: trip.ends,
         flexible: !!trip.flexible,
+        local: !!trip.local,
         note: open ? trip.note || "" : "",
         overlapsMe: !!mineOverlap,
         locked: !open,

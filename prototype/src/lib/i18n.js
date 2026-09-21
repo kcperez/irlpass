@@ -6,6 +6,12 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "look at another city": "mira otra ciudad",
+  "copied ✓": "copiado ✓",
+  "people here on your dates. say hi to join them.": "gente aquí en tus fechas. salúdales para verles.",
+  "locals": "locales",
+  "local": "local",
+  "you'll show up for anyone landing here": "aparecerás para cualquiera que llegue a la ciudad",
   "add these days to your calendar and you'll both show up on each other's dates.": "agrega estos días a tu calendario y ambos aparecerán en las fechas del otro.",
   "add these dates": "agregar estas fechas",
   "no thanks, just open the app": "no gracias, abrir la app",

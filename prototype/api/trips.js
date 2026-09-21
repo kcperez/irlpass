@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { starts, ends, flexible, note } = req.body || {}
+      const { starts, ends, flexible, note, local } = req.body || {}
       const city = canonicalCity(req.body?.city)
       if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
@@ -78,6 +78,7 @@ export default async function handler(req, res) {
           starts,
           ends,
           flexible: !!flexible,
+          local: !!local,
           note: note ? String(note).slice(0, 140) : null,
         })
         .select("*")
@@ -120,6 +121,7 @@ const shape = (t) => ({
   starts: t.starts,
   ends: t.ends,
   flexible: !!t.flexible,
+  local: !!t.local,
   note: t.note || "",
 })
 

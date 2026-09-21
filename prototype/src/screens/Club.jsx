@@ -170,6 +170,7 @@ function ReviewSheet({ token, activity, onClose }) {
 
 function VerifyCard({ token, me, onVerified }) {
   const [code, setCode] = useState(null)
+  const [copied, setCopied] = useState(false)
   const [state, setState] = useState("idle") // idle | checking | failed
   const [msg, setMsg] = useState("")
 
@@ -209,10 +210,17 @@ function VerifyCard({ token, me, onVerified }) {
           {code || "…"}
         </code>
         <button
-          onClick={() => { if (code) navigator.clipboard?.writeText(code) }}
-          className="rounded-full border-2 border-line px-3 py-2 text-[12px] font-bold"
+          onClick={async () => {
+            if (!code) return
+            try {
+              await navigator.clipboard.writeText(code)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            } catch { /* clipboard blocked */ }
+          }}
+          className={`rounded-full border-2 px-3 py-2 text-[12px] font-bold ${copied ? "border-ink bg-lime" : "border-line"}`}
         >
-          {t("copy")}
+          {copied ? t("copied ✓") : t("copy")}
         </button>
       </div>
       <button

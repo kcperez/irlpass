@@ -63,6 +63,7 @@ export default async function handler(req, res) {
         starts: t.starts,
         ends: t.ends,
         flexible: !!t.flexible,
+        local: !!t.local,
         note: open ? t.note || "" : "",
         locked: !open,
         canMessage: open && !blocked,
