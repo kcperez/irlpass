@@ -29,8 +29,8 @@ export default function Welcome({ onStart, invitedBy }) {
       </header>
 
       {/* phone: stacked. desktop: text left, art right, all on one horizon. */}
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12 lg:px-10">
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-none lg:order-1">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-10 lg:px-10">
+        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col lg:flex-none lg:order-1">
           {invitedBy && (
             <div className="mx-5 mb-3 flex w-fit items-center gap-2 rounded-full border-2 border-ink bg-lime px-3.5 py-1.5 lg:mx-0">
               <img src="/art/icon-people.png" alt="" className="h-5 w-5 object-contain" draggable="false" />
@@ -43,7 +43,7 @@ export default function Welcome({ onStart, invitedBy }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 140, damping: 18 }}
             className="display mt-5 whitespace-nowrap px-5 font-bold leading-[0.95] tracking-[-0.035em] lg:mt-0 lg:px-0"
-            style={{ fontSize: "clamp(30px, 8.2vw, 58px)" }}
+            style={{ fontSize: "clamp(28px, 7.4vw, 46px)" }}
           >
             {t("never travel")}{" "}
             <span className="relative inline-block">
@@ -109,7 +109,7 @@ export default function Welcome({ onStart, invitedBy }) {
           </motion.div>
         </div>
 
-        <div className="relative flex min-h-[180px] flex-1 items-center justify-center px-4 lg:order-2 lg:min-h-0 lg:flex-none lg:px-0">
+        <div className="relative flex min-h-[180px] w-full min-w-0 flex-1 items-center justify-center px-4 lg:order-2 lg:min-h-0 lg:flex-none lg:px-0">
           <motion.img
             src="/art/hero.png"
             alt=""
