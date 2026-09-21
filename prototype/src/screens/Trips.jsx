@@ -80,6 +80,7 @@ function PersonRow({ p, onMessage, cityLabel }) {
 function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
   const [city, setCity] = useState(defaultCity || "medellin")
   const [typed, setTyped] = useState("")
+  const [locating, setLocating] = useState(false)
   const [starts, setStarts] = useState(todayIso())
   const [ends, setEnds] = useState(addDays(todayIso(), prefillMonth ? 29 : 6))
   const [flexible, setFlexible] = useState(false)
@@ -134,6 +135,27 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
         placeholder={t("type any city")}
         className="mb-2 mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-4 py-3 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
       />
+      <button
+        onClick={() => {
+          if (!navigator.geolocation) return
+          setLocating(true)
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              try {
+                const r = await fetch(`/api/where?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`)
+                const d = await r.json()
+                if (d.slug) { setCity(d.slug); setTyped(d.name) }
+              } finally { setLocating(false) }
+            },
+            () => setLocating(false),
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+          )
+        }}
+        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[1.2rem] border-2 border-dashed border-line py-2.5 text-[13px] font-bold text-ink-soft"
+      >
+        {locating ? t("finding you…") : t("📍 use my location")}
+      </button>
+
       <div className="mb-3 flex flex-wrap gap-1.5">
         {(typed.trim() ? searchCities(typed) : CITIES).map((c) => (
           <button
