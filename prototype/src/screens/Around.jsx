@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { motion } from "framer-motion"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import YearView from "./YearView"
@@ -29,6 +28,7 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
   const [picking, setPicking] = useState(false)
   const [typed, setTyped] = useState("")
   const [view, setView] = useState("weeks") // weeks | year
+  const [selectedDay, setSelectedDay] = useState(null)
 
   const load = useCallback(() => {
     fetch(`/api/members?t=${token}&city=${city}`)
@@ -47,12 +47,13 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
     }
     return out
   }, [data, from])
-  const peak = Math.max(1, ...strip.map((s) => s.n))
 
   const visible = useMemo(() => {
     const to = addDays(from, 13)
-    return (data?.people || []).filter((p) => p.starts <= to && p.ends >= from)
-  }, [data, from])
+    const inWindow = (data?.people || []).filter((p) => p.starts <= to && p.ends >= from)
+    if (!selectedDay) return inWindow
+    return inWindow.filter((p) => p.starts <= selectedDay && p.ends >= selectedDay)
+  }, [data, from, selectedDay])
 
   if (!data) {
     return <div className="flex flex-1 items-center justify-center pt-20"><CircleNotch size={24} className="animate-spin text-ink-soft" /></div>
@@ -129,34 +130,49 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
       )}
 
       {view === "weeks" && (<>
-      {/* two weeks at a glance: taller bar = busier day. a quiet city gets a thin
-          strip instead of a chart that shouts about two people. */}
-      <div className={`mt-4 rounded-[1.75rem] border-2 border-line bg-white/70 ${data.total >= 8 ? "p-4" : "px-4 py-3"}`}>
-        <div className={`flex items-end justify-between gap-1 ${data.total >= 8 ? "" : "h-8"}`}>
-          {strip.map((s) => (
-            <div key={s.d} className="flex flex-1 flex-col items-center gap-1">
-              <motion.div
-                initial={{ height: 4 }}
-                animate={{ height: Math.max(4, Math.round((s.n / peak) * (data.total >= 8 ? 54 : 18))) }}
-                transition={{ type: "spring", stiffness: 160, damping: 20 }}
-                className={`w-full rounded-full ${s.n ? "bg-lime-deep" : "bg-cream-deep"}`}
-              />
-              <span className={`text-[9px] font-bold ${s.n ? "text-ink" : "text-ink-soft/50"}`}>{s.n || ""}</span>
-              <span className="text-[9px] text-ink-soft/60">{dayLetter(s.d)}</span>
-            </div>
-          ))}
+      {/* one cell per day: the number is people here that day. tap to filter. */}
+      <div className="mt-3 rounded-[1.75rem] border-2 border-line bg-white/70 p-4">
+        <div className="flex items-baseline justify-between">
+          <p className="text-[13px] font-bold">{t("people here each day")}</p>
+          <span className="text-[11.5px] text-ink-soft">{fmt(from)} – {fmt(addDays(from, 13))}</span>
         </div>
+
+        <div className="mt-2.5 grid grid-cols-7 gap-1.5">
+          {strip.map((s2) => {
+            const on = selectedDay === s2.d
+            return (
+              <button
+                key={s2.d}
+                onClick={() => setSelectedDay(on ? null : s2.d)}
+                className={`flex flex-col items-center rounded-[0.9rem] border-2 py-1.5 ${
+                  on ? "border-ink bg-lime" : s2.n ? "border-line bg-lime/30" : "border-line bg-cream-deep/40"
+                }`}
+              >
+                <span className="text-[9px] font-bold uppercase text-ink-soft">{dayLetter(s2.d)}</span>
+                <span className="text-[12px] font-bold leading-tight">{Number(s2.d.slice(8))}</span>
+                <span className={`mt-0.5 text-[12px] font-bold ${s2.n ? "" : "text-ink-soft/40"}`}>
+                  {s2.n || "·"}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
         <div className="mt-3 flex items-center justify-between">
           <button
-            onClick={() => setWeek((w) => Math.max(0, w - 1))}
+            onClick={() => { setWeek((w) => Math.max(0, w - 1)); setSelectedDay(null) }}
             disabled={week === 0}
             className="rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold disabled:opacity-35"
           >
             ← {t("earlier")}
           </button>
-          <span className="text-[12px] font-semibold text-ink-soft">{fmt(from)} – {fmt(addDays(from, 13))}</span>
+          <span className="text-[12px] font-semibold text-ink-soft">
+            {selectedDay
+              ? `${data.days?.[selectedDay] || 0} ${(data.days?.[selectedDay] || 0) === 1 ? t("person") : t("people")} · ${fmt(selectedDay)}`
+              : t("tap a day to see who")}
+          </span>
           <button
-            onClick={() => setWeek((w) => w + 1)}
+            onClick={() => { setWeek((w) => w + 1); setSelectedDay(null) }}
             className="rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold"
           >
             {t("later")} →
@@ -167,7 +183,9 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
       {visible.length === 0 ? (
         <div className="mt-4 rounded-[1.75rem] border-2 border-dashed border-line bg-white/50 px-5 py-7 text-center">
           <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
-          <p className="display mt-1 text-[20px] font-bold">{t("nobody in these two weeks")}</p>
+          <p className="display mt-1 text-[20px] font-bold">
+            {selectedDay ? `${t("nobody on")} ${fmt(selectedDay)}` : t("nobody in these two weeks")}
+          </p>
           <p className="mt-1 text-[13px] text-ink-soft">{t("try later dates, or post yours and get told when someone lands.")}</p>
         </div>
       ) : (
