@@ -2,6 +2,7 @@ import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { notifyMemberNo } from "./_notify.js"
 import { isMod } from "./_mods.js"
+import { today } from "./_access.js"
 
 // channels: a city slug (everyone in that city, plus mods) or a legacy activity id
 async function canAccess(channel, me) {
@@ -49,6 +50,18 @@ export default async function handler(req, res) {
       if (action === "send") {
         if (!text || !String(text).trim()) return res.status(400).json({ error: "empty" })
         if (!(await canAccess(channel, me))) return res.status(403).json({ error: "join first" })
+        // a city room is for people who are actually going to be there
+        if (!isMod(me.memberNo) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
+          const { count } = await db
+            .from("trips")
+            .select("id", { count: "exact", head: true })
+            .eq("member_no", me.memberNo)
+            .eq("city", channel)
+            .gte("ends", today())
+          if (!count) {
+            return res.status(402).json({ error: "post your dates for this city to write here", gate: "dates", city: channel })
+          }
+        }
         const { error } = await db.from("messages").insert({
           channel,
           body: String(text).trim().slice(0, 1000),

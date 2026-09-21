@@ -380,7 +380,7 @@ function UnlockSheet({ token, trip, count, onClose, onDone }) {
   )
 }
 
-export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets }) {
+export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets, postCity }) {
   const [state, setState] = useState("loading")
   const [trips, setTrips] = useState([])
   const [active, setActive] = useState(0) // index of the trip being viewed
@@ -412,6 +412,9 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets 
       window.history.replaceState({}, "", `${window.location.pathname}?${p}`)
     }
   }, [])
+
+  // sent here from a city chat they can't write in yet
+  useEffect(() => { if (postCity) setFormOpen(true) }, [postCity])
 
   // the dm screen bounced someone off the paywall: open the sheet here
   useEffect(() => { if (unlockRequest) setUnlockOpen(true) }, [unlockRequest])
@@ -586,7 +589,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets 
         {formOpen && (
           <DateForm
             token={token}
-            defaultCity={me?.city}
+            defaultCity={postCity || me?.city}
             prefillMonth={prefillMonth}
             onClose={() => setFormOpen(false)}
             onPosted={() => {

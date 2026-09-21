@@ -599,7 +599,8 @@ function PinnedInfo({ token, me, initial }) {
 
 const REACT_SET = ["❤️", "😂", "🔥", "👍"]
 
-function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) {
+function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates }) {
+  const [needsDates, setNeedsDates] = useState(false)
   const [server, setServer] = useState(null)
   // optimistic sends live separately so a stale poll can't wipe them off screen
   const [pending, setPending] = useState([])
@@ -633,14 +634,22 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
     bottomRef.current?.scrollIntoView({ block: "end" })
   }, [msgs?.length])
 
-  const api = (body) =>
-    fetch("/api/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, channel, ...body }),
-    })
-      .then(() => pollRef.current())
-      .catch(() => {})
+  const api = async (body) => {
+    try {
+      const r = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ t: token, channel, ...body }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (d?.gate === "dates") {
+        setPending([])
+        setNeedsDates(true)
+        return
+      }
+      pollRef.current()
+    } catch { /* offline */ }
+  }
 
   const send = async () => {
     const body = text.trim()
@@ -814,6 +823,18 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {} }) 
         </div>
       </div>
 
+        {needsDates && (
+          <button
+            onClick={() => onNeedDates?.(channel)}
+            className="mx-3 mb-2 flex items-center gap-3 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3 text-left"
+          >
+            <img src="/art/icon-dates.png" alt="" className="h-10 w-10 shrink-0 object-contain" draggable="false" />
+            <div className="min-w-0">
+              <p className="text-[13.5px] font-bold leading-tight">{t("post your dates to write here")}</p>
+              <p className="text-[12px] text-ink-soft">{t("the room is for people who'll actually be in town")}</p>
+            </div>
+          </button>
+        )}
       <div className="border-t border-line/70 px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))] pt-2.5">
         <AnimatePresence>
           {(replyTo || editing) && (
@@ -911,7 +932,7 @@ function DeniedScreen() {
 
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
-function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }) {
+function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates }) {
   const [roomOpen, setRoomOpen] = useState(false)
   const [rooms, setRooms] = useState([])
   const [roomCity, setRoomCity] = useState(me.city || "medellin")
@@ -1024,6 +1045,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {} }
         channel={roomCity}
         title={`${cityName} chat`}
         onBack={() => setRoomOpen(false)}
+        onNeedDates={onNeedDates}
       />
     )
   }
@@ -1106,6 +1128,7 @@ export default function Club({ token }) {
   const [setRefresh] = useState(0)
   const [unlockRequest, setUnlockRequest] = useState(0)
   const [closeSheets, setCloseSheets] = useState(0)
+  const [postCity, setPostCity] = useState(null)
 
   // photo lookup for avatars in chats and joined stacks
   useEffect(() => {
@@ -1167,7 +1190,7 @@ export default function Club({ token }) {
     <div className="relative flex h-[var(--app-h)] flex-col">
       {!inThread && <TopBar me={me} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
+        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
         {tab === "members" && (
           <Around
             token={token}
@@ -1176,7 +1199,7 @@ export default function Club({ token }) {
             onUnlock={() => { setTab("trips"); setUnlockRequest(Date.now()) }}
           />
         )}
-        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={setDmWith} photoMap={photoMap} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
+        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={setDmWith} photoMap={photoMap} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
       </div>
       <AnimatePresence>
         {profileOpen && (

@@ -6,6 +6,8 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "post your dates to write here": "pon tus fechas para escribir aquí",
+  "the room is for people who'll actually be in town": "el chat es para quienes van a estar en la ciudad",
   "also in": "también en",
   "here, but no dates up yet": "están aquí, pero sin fechas puestas",
   "no dates posted": "sin fechas",
