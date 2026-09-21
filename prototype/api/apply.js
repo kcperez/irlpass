@@ -1,5 +1,6 @@
 import { put } from "@vercel/blob"
 import { createAcceptedMember } from "./accept.js"
+import { canonicalCity } from "./_cities.js"
 import { sendEmail, acceptanceEmail } from "./_email.js"
 import { enrichMember } from "./_instagram.js"
 
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
       email: String(email).trim().toLowerCase().slice(0, 120),
       dates: String(dates || "").slice(0, 60),
       reasons: Array.isArray(reasons) ? reasons.slice(0, 10).map((r) => String(r).slice(0, 60)) : [],
-      city: String(city || "medellin").slice(0, 40),
+      city: canonicalCity(city || "medellin"),
       gender: VALID_GENDERS.includes(gender) ? gender : null,
       birthday: birthday ? String(birthday).slice(0, 10) : null,
       interests: cleanInterests,

@@ -51,3 +51,29 @@ export const isValidCity = (slug) => /^[a-z0-9][a-z0-9-]{1,39}$/.test(String(slu
 export const cityLabel = (slug) =>
   cityBySlug(slug)?.name ||
   String(slug || "").split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+
+// people type the same place a dozen ways. everything funnels to one slug, or
+// overlapping trips never find each other.
+const ALIASES = {
+  "mexico-city": "cdmx", "ciudad-de-mexico": "cdmx", "mexico-df": "cdmx", "df": "cdmx", "mexico": "cdmx",
+  "medellin": "medellin", "medellín": "medellin", "poblado": "medellin", "el-poblado": "medellin",
+  "laureles": "medellin", "envigado": "medellin", "colombia": "medellin",
+  "bogota": "bogota", "bogotá": "bogota",
+  "cartegena": "cartagena", "cartajena": "cartagena",
+  "cali": "cali",
+  "cdmx": "cdmx",
+  "lisbon": "lisboa", "lisabon": "lisboa",
+  "nyc": "new-york", "new-york-city": "new-york", "ny": "new-york",
+  "la": "los-angeles", "cdmx-mexico": "cdmx",
+  "bali-indonesia": "bali", "canggu-bali": "canggu",
+  "buenos-aires-argentina": "buenos-aires",
+  "rio": "rio-de-janeiro", "sao-paolo": "sao-paulo",
+  "seoul-korea": "seoul", "south-korea": "seoul",
+  "bkk": "bangkok", "cm": "chiang-mai",
+  "uk": "london", "england": "london",
+}
+
+export const canonicalCity = (input) => {
+  const slug = slugifyCity(input)
+  return ALIASES[slug] || slug
+}

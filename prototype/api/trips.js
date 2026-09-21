@@ -1,6 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
-import { isValidCity, cityLabel, OPEN_AT, cityBySlug } from "./_cities.js"
+import { isValidCity, cityLabel, OPEN_AT, cityBySlug, canonicalCity } from "./_cities.js"
 import { claimFoundingSlot, foundingLeft, myUnlocks, today, isDate, overlaps } from "./_access.js"
 import { sendEmail, matchEmail, cityOpenEmail } from "./_email.js"
 
@@ -55,7 +55,8 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { city, starts, ends, flexible, note } = req.body || {}
+      const { starts, ends, flexible, note } = req.body || {}
+      const city = canonicalCity(req.body?.city)
       if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
       if (ends < starts) return res.status(400).json({ error: "the end date is before the start date" })

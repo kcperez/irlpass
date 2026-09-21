@@ -1,12 +1,13 @@
 import { db } from "./_db.js"
-import { isValidCity, cityBySlug, cityLabel, OPEN_AT } from "./_cities.js"
+import { isValidCity, cityBySlug, cityLabel, OPEN_AT, canonicalCity } from "./_cities.js"
 import { isDate, overlaps, today, foundingLeft } from "./_access.js"
 
 // No token needed: this is the reveal a brand new person sees before they hand
 // over anything. Counts are real, faces come back masked.
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
-  const { city, starts, ends } = req.body || {}
+  const { starts, ends } = req.body || {}
+  const city = canonicalCity(req.body?.city)
   if (!isValidCity(city)) return res.status(400).json({ error: "unknown city" })
   if (!isDate(starts) || !isDate(ends) || ends < starts) return res.status(400).json({ error: "bad dates" })
 

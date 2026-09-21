@@ -1,6 +1,6 @@
 import { getUser, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
-import { isValidCity } from "./_cities.js"
+import { isValidCity, canonicalCity } from "./_cities.js"
 import { canReach, isDate, overlaps, today } from "./_access.js"
 
 // GET ?t=&city=&starts=&ends=  -> everyone whose dates overlap that window.
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const me = await getUser(req.query?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
 
-  const city = String(req.query?.city || "")
+  const city = canonicalCity(req.query?.city)
   const starts = req.query?.starts
   const ends = req.query?.ends
   if (!isValidCity(city)) return res.status(400).json({ error: "unknown city" })

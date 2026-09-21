@@ -1,6 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
-import { isValidCity, cityLabel } from "./_cities.js"
+import { isValidCity, cityLabel, canonicalCity } from "./_cities.js"
 import { isDate, today } from "./_access.js"
 
 // v2 pricing. Prices are built inline (price_data) so a new city or window
@@ -17,7 +17,8 @@ export default async function handler(req, res) {
   const me = await getUser(req.body?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
 
-  const { city, starts, ends } = req.body || {}
+  const { starts, ends } = req.body || {}
+  const city = canonicalCity(req.body?.city)
   const plan = req.body?.plan === "pass" ? "pass" : "trip"
   if (!isValidCity(city)) return res.status(400).json({ error: "unknown city" })
   if (!isDate(starts) || !isDate(ends) || ends < starts) return res.status(400).json({ error: "bad dates" })
