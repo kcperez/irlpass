@@ -602,13 +602,13 @@ const REACT_SET = ["❤️", "😂", "🔥", "👍"]
 function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen }) {
   const [needsDates, setNeedsDates] = useState(false)
 
+  const [server, setServer] = useState(null)
   // whatever is on screen counts as read
   useEffect(() => {
     // server is null until the first load: reading .length on it crashed the room
     const last = Array.isArray(server) && server.length ? server[server.length - 1] : null
     if (last) onSeen?.(last.key)
   }, [server, onSeen])
-  const [server, setServer] = useState(null)
   // optimistic sends live separately so a stale poll can't wipe them off screen
   const [pending, setPending] = useState([])
   const [text, setText] = useState("")
