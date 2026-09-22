@@ -97,7 +97,7 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
       const r = await fetch("/api/trips", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ t: token, city, starts, ends, flexible, note, local }),
+        body: JSON.stringify({ t: token, city, starts, ends: ends || starts, flexible, note, local }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || "could not save your dates")
@@ -184,7 +184,7 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
       <RangePicker
         starts={starts}
         ends={ends}
-        onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e || s) }}
+        onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e) }}
       />
 
       <button

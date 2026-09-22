@@ -107,7 +107,7 @@ export default function Join({ ig, onBack, onDone }) {
           email: email.trim(),
           adult,
           city,
-          dates: `${starts} to ${ends}`,
+          dates: `${starts} to ${ends || starts}`,
         }),
       })
       const d = await r.json()
@@ -115,7 +115,7 @@ export default function Join({ ig, onBack, onDone }) {
       await fetch("/api/trips", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ t: d.token, city, starts, ends, local }),
+        body: JSON.stringify({ t: d.token, city, starts, ends: ends || starts, local }),
       }).catch(() => {})
       localStorage.setItem("irlpass_member_token", d.token)
       onDone(d.token)
@@ -191,7 +191,7 @@ export default function Join({ ig, onBack, onDone }) {
       key: "when",
       art: "/art/icon-dates.png",
       title: t("when?"),
-      valid: !!picked && !!starts && !!ends && ends >= starts,
+      valid: !!picked && !!starts && (!ends || ends >= starts),
       body: (
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2">
@@ -216,7 +216,7 @@ export default function Join({ ig, onBack, onDone }) {
             <RangePicker
               starts={starts}
               ends={ends}
-              onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e || s); setPicked("exact") }}
+              onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e); setPicked("exact") }}
             />
           ) : (
             <button
