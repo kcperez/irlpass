@@ -115,10 +115,8 @@ export async function refreshIfStale(member) {
   if (Date.now() - last < wait) return
 
   const p = await fetchIgProfile(member.ig)
-  if (!p) {
-    await db.from("members").update({ ig_checked_at: new Date().toISOString() }).eq("member_no", member.memberNo)
-    return
-  }
+  // a failed lookup must not count as "checked", or we'd wait a day to retry
+  if (!p) return
   const patch = {
     ig_followers: p.followers,
     ig_private: p.private,
