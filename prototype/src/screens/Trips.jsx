@@ -157,7 +157,17 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
       </button>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
-        {(typed.trim() ? searchCities(typed) : CITIES).map((c) => (
+        {(typed.trim()
+          ? (() => {
+              const found = searchCities(typed)
+              const slug = slugify(typed)
+              // a city we don't know yet still gets a button, with a pin
+              return slug && !found.some((c) => c.slug === slug)
+                ? [cityChip(slug, typed), ...found].slice(0, 6)
+                : found
+            })()
+          : CITIES
+        ).map((c) => (
           <button
             key={c.slug}
             onClick={() => { setCity(c.slug); setTyped(c.name) }}

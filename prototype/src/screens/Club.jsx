@@ -860,6 +860,13 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
         </AnimatePresence>
         <div className="flex items-center gap-2">
           <input
+            id="room-composer"
+            name="message"
+            type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            data-lpignore="true"
+            data-form-type="other"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
@@ -1020,6 +1027,13 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         </div>
         <div className="flex items-center gap-2 border-t border-line px-3 py-2.5">
           <input
+            id="dm-composer"
+            name="message"
+            type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            data-lpignore="true"
+            data-form-type="other"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
