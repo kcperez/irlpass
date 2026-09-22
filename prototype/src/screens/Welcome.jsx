@@ -41,10 +41,17 @@ export default function Welcome({ onStart, invitedBy, invite }) {
         <span className="display text-[22px] font-bold lowercase tracking-tight lg:text-[26px]">
           irl<span className="ml-[3px] inline-block -rotate-3 rounded-[0.45em] bg-lime px-[0.3em] pb-[0.06em] leading-none">pass</span>
         </span>
-        {memberToken && (
+        {memberToken ? (
           <a href={`/?screen=app&t=${memberToken}`} className="rounded-full bg-ink px-4 py-2 text-[12px] font-semibold text-cream">
             {t("open")}
           </a>
+        ) : (
+          <button
+            onClick={() => setLoginOpen(true)}
+            className="rounded-full border-2 border-line bg-white/70 px-4 py-2 text-[12px] font-bold"
+          >
+            {t("log in")}
+          </button>
         )}
       </header>
 
