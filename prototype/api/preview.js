@@ -84,6 +84,8 @@ export default async function handler(req, res) {
       locals: localsHere,
       inCity,
       cityFaces,
+      // the people actually on those dates: first initial and photo only
+      faces: people.slice(0, 8).map((p) => ({ first: (p.first[0] || "?").toUpperCase(), photo: p.photo })),
       foundingLeft: await foundingLeft(),
     })
   } catch (e) {

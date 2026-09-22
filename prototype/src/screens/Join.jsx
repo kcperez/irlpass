@@ -289,9 +289,9 @@ export default function Join({ ig, onBack, onDone }) {
                 </p>
               </div>
 
-              {(preview.count > 0 ? preview.faces : preview.cityFaces || []).length > 0 && (
+              {((preview.count > 0 ? preview.faces : preview.cityFaces) || []).length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {(preview.count > 0 ? preview.faces : preview.cityFaces).map((f, i) => (
+                  {((preview.count > 0 ? preview.faces : preview.cityFaces) || []).map((f, i) => (
                     <motion.div
                       key={`${f.first}-${i}`}
                       initial={{ opacity: 0, scale: 0.8 }}
