@@ -392,13 +392,14 @@ export default function Join({ ig, onBack, onDone }) {
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        <motion.div key={cur.key} variants={slide} initial="enter" animate="center" exit="exit" className="relative flex flex-1 flex-col justify-center py-6">
+      {/* no exit animation: a step that waits on one can leave a blank screen */}
+      <div className="relative flex flex-1 flex-col justify-center py-6">
+        <motion.div key={cur.key} variants={slide} initial="enter" animate="center" className="flex flex-col">
           {!cur.hideArt && <img src={cur.art} alt="" className="h-24 w-24 select-none object-contain" draggable="false" />}
           {cur.title && <h1 className="display mt-2 text-[32px] font-bold leading-[0.98] tracking-tight">{cur.title}</h1>}
           <div className={cur.hideArt ? "" : "mt-5"}>{cur.body}</div>
         </motion.div>
-      </AnimatePresence>
+      </div>
 
       {err && <p className="relative pb-2 text-[14px] font-semibold text-[#8f2b2b]">{err}</p>}
 
