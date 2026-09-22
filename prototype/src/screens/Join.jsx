@@ -31,6 +31,8 @@ function CountUp({ to, duration = 900 }) {
   const [n, setN] = useState(0)
   useEffect(() => {
     if (!to) return setN(0)
+    // a hidden tab or reduced motion gets the number, not an animation stuck at 0
+    if (document.hidden || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return setN(to)
     const t0 = performance.now()
     let raf
     const tick = (t) => {
