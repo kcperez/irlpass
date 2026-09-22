@@ -48,3 +48,6 @@ alter table members add column if not exists photo_source text;
 
 -- locals: people who live in a city rather than passing through
 alter table trips add column if not exists local boolean not null default false;
+
+-- who has already received the v2 launch email, so a re-run never doubles up
+alter table members add column if not exists launch_emailed_at timestamptz;
