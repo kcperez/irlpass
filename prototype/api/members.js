@@ -70,6 +70,7 @@ export default async function handler(req, res) {
         ends: trip.ends,
         flexible: !!trip.flexible,
         local: !!trip.local,
+        hereNow: trip.starts <= today() && trip.ends >= today(),
         note: open ? trip.note || "" : "",
         overlapsMe: !!mineOverlap,
         locked: !open,

@@ -267,6 +267,7 @@ export default function Join({ ig, onBack, onDone }) {
                     <>
                       {preview.women > 0 && `${preview.women} ${preview.women === 1 ? t("woman") : t("women")} · `}
                       {preview.men > 0 && `${preview.men} ${preview.men === 1 ? t("man") : t("men")}`}
+                      {preview.hereNow > 0 && ` · ${preview.hereNow} ${t("there right now")}`}
                       {preview.sameDay > 0 && ` · ${preview.sameDay} ${t("land the same day as you")}`}
                       {preview.locals > 0 &&
                         ` · ${preview.locals} ${preview.cityName.toLowerCase()} ${preview.locals === 1 ? t("local") : t("locals")}`}

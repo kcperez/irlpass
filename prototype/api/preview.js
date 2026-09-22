@@ -61,6 +61,7 @@ export default async function handler(req, res) {
     // how many land on the same day you do — the line that makes it feel real
     const sameDay = rows.filter((t) => t.starts === starts).length
     const localsHere = rows.filter((t) => t.local).length
+    const hereNow = rows.filter((t) => t.starts <= today() && t.ends >= today()).length
 
     const meta = cityBySlug(city)
     const live = !!meta?.live
@@ -82,6 +83,7 @@ export default async function handler(req, res) {
       men: people.filter((p) => p.gender === "man").length,
       sameDay,
       locals: localsHere,
+      hereNow,
       inCity,
       cityFaces,
       // the people actually on those dates: first initial and photo only

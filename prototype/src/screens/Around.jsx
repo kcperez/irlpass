@@ -63,11 +63,13 @@ export default function Around({ token, me, onOpenDM, onUnlock, viewCity, onView
     return out
   }, [data, from])
 
+  const byPresence = (a, b) => (b.hereNow === true) - (a.hereNow === true) || (a.starts < b.starts ? -1 : 1)
+
   const visible = useMemo(() => {
     const to = addDays(from, 13)
     const inWindow = (data?.people || []).filter((p) => p.starts <= to && p.ends >= from)
-    if (!selectedDay) return inWindow
-    return inWindow.filter((p) => p.starts <= selectedDay && p.ends >= selectedDay)
+    if (!selectedDay) return [...inWindow].sort(byPresence)
+    return inWindow.filter((p) => p.starts <= selectedDay && p.ends >= selectedDay).sort(byPresence)
   }, [data, from, selectedDay])
 
   if (!data) {
@@ -236,6 +238,15 @@ export default function Around({ token, me, onOpenDM, onUnlock, viewCity, onView
                 <p className="flex items-center gap-1.5 text-[15px] font-bold">
                   <span className={p.locked ? "blur-[4px] select-none" : ""}>{p.locked ? `${p.first} ••••` : p.name}</span>
                   {p.verified && <CheckCircle size={15} weight="fill" className="shrink-0 text-lime-deep" />}
+                  {p.hereNow && !p.local && (
+                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#e8f6e8] px-2 py-0.5 text-[10px] font-bold text-[#2f7a2f]">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#5fd35f]" />
+                      </span>
+                      {t("here now")}
+                    </span>
+                  )}
                   {p.local && (
                     <span className="shrink-0 rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">
                       {cityChip(city).name.toLowerCase()} {t("local")}

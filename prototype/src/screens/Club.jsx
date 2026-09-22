@@ -236,6 +236,13 @@ function VerifyCard({ token, me, onVerified }) {
 }
 
 function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
+  const [hasDates, setHasDates] = useState(false)
+  useEffect(() => {
+    fetch(`/api/trips?t=${token}`)
+      .then((r) => r.json())
+      .then((d) => setHasDates((d.trips || []).length > 0))
+      .catch(() => {})
+  }, [token])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [qr, setQr] = useState(null)
@@ -355,8 +362,11 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
           </a>
         )}
 
-        {/* prove the handle is yours — a code in your bio, for a minute */}
-        <VerifyCard token={token} me={me} onVerified={() => onSafety?.({ verified: true })} />
+        {/* prove the handle is yours. only once they've posted dates, so it
+            isn't the first thing asked of someone who hasn't seen anything yet */}
+        {(me.verified || hasDates) && (
+          <VerifyCard token={token} me={me} onVerified={() => onSafety?.({ verified: true })} />
+        )}
 
         {/* who can reach you. everyone gets these, not only women */}
         <div className="mt-4 rounded-[1.5rem] border-2 border-line bg-white/70 p-4">

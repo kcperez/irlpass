@@ -64,6 +64,7 @@ export default async function handler(req, res) {
         ends: t.ends,
         flexible: !!t.flexible,
         local: !!t.local,
+        hereNow: t.starts <= today() && t.ends >= today(),
         note: open ? t.note || "" : "",
         locked: !open,
         canMessage: open && !blocked,
