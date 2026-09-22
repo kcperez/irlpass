@@ -378,7 +378,7 @@ function UnlockSheet({ token, trip, count, onClose, onDone }) {
   )
 }
 
-export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets, postCity }) {
+export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets, postCity, onCityPosted }) {
   const [state, setState] = useState("loading")
   const [trips, setTrips] = useState([])
   const [active, setActive] = useState(0) // index of the trip being viewed
@@ -590,9 +590,10 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
             defaultCity={postCity || me?.city}
             prefillMonth={prefillMonth}
             onClose={() => setFormOpen(false)}
-            onPosted={() => {
+            onPosted={(d) => {
               setFormOpen(false)
               setActive(0)
+              if (d?.trip?.city) onCityPosted?.(d.trip.city)
               load()
             }}
           />

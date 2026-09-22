@@ -21,10 +21,25 @@ const dayLetter = (isoDate) =>
 import { cityChip, searchCities, slugify, CITY_INDEX } from "../lib/cities"
 import { isMod } from "../lib/mods"
 
-export default function Around({ token, me, onOpenDM, onUnlock }) {
+export default function Around({ token, me, onOpenDM, onUnlock, viewCity, onViewCity }) {
   const [data, setData] = useState(null)
   const [week, setWeek] = useState(0) // which 14-day window we're looking at
-  const [city, setCity] = useState(me.city || "medellin")
+  const [city, setCity] = useState(viewCity || me.city || "medellin")
+  const [myCities, setMyCities] = useState([])
+
+  // the city you just posted becomes the city you're looking at
+  useEffect(() => {
+    if (viewCity && viewCity !== city) { setCity(viewCity); setData(null); setWeek(0) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewCity])
+
+  // your own cities, for one-tap switching
+  useEffect(() => {
+    fetch(`/api/trips?t=${token}`)
+      .then((r) => r.json())
+      .then((d) => setMyCities([...new Set((d.trips || []).map((x) => x.city))]))
+      .catch(() => {})
+  }, [token])
   const [picking, setPicking] = useState(false)
   const [typed, setTyped] = useState("")
   const [view, setView] = useState("weeks") // weeks | year
@@ -74,6 +89,22 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
         {t("people here on your dates. say hi to join them.")}
       </p>
 
+      {myCities.length > 1 && !picking && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {myCities.map((c) => (
+            <button
+              key={c}
+              onClick={() => { setCity(c); onViewCity?.(c); setWeek(0); setData(null) }}
+              className={`rounded-full border-2 px-3 py-1.5 text-[12.5px] font-bold ${
+                city === c ? "border-ink bg-lime" : "border-line bg-white/60 text-ink-soft"
+              }`}
+            >
+              {cityChip(c).emoji} {cityChip(c).name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {picking && (
         <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/80 p-3">
           <input
@@ -88,7 +119,7 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
             {(typed.trim() ? searchCities(typed) : CITY_INDEX.slice(0, 6)).map((c) => (
               <button
                 key={c.slug}
-                onClick={() => { setCity(c.slug); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
+                onClick={() => { setCity(c.slug); onViewCity?.(c.slug); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
                 className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12.5px] font-bold"
               >
                 {c.emoji} {c.name}
@@ -96,7 +127,7 @@ export default function Around({ token, me, onOpenDM, onUnlock }) {
             ))}
             {typed.trim() && searchCities(typed).length === 0 && (
               <button
-                onClick={() => { setCity(slugify(typed)); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
+                onClick={() => { const s = slugify(typed); setCity(s); onViewCity?.(s); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
                 className="rounded-full border-2 border-ink bg-lime px-3 py-1.5 text-[12.5px] font-bold"
               >
                 📍 {typed}

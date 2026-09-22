@@ -1185,6 +1185,7 @@ export default function Club({ token }) {
   const [unlockRequest, setUnlockRequest] = useState(0)
   const [closeSheets, setCloseSheets] = useState(0)
   const [postCity, setPostCity] = useState(null)
+  const [viewCity, setViewCity] = useState(null) // the city you last added or opened
   const [unreadTotal, setUnreadTotal] = useState(0)
 
   // the chat tab shows a dot when anything is waiting
@@ -1260,11 +1261,13 @@ export default function Club({ token }) {
     <div className="relative flex h-[var(--app-h)] flex-col">
       {!inThread && <TopBar me={me} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
+        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
         {tab === "members" && (
           <Around
             token={token}
             me={me}
+            viewCity={viewCity}
+            onViewCity={setViewCity}
             onOpenDM={(m) => { setDmWith(m); setTab("dms") }}
             onUnlock={() => { setTab("trips"); setUnlockRequest(Date.now()) }}
           />
