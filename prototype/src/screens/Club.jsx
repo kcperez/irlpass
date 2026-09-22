@@ -599,8 +599,14 @@ function PinnedInfo({ token, me, initial }) {
 
 const REACT_SET = ["❤️", "😂", "🔥", "👍"]
 
-function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates }) {
+function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen }) {
   const [needsDates, setNeedsDates] = useState(false)
+
+  // whatever is on screen counts as read
+  useEffect(() => {
+    const last = server?.[server.length - 1]
+    if (last) onSeen?.(last.key)
+  }, [server, onSeen])
   const [server, setServer] = useState(null)
   // optimistic sends live separately so a stale poll can't wipe them off screen
   const [pending, setPending] = useState([])
@@ -945,9 +951,39 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
   const [roomCity, setRoomCity] = useState(me.city || "medellin")
 
   const [cityCounts, setCityCounts] = useState({})
+  const [roomUnread, setRoomUnread] = useState({}) // city -> how many you haven't seen
+
+  const seenKey = (city) => `irlpass_seen_${city}`
+  const markRoomSeen = (city, lastId) => {
+    try { if (lastId) localStorage.setItem(seenKey(city), String(lastId)) } catch { /* private mode */ }
+    setRoomUnread((u) => ({ ...u, [city]: 0 }))
+  }
   useEffect(() => {
     fetch("/api/stats").then((r) => r.json()).then((d) => setCityCounts(d.membersByCity || {})).catch(() => {})
   }, [])
+
+  // how many messages arrived in each room since you last looked
+  useEffect(() => {
+    if (!rooms.length) return
+    let cancelled = false
+    const check = async () => {
+      const next = {}
+      for (const c of rooms) {
+        try {
+          const d = await fetch(`/api/messages?t=${token}&channel=${c}`).then((r) => r.json())
+          const msgs = d.messages || []
+          let seen = 0
+          try { seen = Number(localStorage.getItem(seenKey(c)) || 0) } catch { /* private mode */ }
+          next[c] = msgs.filter((m) => Number(m.key) > seen && m.from?.memberNo !== me.memberNo).length
+        } catch { next[c] = 0 }
+      }
+      if (!cancelled) setRoomUnread(next)
+    }
+    check()
+    const id = setInterval(check, 30000)
+    return () => { cancelled = true; clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rooms.join(","), token])
 
   // every city you have dates in gets its own room
   useEffect(() => {
@@ -1060,6 +1096,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         title={`${cityName} chat`}
         onBack={() => setRoomOpen(false)}
         onNeedDates={onNeedDates}
+        onSeen={(lastId) => markRoomSeen(roomCity, lastId)}
       />
     )
   }
@@ -1082,6 +1119,11 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
               {cityCounts[c] ? `${cityCounts[c]} ${t("here")}` : t("everyone in town right now")}
             </p>
           </div>
+          {roomUnread[c] > 0 && (
+            <span className="ml-auto shrink-0 rounded-full bg-ink px-2.5 py-1 text-[12px] font-bold text-cream">
+              {roomUnread[c]}
+            </span>
+          )}
         </button>
       ))}
       {me.memberNo !== "002" && (
@@ -1143,6 +1185,20 @@ export default function Club({ token }) {
   const [unlockRequest, setUnlockRequest] = useState(0)
   const [closeSheets, setCloseSheets] = useState(0)
   const [postCity, setPostCity] = useState(null)
+  const [unreadTotal, setUnreadTotal] = useState(0)
+
+  // the chat tab shows a dot when anything is waiting
+  useEffect(() => {
+    if (state !== "ok") return
+    const check = () =>
+      fetch(`/api/dm?t=${token}`)
+        .then((r) => r.json())
+        .then((d) => setUnreadTotal((d.threads || []).reduce((n, th) => n + (th.unread || 0), 0)))
+        .catch(() => {})
+    check()
+    const id = setInterval(check, 30000)
+    return () => clearInterval(id)
+  }, [state, token])
 
   // photo lookup for avatars in chats and joined stacks
   useEffect(() => {
@@ -1233,8 +1289,11 @@ export default function Club({ token }) {
         <nav className="sticky bottom-0 z-10 flex border-t-2 border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
           {TABS.map((tb) => (
             <button key={tb.key} onClick={() => { setTab(tb.key); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
-              <span className={`flex h-9 w-14 items-center justify-center rounded-full transition-colors ${tab === tb.key ? "bg-lime" : ""}`}>
+              <span className={`relative flex h-9 w-14 items-center justify-center rounded-full transition-colors ${tab === tb.key ? "bg-lime" : ""}`}>
                 <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={tab === tb.key ? "text-ink" : "text-ink-soft/60"} />
+                {tb.key === "dms" && unreadTotal > 0 && (
+                  <span className="absolute right-2.5 top-1 h-2.5 w-2.5 rounded-full bg-[#c4453d]" />
+                )}
               </span>
               <span className={`text-[10px] font-bold ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`}>{tb.label}</span>
             </button>
