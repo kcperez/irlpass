@@ -6,6 +6,7 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "post your dates for this city to see who you'd overlap with.": "pon tus fechas para esta ciudad y mira con quién coincides.",
   "here now": "aquí ahora",
   "there right now": "ahí ahora mismo",
   "pick your first day": "elige tu primer día",

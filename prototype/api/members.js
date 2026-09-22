@@ -112,6 +112,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       city,
+      iHaveDates: (mine || []).length > 0,
       days,                       // head count per day, for the calendar strip
       people: out,
       others,

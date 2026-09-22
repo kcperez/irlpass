@@ -21,7 +21,7 @@ const dayLetter = (isoDate) =>
 import { cityChip, searchCities, slugify, CITY_INDEX } from "../lib/cities"
 import { isMod } from "../lib/mods"
 
-export default function Around({ token, me, onOpenDM, onUnlock, viewCity, onViewCity }) {
+export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, viewCity, onViewCity }) {
   const [data, setData] = useState(null)
   const [week, setWeek] = useState(0) // which 14-day window we're looking at
   const [city, setCity] = useState(viewCity || me.city || "medellin")
@@ -88,7 +88,9 @@ export default function Around({ token, me, onOpenDM, onUnlock, viewCity, onView
         </span>
       </div>
       <p className="mt-1 text-[14px] text-ink-soft">
-        {t("people here on your dates. say hi to join them.")}
+        {data.iHaveDates
+          ? t("people here on your dates. say hi to join them.")
+          : t("post your dates for this city to see who you'd overlap with.")}
       </p>
 
       {myCities.length > 1 && !picking && (
@@ -271,13 +273,22 @@ export default function Around({ token, me, onOpenDM, onUnlock, viewCity, onView
                 <button onClick={() => onOpenDM(p)} className="shrink-0 rounded-full bg-ink px-3.5 py-2 text-[12px] font-bold text-cream">
                   {t("say hi")}
                 </button>
+              ) : p.womenOnly ? (
+                <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">{t("women only")}</span>
+              ) : !data.iHaveDates ? (
+                <button
+                  onClick={() => onNeedDates?.(city)}
+                  className="shrink-0 rounded-full bg-lime px-3 py-1.5 text-[12px] font-bold"
+                >
+                  {t("post your dates")}
+                </button>
               ) : (
                 <button
                   onClick={() => onUnlock(p)}
                   className="flex shrink-0 items-center gap-1 rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold text-ink-soft"
                 >
                   <LockSimple size={13} weight="fill" />
-                  {p.womenOnly ? t("women only") : t("unlock")}
+                  {t("unlock")}
                 </button>
               )}
             </div>

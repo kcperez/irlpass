@@ -1281,6 +1281,7 @@ export default function Club({ token }) {
             onViewCity={setViewCity}
             onOpenDM={(m) => { setDmWith(m); setTab("dms") }}
             onUnlock={() => { setTab("trips"); setUnlockRequest(Date.now()) }}
+            onNeedDates={(c) => { setTab("trips"); setPostCity(c) }}
           />
         )}
         {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={setDmWith} photoMap={photoMap} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
