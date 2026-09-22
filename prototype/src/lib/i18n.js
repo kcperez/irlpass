@@ -6,6 +6,15 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "log in": "entrar",
+  "already a member? log in": "¿ya eres miembro? entra",
+  "welcome back": "bienvenido de vuelta",
+  "we'll email you a link that opens the app. no password.": "te mandamos un link que abre la app. sin contraseña.",
+  "the email you signed up with": "el email con el que te registraste",
+  "email me a link": "mándame el link",
+  "continue with google": "continuar con google",
+  "check your email": "revisa tu email",
+  "the link signs you in on this device.": "el link te abre la sesión en este dispositivo.",
   "post your dates to write here": "pon tus fechas para escribir aquí",
   "the room is for people who'll actually be in town": "el chat es para quienes van a estar en la ciudad",
   "also in": "también en",

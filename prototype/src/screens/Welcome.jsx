@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { ArrowRight, InstagramLogo } from "@phosphor-icons/react"
+import { ArrowRight, InstagramLogo, CircleNotch } from "@phosphor-icons/react"
+import { signInWithGoogle } from "../lib/auth"
 import { t } from "../lib/i18n"
 
 // the whole pitch in one glance: never travel alone, drop your instagram, go.
@@ -10,6 +11,22 @@ const fmtD = (iso) =>
 export default function Welcome({ onStart, invitedBy, invite }) {
   const [ig, setIg] = useState("")
   const [stats, setStats] = useState(null)
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  const sendLink = async () => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return
+    setSending(true)
+    await fetch("/api/email-login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
+    }).catch(() => {})
+    setSending(false)
+    setSent(true)
+  }
 
   // real numbers, straight from the database
   useEffect(() => {
@@ -96,6 +113,15 @@ export default function Welcome({ onStart, invitedBy, invite }) {
               {invite ? t("join them") : t("see who's around")} <ArrowRight size={18} weight="bold" />
             </motion.button>
 
+            {!memberToken && (
+              <button
+                onClick={() => setLoginOpen(true)}
+                className="pt-1 text-center text-[13px] text-ink-soft underline underline-offset-4 lg:text-left"
+              >
+                {t("already a member? log in")}
+              </button>
+            )}
+
             <div className="flex flex-col items-center gap-1 pt-2 lg:items-start">
               <p className="flex items-center gap-2 text-[13.5px] font-bold">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-deep" />
@@ -126,6 +152,61 @@ export default function Welcome({ onStart, invitedBy, invite }) {
           />
         </div>
       </div>
+
+      {loginOpen && (
+        <>
+          <div
+            onClick={() => setLoginOpen(false)}
+            className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-[2px]"
+          />
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[460px] rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
+            <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+            <h2 className="display text-[22px] font-bold">{t("welcome back")}</h2>
+            <p className="mt-1 text-[13.5px] text-ink-soft">
+              {t("we'll email you a link that opens the app. no password.")}
+            </p>
+
+            {sent ? (
+              <div className="mt-4 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-4">
+                <p className="text-[14px] font-bold">{t("check your email")}</p>
+                <p className="mt-0.5 text-[12.5px]">{t("the link signs you in on this device.")}</p>
+              </div>
+            ) : (
+              <>
+                <input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendLink()}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  placeholder={t("the email you signed up with")}
+                  className="mt-4 w-full rounded-[1.4rem] border-2 border-line bg-white/80 px-4 py-3.5 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+                />
+                <button
+                  onClick={sendLink}
+                  disabled={sending}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3.5 text-[15px] font-bold text-cream disabled:opacity-50"
+                >
+                  {sending ? <CircleNotch size={16} className="animate-spin" /> : null}
+                  {t("email me a link")}
+                </button>
+                <button
+                  onClick={() => signInWithGoogle()}
+                  className="mt-2 w-full rounded-full border-2 border-line bg-white/70 py-3.5 text-[15px] font-bold"
+                >
+                  {t("continue with google")}
+                </button>
+              </>
+            )}
+
+            <button onClick={() => setLoginOpen(false)} className="mt-2 w-full py-2 text-center text-[13px] text-ink-soft underline">
+              {t("close")}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

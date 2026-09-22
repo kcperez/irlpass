@@ -1,5 +1,4 @@
 import { useState, lazy, Suspense } from "react"
-import { AnimatePresence, motion } from "framer-motion"
 import Welcome from "./screens/Welcome"
 import Join from "./screens/Join"
 import Ops from "./screens/Ops"
@@ -57,14 +56,7 @@ export default function App() {
       <div aria-hidden className="wash pointer-events-none fixed inset-0 z-0" />
       <div className={`relative z-10 mx-auto w-full ${screen === "welcome" ? "max-w-[460px] lg:max-w-[1040px]" : "max-w-[460px]"}`}>
         <div className="grain h-full w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={screen}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.22 }}
-            >
+          <div key={screen}>
               {/* already a member and handed an invite: one button, no signup */}
               {inviteFromUrl && savedToken && (screen === "welcome" || screen === "join") && (
                 <InviteAccept token={savedToken} invite={inviteFromUrl} invitedBy={params.get("by")} />
@@ -123,8 +115,7 @@ export default function App() {
                   onJoined={(t) => { window.location.href = `/?screen=pass&t=${t}` }}
                 />
               )}
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>
