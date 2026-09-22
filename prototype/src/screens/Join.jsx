@@ -1,8 +1,9 @@
 import { useState } from "react"
-import { AnimatePresence, motion } from "framer-motion"
+import { motion } from "framer-motion"
 import { ArrowLeft, ArrowRight, CircleNotch, LockSimple } from "@phosphor-icons/react"
 import { useEffect } from "react"
 import { t } from "../lib/i18n"
+import RangePicker from "../components/RangePicker"
 import { CITY_INDEX, searchCities, slugify, cityChip } from "../lib/cities"
 
 // two taps and you're on the calendar: where + when, then how we reach you.
@@ -212,24 +213,11 @@ export default function Join({ ig, onBack, onDone }) {
           </div>
 
           {exact ? (
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label htmlFor="join-start" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("from")}</label>
-                <input
-                  id="join-start" type="date" value={starts} min={todayIso()}
-                  onChange={(e) => { setStarts(e.target.value); setPicked("exact"); if (ends < e.target.value) setEnds(e.target.value) }}
-                  className="mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-3 py-3 text-[16px] font-semibold"
-                />
-              </div>
-              <div className="flex-1">
-                <label htmlFor="join-end" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("until")}</label>
-                <input
-                  id="join-end" type="date" value={ends} min={starts}
-                  onChange={(e) => { setEnds(e.target.value); setPicked("exact") }}
-                  className="mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-3 py-3 text-[16px] font-semibold"
-                />
-              </div>
-            </div>
+            <RangePicker
+              starts={starts}
+              ends={ends}
+              onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e || s); setPicked("exact") }}
+            />
           ) : (
             <button
               onClick={() => { setExact(true); setPicked("exact") }}

@@ -6,6 +6,7 @@ import {
 } from "@phosphor-icons/react"
 import { CITY_INDEX, cityChip, searchCities, slugify } from "../lib/cities"
 import { t } from "../lib/i18n"
+import RangePicker from "../components/RangePicker"
 
 // v2: the calendar is the product. post your dates, see who overlaps them,
 // pay once to start conversations with them.
@@ -180,24 +181,11 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
         ))}
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <label htmlFor="trip-starts" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">arrive</label>
-          <input
-            id="trip-starts" type="date" value={starts} min={todayIso()}
-            onChange={(e) => { setStarts(e.target.value); if (ends < e.target.value) setEnds(e.target.value) }}
-            className="mt-1.5 w-full rounded-2xl border border-line bg-white/70 px-3 py-3 text-[15px]"
-          />
-        </div>
-        <div className="flex-1">
-          <label htmlFor="trip-ends" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">leave</label>
-          <input
-            id="trip-ends" type="date" value={ends} min={starts}
-            onChange={(e) => setEnds(e.target.value)}
-            className="mt-1.5 w-full rounded-2xl border border-line bg-white/70 px-3 py-3 text-[15px]"
-          />
-        </div>
-      </div>
+      <RangePicker
+        starts={starts}
+        ends={ends}
+        onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e || s) }}
+      />
 
       <button
         onClick={() => setLocal((l) => !l)}
