@@ -604,7 +604,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
 
   // whatever is on screen counts as read
   useEffect(() => {
-    const last = server?.[server.length - 1]
+    // server is null until the first load: reading .length on it crashed the room
+    const last = Array.isArray(server) && server.length ? server[server.length - 1] : null
     if (last) onSeen?.(last.key)
   }, [server, onSeen])
   const [server, setServer] = useState(null)
