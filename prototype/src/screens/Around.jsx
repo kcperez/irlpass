@@ -312,6 +312,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
                     {p.local ? t("lives here") : `${fmt(p.starts)} – ${fmt(p.ends)}`}
                     {p.flexible && !p.local ? ` · ${t("flexible")}` : ""}
                   </p>
+                  {p.area && <p className="truncate text-[11px] font-semibold text-cream/75">📍 {p.area}</p>}
                 </div>
               </div>
 

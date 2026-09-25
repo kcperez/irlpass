@@ -1032,7 +1032,7 @@ function DeniedScreen() {
       <Logo h="h-10" />
       <h2 className="display mt-5 text-[30px] font-bold leading-tight">{t("members only.")}</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
-        {t("this is the club side of irlpass. apply on the homepage and you'll get your own door key.")}
+        {t("this link didn't open an account. log in below, or start on the homepage: it takes 20 seconds.")}
       </p>
       <button
         onClick={() => import("../lib/auth").then((m) => m.signInWithGoogle())}
@@ -1058,7 +1058,7 @@ function DeniedScreen() {
         </div>
       )}
       <a href="/" className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft underline underline-offset-2">
-        {t("or apply to join")}
+        {t("or join on the homepage")}
       </a>
     </div>
   )
@@ -1149,8 +1149,22 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }) }, [convo])
 
-  const send = async () => {
-    const body = text.trim()
+  const [dmTranslated, setDmTranslated] = useState({}) // key -> text | "loading" | "error"
+  const translateDm = async (m) => {
+    if (dmTranslated[m.key] && dmTranslated[m.key] !== "error") {
+      return setDmTranslated((x) => { const n = { ...x }; delete n[m.key]; return n })
+    }
+    setDmTranslated((x) => ({ ...x, [m.key]: "loading" }))
+    const r = await fetch("/api/translate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, text: m.text, to: LANG }),
+    }).then((x) => x.json()).catch(() => null)
+    setDmTranslated((x) => ({ ...x, [m.key]: r?.text || "error" }))
+  }
+
+  const send = async (override) => {
+    const body = (typeof override === "string" ? override : text).trim()
     if (!body || !openWith) return
     setBusy(true)
     const r = await fetch("/api/dm", {
@@ -1161,9 +1175,13 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
     setBusy(false)
     if (r?.gate === "dm" || r?.gate === "unlock") return onPaywall(r.gate)
     if (r?.error) return alert(r.error)
-    setText("")
+    if (typeof override !== "string") setText("")
     loadConvo(openWith.memberNo)
   }
+
+  // trust before meeting: one tap asks for a short video call first
+  const askVideo = () =>
+    send(t("📹 before we meet up, want to do a quick video call to say hi? send me a time that works."))
 
   // a single conversation
   if (openWith) {
@@ -1182,16 +1200,44 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           {!convo ? (
             <div className="flex flex-1 items-center justify-center"><CircleNotch size={20} className="animate-spin text-ink-soft" /></div>
           ) : convo.messages.length === 0 ? (
-            <p className="mt-6 text-center font-mono text-[11px] text-ink-soft">{t("say hi. you met on a plan — pick it back up.")}</p>
+            <p className="mt-6 text-center font-mono text-[11px] text-ink-soft">{t("say hi. you're in the same city on the same days.")}</p>
           ) : (
             convo.messages.map((m) => (
-              <div key={m.key} className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[13.5px] ${m.fromMe ? "self-end bg-lime text-ink" : "self-start bg-white/80 text-ink"}`}>
-                {m.text}
+              <div key={m.key} className={`flex max-w-[78%] flex-col ${m.fromMe ? "items-end self-end" : "items-start self-start"}`}>
+                <div
+                  onClick={() => !m.fromMe && translateDm(m)}
+                  className={`max-w-full break-words rounded-2xl px-3.5 py-2 text-[13.5px] [overflow-wrap:anywhere] ${m.fromMe ? "bg-lime text-ink" : "bg-white/80 text-ink"}`}
+                >
+                  {m.text}
+                  {dmTranslated[m.key] && (
+                    <p className="mt-1 border-t border-ink/10 pt-1 italic">
+                      {dmTranslated[m.key] === "loading"
+                        ? t("translating…")
+                        : dmTranslated[m.key] === "error"
+                          ? t("couldn't translate that right now")
+                          : dmTranslated[m.key]}
+                    </p>
+                  )}
+                </div>
+                {!m.fromMe && !dmTranslated[m.key] && looksForeign(m.text) && (
+                  <button onClick={() => translateDm(m)} className="mt-0.5 px-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                    {t("translate")}
+                  </button>
+                )}
               </div>
             ))
           )}
           <div ref={endRef} />
         </div>
+        {convo && !convo.messages.some((m) => m.text.startsWith("📹")) && (
+          <button
+            onClick={askVideo}
+            disabled={busy}
+            className="mx-3 mb-2 flex items-center justify-center gap-2 rounded-full border-2 border-line bg-white/70 py-2 text-[12.5px] font-bold text-ink-soft disabled:opacity-40"
+          >
+            📹 {t("ask for a quick video call first")}
+          </button>
+        )}
         <div className="flex items-center gap-2 border-t border-line px-3 py-2.5">
           <input
             id="dm-composer"
@@ -1207,7 +1253,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             placeholder={t("message…")}
             className="w-full rounded-full border border-line bg-white/70 px-4 py-2.5 text-[14px] outline-none focus:border-lime-deep"
           />
-          <button onClick={send} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
+          <button onClick={() => send()} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
             <PaperPlaneRight size={17} weight="fill" />
           </button>
         </div>

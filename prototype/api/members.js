@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     const { data: trips } = await db
       .from("trips")
-      .select("member_no, starts, ends, flexible, note, local")
+      .select("member_no, starts, ends, flexible, note, local, area")
       .eq("city", city)
       .gte("ends", today())
       .lte("starts", horizon)
@@ -65,6 +65,7 @@ export default async function handler(req, res) {
       prev.flexible = prev.flexible || trip.flexible
       prev.local = prev.local || trip.local
       prev.note = prev.note || trip.note
+      prev.area = prev.area || trip.area
     }
 
     const out = []
@@ -92,6 +93,7 @@ export default async function handler(req, res) {
         local: !!trip.local,
         hereNow: trip.starts <= today() && trip.ends >= today(),
         note: open ? trip.note || "" : "",
+        area: open ? trip.area || "" : "",
         overlapsMe: !!mineOverlap,
         shared: sharedWith(me.interests, m.interests),
         locked: !open,

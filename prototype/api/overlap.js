@@ -53,6 +53,7 @@ export default async function handler(req, res) {
       prev.flexible = prev.flexible || t.flexible
       prev.local = prev.local || t.local
       prev.note = prev.note || t.note
+      prev.area = prev.area || t.area
     }
 
     const people = []
@@ -81,6 +82,7 @@ export default async function handler(req, res) {
         local: !!t.local,
         hereNow: t.starts <= today() && t.ends >= today(),
         note: open ? t.note || "" : "",
+        area: open ? t.area || "" : "",
         locked: !open,
         canMessage: open && !blocked,
         womenOnly: m.allowDmFromMen === false,

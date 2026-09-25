@@ -58,6 +58,7 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       let { starts } = req.body || {}
       const { ends, flexible, note, local } = req.body || {}
+      const area = cleanArea(req.body?.area)
       const city = canonicalCity(req.body?.city)
       if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
@@ -98,6 +99,7 @@ export default async function handler(req, res) {
           flexible: !!flexible,
           local: !!local,
           note: note ? String(note).slice(0, 140) : null,
+          ...(area ? { area } : {}),
         })
         .select("*")
         .single()
@@ -126,6 +128,7 @@ export default async function handler(req, res) {
 
       let { starts } = req.body || {}
       const { ends, flexible, note, local } = req.body || {}
+      const area = cleanArea(req.body?.area)
       const city = canonicalCity(req.body?.city || prev.city)
       if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
@@ -143,6 +146,9 @@ export default async function handler(req, res) {
           flexible: !!flexible,
           local: !!local,
           note: note ? String(note).slice(0, 140) : null,
+          // only touch the column when the client sent one, so an edit from an
+          // older build can't wipe it
+          ...(req.body?.area !== undefined ? { area } : {}),
         })
         .eq("id", id)
         .eq("member_no", me.memberNo)
@@ -181,7 +187,14 @@ const shape = (t) => ({
   flexible: !!t.flexible,
   local: !!t.local,
   note: t.note || "",
+  area: t.area || "",
 })
+
+// a neighborhood, not an address: short, and no digits (house numbers)
+const cleanArea = (v) => {
+  const a = String(v || "").replace(/[0-9#]/g, "").replace(/\s+/g, " ").trim().slice(0, 40)
+  return a || null
+}
 
 const nights = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000)
 const max = (a, b) => (a > b ? a : b)

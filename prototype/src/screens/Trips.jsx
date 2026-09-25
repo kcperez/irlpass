@@ -72,6 +72,7 @@ function PersonRow({ p, onMessage, cityLabel }) {
         <p className="truncate text-[12px] text-ink-soft">
           {fmtRange(p.starts, p.ends)}
           {p.flexible && !p.local ? " · flexible" : ""}
+          {p.area ? ` · 📍 ${p.area}` : ""}
           {p.note ? ` · ${p.note}` : p.interests?.length ? ` · ${p.interests.slice(0, 2).join(", ")}` : ""}
         </p>
       </div>
@@ -121,6 +122,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
   const [flexible, setFlexible] = useState(!!trip?.flexible)
   const local = mode === "local"
   const [note, setNote] = useState(trip?.note || "")
+  const [area, setArea] = useState(trip?.area || "")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState("")
   const ready = !!starts && !!ends && ends >= starts
@@ -133,7 +135,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
       const r = await fetch("/api/trips", {
         method: editing ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ t: token, id: trip?.id, city, starts, ends, flexible, note, local }),
+        body: JSON.stringify({ t: token, id: trip?.id, city, starts, ends, flexible, note, local, area }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || "could not save your dates")
@@ -282,6 +284,13 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
           </span>
         </button>
       )}
+
+      <input
+        id="trip-area" value={area} maxLength={40} onChange={(e) => setArea(e.target.value)}
+        placeholder={t("roughly where you're staying. el poblado, laureles… (optional)")}
+        className="mt-3 w-full rounded-2xl border border-line bg-white/70 px-4 py-3 text-[15px] placeholder:text-ink-soft/50"
+      />
+      <p className="mt-1 px-1 text-[11px] text-ink-soft">{t("neighborhood only, never your address. only people you can message see it.")}</p>
 
       <input
         id="trip-note" value={note} maxLength={140} onChange={(e) => setNote(e.target.value)}
