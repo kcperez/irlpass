@@ -37,10 +37,12 @@ export default async function handler(req, res) {
         .from("messages")
         .select("*")
         .eq("channel", channel)
-        .order("id", { ascending: true })
+        .order("id", { ascending: false })
         .limit(150)
       if (error) throw error
-      return res.status(200).json({ messages: data.map(rowToMsg) })
+      // the newest 150, oldest first. ascending + limit returned the first 150
+      // ever sent, so a busy room would have stopped showing new messages.
+      return res.status(200).json({ messages: data.reverse().map(rowToMsg) })
     }
 
     if (req.method === "POST") {
@@ -79,6 +81,25 @@ export default async function handler(req, res) {
               subject: `${me.name.toLowerCase()} replied to you`,
               line: `${me.name.toLowerCase()} replied: "${String(text).trim().slice(0, 120)}"`,
               ctaLabel: "reply back",
+            })
+          }
+        }
+        // @mentions: email whoever was tagged, by name or instagram handle
+        const tags = [...new Set((String(text).match(/@([\w.]{2,30})/g) || []).map((x) => x.slice(1).toLowerCase()))].slice(0, 5)
+        if (tags.length) {
+          const { data: people } = await db.from("members").select("member_no, name, ig").eq("banned", false).lt("member_no", "900")
+          const hit = new Set()
+          for (const p of people || []) {
+            const handle = String(p.ig || "").replace(/^@+/, "").toLowerCase()
+            const first = String(p.name || "").trim().split(/\s+/)[0].toLowerCase()
+            if (tags.includes(handle) || tags.includes(first)) hit.add(p.member_no)
+          }
+          hit.delete(me.memberNo)
+          for (const no of hit) {
+            notifyMemberNo(no, {
+              subject: `${me.name.toLowerCase()} mentioned you`,
+              line: `${me.name.toLowerCase()}: "${String(text).trim().slice(0, 120)}"`,
+              ctaLabel: "open the chat",
             })
           }
         }

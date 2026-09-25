@@ -43,12 +43,32 @@ export default async function handler(req, res) {
       .or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`)
     const known = new Set((threads || []).map((t) => (t.a_no === me.memberNo ? t.b_no : t.a_no)))
 
-    const out = []
-    const days = {}
+    // the strip counts people, not trips: someone with two stays on the same day
+    // is one head, so each day holds a set of member numbers
+    const daySets = {}
     for (const trip of trips || []) {
-      // the chart counts the same people the list does: everyone but you
       if (trip.member_no === me.memberNo) continue
-      for (const d of eachDay(trip.starts, trip.ends)) days[d] = (days[d] || 0) + 1
+      for (const d of eachDay(trip.starts, trip.ends)) {
+        ;(daySets[d] = daySets[d] || new Set()).add(trip.member_no)
+      }
+    }
+    const days = Object.fromEntries(Object.entries(daySets).map(([d, set]) => [d, set.size]))
+
+    // and one row per person, with their stays merged into a single span
+    const mergedTrips = new Map()
+    for (const trip of trips || []) {
+      if (trip.member_no === me.memberNo) continue
+      const prev = mergedTrips.get(trip.member_no)
+      if (!prev) { mergedTrips.set(trip.member_no, { ...trip }); continue }
+      prev.starts = prev.starts < trip.starts ? prev.starts : trip.starts
+      prev.ends = prev.ends > trip.ends ? prev.ends : trip.ends
+      prev.flexible = prev.flexible || trip.flexible
+      prev.local = prev.local || trip.local
+      prev.note = prev.note || trip.note
+    }
+
+    const out = []
+    for (const trip of mergedTrips.values()) {
       const m = byNo.get(trip.member_no)
       if (!m || m.banned) continue
 
@@ -73,6 +93,7 @@ export default async function handler(req, res) {
         hereNow: trip.starts <= today() && trip.ends >= today(),
         note: open ? trip.note || "" : "",
         overlapsMe: !!mineOverlap,
+        shared: sharedWith(me.interests, m.interests),
         locked: !open,
         canMessage: open && !blocked,
         womenOnly: m.allowDmFromMen === false,
@@ -103,6 +124,7 @@ export default async function handler(req, res) {
         photo: m.photo,
         verified: m.verified,
         hasDates: !!anyTrip,
+        shared: sharedWith(me.interests, m.interests),
         starts: anyTrip?.starts || null,
         ends: anyTrip?.ends || null,
         canMessage: known.has(m.memberNo) && !blocked,
@@ -124,6 +146,11 @@ export default async function handler(req, res) {
     console.error("members error:", e)
     return res.status(500).json({ error: "could not load who's around" })
   }
+}
+
+const sharedWith = (mine = [], theirs = []) => {
+  const set = new Set((mine || []).map((x) => String(x).toLowerCase()))
+  return (theirs || []).filter((x) => set.has(String(x).toLowerCase())).slice(0, 3)
 }
 
 function addDays(iso, n) {

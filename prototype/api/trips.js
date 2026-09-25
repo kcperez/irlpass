@@ -10,9 +10,10 @@ const MAX_NIGHTS = 120
 // GET  ?t=                     -> my trips, my unlocks, founding slots left
 // GET  ?t=&city=&from=&to=     -> per-day head count for a city (the calendar)
 // POST { t, city, starts, ends, flexible, note }  -> post dates (claims a founding slot)
+// PATCH { t, id, city, starts, ends, flexible, note, local } -> edit one of my trips
 // DELETE ?t=&id=               -> remove one of my trips
 export default async function handler(req, res) {
-  const token = req.method === "POST" ? req.body?.t : req.query?.t
+  const token = req.method === "POST" || req.method === "PATCH" ? req.body?.t : req.query?.t
   const me = await getUser(token)
   if (!me) return res.status(401).json({ error: "not a member" })
 
@@ -66,6 +67,20 @@ export default async function handler(req, res) {
       if (starts < today()) starts = today()
       if (nights(starts, ends) > MAX_NIGHTS) return res.status(400).json({ error: "keep a trip under 120 days" })
 
+      // the same trip twice (a double tap, or re-running signup) is one trip
+      const { data: dupe } = await db
+        .from("trips")
+        .select("*")
+        .eq("member_no", me.memberNo)
+        .eq("city", city)
+        .eq("starts", starts)
+        .eq("ends", ends)
+        .limit(1)
+        .maybeSingle()
+      if (dupe) {
+        return res.status(200).json({ trip: shape(dupe), duplicate: true, foundingFree: me.foundingFree, foundingLeft: await foundingLeft() })
+      }
+
       const { count } = await db
         .from("trips")
         .select("id", { count: "exact", head: true })
@@ -101,6 +116,46 @@ export default async function handler(req, res) {
         foundingFree: !!foundingNo || me.foundingFree,
         foundingLeft: await foundingLeft(),
       })
+    }
+
+    if (req.method === "PATCH") {
+      const id = Number(req.body?.id)
+      if (!id) return res.status(400).json({ error: "which trip?" })
+      const { data: prev } = await db.from("trips").select("*").eq("id", id).eq("member_no", me.memberNo).maybeSingle()
+      if (!prev) return res.status(404).json({ error: "that trip is gone" })
+
+      let { starts } = req.body || {}
+      const { ends, flexible, note, local } = req.body || {}
+      const city = canonicalCity(req.body?.city || prev.city)
+      if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
+      if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
+      if (ends < starts) return res.status(400).json({ error: "the end date is before the start date" })
+      if (ends < today()) return res.status(400).json({ error: "those dates have already passed" })
+      if (starts < today()) starts = today()
+      if (nights(starts, ends) > MAX_NIGHTS) return res.status(400).json({ error: "keep a trip under 120 days" })
+
+      const { data: trip, error } = await db
+        .from("trips")
+        .update({
+          city,
+          starts,
+          ends,
+          flexible: !!flexible,
+          local: !!local,
+          note: note ? String(note).slice(0, 140) : null,
+        })
+        .eq("id", id)
+        .eq("member_no", me.memberNo)
+        .select("*")
+        .single()
+      if (error) throw error
+
+      // new days or a new city means new people to tell
+      if (trip.city !== prev.city || trip.starts !== prev.starts || trip.ends !== prev.ends) {
+        notifyOverlap(me, trip).catch((e) => console.error("match email error:", e))
+        maybeOpenCity(trip.city).catch((e) => console.error("city open error:", e))
+      }
+      return res.status(200).json({ trip: shape(trip) })
     }
 
     if (req.method === "DELETE") {

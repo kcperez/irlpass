@@ -34,6 +34,22 @@ export default function Welcome({ onStart, invitedBy, invite }) {
   }, [])
   const memberToken = typeof localStorage !== "undefined" && localStorage.getItem("irlpass_member_token")
   const handle = ig.replace(/^@+/, "").trim()
+  const [checking, setChecking] = useState(false)
+  const [welcomeBack, setWelcomeBack] = useState(null) // masked email we sent a login link to
+
+  // an instagram that's already a member gets a login link, not signup again
+  const start = async () => {
+    if (handle.length < 3 || checking) return
+    setChecking(true)
+    const r = await fetch("/api/handle-login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ig: handle }),
+    }).then((x) => x.json()).catch(() => null)
+    setChecking(false)
+    if (r?.member) return setWelcomeBack(r.hint || "your email")
+    onStart(handle)
+  }
 
   return (
     <div className="relative flex min-h-[var(--app-h)] flex-col overflow-hidden lg:justify-center">
@@ -104,26 +120,35 @@ export default function Welcome({ onStart, invitedBy, invite }) {
                 id="welcome-ig"
                 value={ig}
                 onChange={(e) => setIg(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handle.length > 2 && onStart(handle)}
+                onKeyDown={(e) => e.key === "Enter" && start()}
                 autoCapitalize="none" autoCorrect="off" spellCheck="false"
                 placeholder={t("your instagram")}
                 className="w-full bg-transparent text-[17px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50"
               />
             </div>
 
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              disabled={handle.length < 3}
-              onClick={() => onStart(handle)}
-              className="flex items-center justify-center gap-2 rounded-full bg-ink py-4 text-[17px] font-bold text-cream disabled:opacity-40"
-            >
-              {invite ? t("join them") : t("see who's around")} <ArrowRight size={18} weight="bold" />
-            </motion.button>
+            {welcomeBack ? (
+              <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+                <p className="text-[15px] font-bold">{t("welcome back")} @{handle}</p>
+                <p className="mt-0.5 text-[13px]">
+                  {t("you're already a member. we emailed a link that opens your account to")} {welcomeBack}.
+                </p>
+              </div>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                disabled={handle.length < 3 || checking}
+                onClick={start}
+                className="flex items-center justify-center gap-2 rounded-full bg-ink py-4 text-[17px] font-bold text-cream disabled:opacity-40"
+              >
+                {invite ? t("join them") : t("see who's around")} <ArrowRight size={18} weight="bold" />
+              </motion.button>
+            )}
 
             {!memberToken && (
               <button
                 onClick={() => setLoginOpen(true)}
-                className="pt-1 text-center text-[13px] text-ink-soft underline underline-offset-4 lg:text-left"
+                className="rounded-full border-2 border-ink bg-white/70 py-3 text-center text-[14px] font-bold"
               >
                 {t("already a member? log in")}
               </button>

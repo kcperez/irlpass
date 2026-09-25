@@ -43,6 +43,12 @@ const savedToken = (() => {
   try { return localStorage.getItem("irlpass_member_token") } catch { return null }
 })()
 
+// a member coming back to irlpass.xyz lands on their dates, never on onboarding.
+// (?home=1 still shows the homepage, for us.)
+if (savedToken && initialScreen === "welcome" && !inviteFromUrl && !params.get("home") && !params.get("by")) {
+  window.location.replace(`/?screen=app&t=${savedToken}`)
+}
+
 export default function App() {
   const [screen, setScreen] = useState(initialScreen)
   const [applicant, setApplicant] = useState(initialApplicant)

@@ -19,6 +19,7 @@ import Trips from "./Trips"
 import Around from "./Around"
 import { cityChip } from "../lib/cities"
 import { isMod } from "../lib/mods"
+import { VIBES, MIN_VIBES, vibeLabel } from "../lib/vibes"
 
 const CITIES = [
   { slug: "medellin", name: "medellín", center: [-75.5812, 6.2442], live: true },
@@ -203,26 +204,31 @@ function VerifyCard({ token, me, onVerified }) {
     <div className="mt-4 rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("verify your instagram")}</p>
       <p className="mt-1.5 text-[13.5px] leading-snug">
-        {t("paste this in your instagram bio, tap check, then delete it. it proves the account is yours.")}
+        {t("1. tap the code to copy it. 2. paste it anywhere in your instagram bio. 3. come back and tap check. it proves the account is yours, and you can leave it there.")}
       </p>
-      <div className="mt-2.5 flex items-center gap-2">
-        <code className="flex-1 rounded-[1rem] border-2 border-dashed border-line bg-cream px-3 py-2.5 text-[15px] font-bold tracking-wide">
-          {code || "…"}
-        </code>
-        <button
-          onClick={async () => {
-            if (!code) return
-            try {
-              await navigator.clipboard.writeText(code)
-              setCopied(true)
-              setTimeout(() => setCopied(false), 2000)
-            } catch { /* clipboard blocked */ }
-          }}
-          className={`rounded-full border-2 px-3 py-2 text-[12px] font-bold ${copied ? "border-ink bg-lime" : "border-line"}`}
-        >
-          {copied ? t("copied ✓") : t("copy")}
-        </button>
-      </div>
+      {/* the whole code is the copy button: testers didn't find the small one */}
+      <button
+        onClick={async () => {
+          if (!code) return
+          try {
+            await navigator.clipboard.writeText(code)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          } catch { /* clipboard blocked */ }
+        }}
+        className={`mt-2.5 flex w-full items-center justify-between rounded-[1rem] border-2 border-dashed px-3 py-2.5 text-left ${copied ? "border-ink bg-lime" : "border-line bg-cream"}`}
+      >
+        <code className="text-[15px] font-bold tracking-wide">{code || "…"}</code>
+        <span className="text-[12px] font-bold">{copied ? t("copied ✓") : t("tap to copy")}</span>
+      </button>
+      <a
+        href="https://www.instagram.com/accounts/edit/"
+        target="_blank"
+        rel="noreferrer"
+        className="mt-2 flex w-full items-center justify-center rounded-full border-2 border-ink py-2.5 text-[13.5px] font-bold"
+      >
+        {t("open instagram to edit my bio")}
+      </a>
       <button
         onClick={check}
         disabled={state === "checking"}
@@ -235,7 +241,7 @@ function VerifyCard({ token, me, onVerified }) {
   )
 }
 
-function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
+function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onClose }) {
   const [hasDates, setHasDates] = useState(false)
   useEffect(() => {
     fetch(`/api/trips?t=${token}`)
@@ -352,6 +358,16 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
 
         
 
+        <button
+          onClick={onVibes}
+          className="mt-4 flex w-full items-center justify-between rounded-[1.5rem] border-2 border-line bg-white/70 px-4 py-3.5 text-left"
+        >
+          <span className="text-[14px] font-bold">{t("your vibes")}</span>
+          <span className="truncate pl-3 text-[12.5px] font-semibold text-ink-soft">
+            {(me.interests || []).length ? (me.interests || []).slice(0, 3).map(vibeLabel).join(", ") : t("pick yours")}
+          </span>
+        </button>
+
         {isMod(me.memberNo) && (
           <a
             href={`/?screen=ops&t=${token}`}
@@ -417,12 +433,8 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onClose }) {
           </button>
         </div>
 
-        <a
-          href={`/?screen=pass&t=${token}&name=${encodeURIComponent(me.name)}&n=${me.memberNo}&ig=${encodeURIComponent(me.ig)}`}
-          className="mt-4 flex w-full items-center justify-center rounded-full bg-ink py-3 text-[13.5px] font-semibold text-cream active:scale-[0.98]"
-        >
-          {t("view my pass")}
-        </a>
+        {/* the member pass (qr) comes back when there are events to scan it at.
+            until then it was a button that did nothing. */}
         {me.billing && (
           <button
             onClick={async () => {
@@ -609,6 +621,24 @@ function PinnedInfo({ token, me, initial }) {
 
 const REACT_SET = ["❤️", "😂", "🔥", "👍"]
 
+// a rough read of whether a message is in the other language than the reader's,
+// so the translate link shows up on its own where it's useful
+const ES_WORDS = /\b(que|de|el|la|los|las|y|en|por|para|con|una|es|está|hola|gracias|bien|vamos|pero|mañana|noche|quién|donde|dónde|también|parce|muy|hoy)\b/gi
+const EN_WORDS = /\b(the|and|is|are|you|to|of|in|for|with|who|what|where|tonight|tomorrow|going|anyone|here|this|that|hey|thanks|yeah)\b/gi
+const looksForeign = (text) => {
+  const es = (String(text).match(ES_WORDS) || []).length
+  const en = (String(text).match(EN_WORDS) || []).length
+  return LANG === "es" ? en >= 2 && en > es : es >= 2 && es > en
+}
+
+// @name in a message renders bold
+function WithMentions({ text }) {
+  const parts = String(text).split(/(@[\w.]{2,30})/g)
+  return parts.map((part, i) =>
+    part.startsWith("@") ? <span key={i} className="font-bold">{part}</span> : part
+  )
+}
+
 function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen }) {
   const [needsDates, setNeedsDates] = useState(false)
 
@@ -625,6 +655,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
   const [focused, setFocused] = useState(null) // message key with the action bar open
   const [replyTo, setReplyTo] = useState(null) // message object being replied to
   const [editing, setEditing] = useState(null) // message object being edited
+  const [translated, setTranslated] = useState({}) // key -> translated text | "loading" | "error"
   const bottomRef = useRef(null)
   const pollRef = useRef(() => {})
 
@@ -704,6 +735,35 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
     await api({ action: "react", id: m.key, emoji })
   }
 
+  const translate = async (m) => {
+    setFocused(null)
+    if (translated[m.key] && translated[m.key] !== "error") {
+      // second tap goes back to the original
+      setTranslated((x) => { const n = { ...x }; delete n[m.key]; return n })
+      return
+    }
+    setTranslated((x) => ({ ...x, [m.key]: "loading" }))
+    const r = await fetch("/api/translate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, text: m.text, to: LANG }),
+    }).then((x) => x.json()).catch(() => null)
+    setTranslated((x) => ({ ...x, [m.key]: r?.text || "error" }))
+  }
+
+  // @mention suggestions: people who've spoken in this room, matching what's typed after @
+  const mentionQuery = (text.match(/@([\w.]*)$/) || [])[1]
+  const mentionPool = mentionQuery === undefined || !msgs
+    ? []
+    : [...new Map(msgs.filter((m) => m.from.memberNo !== me.memberNo && m.from.memberNo !== "000").map((m) => [m.from.memberNo, m.from])).values()]
+        .filter((f) => {
+          const q = mentionQuery.toLowerCase()
+          const handle = String(f.ig || "").replace(/^@+/, "").toLowerCase()
+          return !q || f.name.toLowerCase().includes(q) || handle.includes(q)
+        })
+        .slice(0, 5)
+  const mentionTag = (f) => String(f.ig || "").replace(/^@+/, "") || f.name.trim().split(/\s+/)[0]
+
   const remove = async (m) => {
     setFocused(null)
     setServer((s) => s?.map((x) => (x.key === m.key ? { ...x, deleted: true, text: "" } : x)))
@@ -719,7 +779,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold leading-tight">{title}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
-            {channel === me.city ? t("everyone in town right now") : t("private · joined members only")}
+            {/* city rooms are open to everyone in town; only old activity threads are private */}
+            {activity ? t("private · joined members only") : t("everyone in town right now")}
           </p>
         </div>
       </div>
@@ -760,26 +821,56 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               }
 
               return (
-                <div key={m.key} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+                <div key={m.key} id={`msg-${m.key}`} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                   {!mine && <Avatar member={m.from} photo={photoMap[m.from.memberNo]} size="h-7 w-7 text-[12px]" />}
-                  <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
+                  <div className={`min-w-0 max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                     <div
                       onClick={(e) => { e.stopPropagation(); if (!m.deleted) setFocused(focused === m.key ? null : m.key) }}
-                      className={`rounded-2xl px-3.5 py-2 ${m.deleted ? "border border-dashed border-line bg-transparent" : mine ? "rounded-br-md bg-lime text-ink" : "rounded-bl-md border border-line bg-white/80 text-ink"}`}
+                      className={`min-w-0 max-w-full break-words rounded-2xl px-3.5 py-2 [overflow-wrap:anywhere] ${m.deleted ? "border border-dashed border-line bg-transparent" : mine ? "rounded-br-md bg-lime text-ink" : "rounded-bl-md border border-line bg-white/80 text-ink"}`}
                     >
                       {!mine && !m.deleted && (
                         <p className="font-mono text-[9.5px] font-semibold text-ink-soft">{m.from.name.toLowerCase()} · {m.from.memberNo}</p>
                       )}
-                      {quoted && !m.deleted && (
-                        <p className={`mb-1 truncate border-l-2 pl-2 text-[11.5px] ${mine ? "border-ink/30 text-ink/60" : "border-lime-deep text-ink-soft"}`}>
-                          {quoted.deleted ? "deleted message" : `${quoted.from.name.toLowerCase()}: ${quoted.text}`}
-                        </p>
+                      {/* the quote clamps to two lines. it used to be one unwrapped line,
+                          which pushed a long quote's bubble past the edge of the screen */}
+                      {m.replyTo && !m.deleted && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            document.getElementById(`msg-${m.replyTo}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+                          }}
+                          className={`mb-1 w-full border-l-2 pl-2 text-left text-[11.5px] leading-snug line-clamp-2 ${mine ? "border-ink/30 text-ink/60" : "border-lime-deep text-ink-soft"}`}
+                        >
+                          {!quoted
+                            ? t("an earlier message")
+                            : quoted.deleted
+                              ? t("deleted message")
+                              : `${quoted.from.name.toLowerCase()}: ${quoted.text}`}
+                        </button>
                       )}
                       <p className={`text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
-                        {m.deleted ? t("message deleted") : m.text}
+                        {m.deleted ? t("message deleted") : <WithMentions text={m.text} />}
                         {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
                       </p>
+                      {translated[m.key] && !m.deleted && (
+                        <p className="mt-1 border-t border-ink/10 pt-1 text-[13.5px] italic leading-snug">
+                          {translated[m.key] === "loading"
+                            ? t("translating…")
+                            : translated[m.key] === "error"
+                              ? t("couldn't translate that right now")
+                              : translated[m.key]}
+                        </p>
+                      )}
                     </div>
+
+                    {!m.deleted && !mine && !translated[m.key] && looksForeign(m.text) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); translate(m) }}
+                        className="mt-0.5 px-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
+                      >
+                        {t("translate")}
+                      </button>
+                    )}
 
                     {reactions.length > 0 && (
                       <div className={`mt-1 flex gap-1 ${mine ? "flex-row-reverse" : ""}`}>
@@ -814,6 +905,12 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                             className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
                           >
                             {t("reply")}
+                          </button>
+                          <button
+                            onClick={() => translate(m)}
+                            className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
+                          >
+                            {translated[m.key] && translated[m.key] !== "error" ? t("original") : t("translate")}
                           </button>
                           {mine && (
                             <>
@@ -875,6 +972,19 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
             </motion.div>
           )}
         </AnimatePresence>
+        {mentionPool.length > 0 && (
+          <div className="mb-2 flex gap-1.5 overflow-x-auto">
+            {mentionPool.map((f) => (
+              <button
+                key={f.memberNo}
+                onClick={() => setText((x) => x.replace(/@([\w.]*)$/, `@${mentionTag(f)} `))}
+                className="shrink-0 rounded-full border-2 border-line bg-white/80 px-3 py-1 text-[12.5px] font-bold"
+              >
+                @{mentionTag(f)}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <input
             id="room-composer"
@@ -1004,6 +1114,16 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         const cities = [...new Set((d.trips || []).map((x) => x.city))]
         setRooms(cities.length ? cities : [me.city || "medellin"])
         if (cities.length && !cities.includes(roomCity)) setRoomCity(cities[0])
+        // mods (josh, kevin) moderate every room, not only the cities they have dates in
+        if (isMod(me.memberNo)) {
+          fetch("/api/stats")
+            .then((r) => r.json())
+            .then((st) => {
+              const all = Object.keys(st.byCity || {})
+              setRooms((prev) => [...new Set([...prev, ...all])])
+            })
+            .catch(() => {})
+        }
       })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1175,6 +1295,79 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
   )
 }
 
+/* ---------- vibes, for members who joined before the vibes step ---------- */
+// shown once per visit until they pick. "reactivation hook": pick your vibes,
+// see who you'd click with. it ranks people, it never hides anyone.
+function VibesSheet({ token, me, onSaved, onClose }) {
+  const [picked, setPicked] = useState(() => (me.interests || []).filter((i) => VIBES.some((v) => v.key === i)))
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, vibesSeen: true }),
+    }).catch(() => {})
+  }, [token])
+
+  const save = async () => {
+    setBusy(true)
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, interests: picked }),
+    }).catch(() => {})
+    onSaved(picked)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="absolute inset-0 z-40 flex items-end bg-ink/40"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }}
+        transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90%] w-full overflow-y-auto rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+      >
+        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+        <h2 className="display text-[26px] font-bold leading-tight">{t("what's your vibe?")}</h2>
+        <p className="mt-1 text-[13.5px] text-ink-soft">
+          {t("pick at least 3. we put people who like the same things at the top.")}
+        </p>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {VIBES.map((v) => {
+            const on = picked.includes(v.key)
+            return (
+              <motion.button
+                key={v.key}
+                whileTap={{ scale: 0.94 }}
+                onClick={() => setPicked((l) => (on ? l.filter((x) => x !== v.key) : [...l, v.key]))}
+                className={`flex aspect-[1/0.85] flex-col items-center justify-center gap-1 rounded-[1.2rem] border-2 px-1 text-center ${on ? "border-ink bg-lime" : "border-line bg-white/70"}`}
+              >
+                <span className="text-[24px] leading-none">{v.emoji}</span>
+                <span className={`text-[11.5px] font-bold leading-tight ${on ? "text-ink" : "text-ink-soft"}`}>{vibeLabel(v.key)}</span>
+              </motion.button>
+            )
+          })}
+        </div>
+        <button
+          onClick={save}
+          disabled={picked.length < MIN_VIBES || busy}
+          className="mt-4 w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream disabled:opacity-40"
+        >
+          {picked.length < MIN_VIBES ? `${picked.length} / ${MIN_VIBES}` : t("show me who i'd click with")}
+        </button>
+        <button onClick={onClose} className="mt-1 w-full py-2 text-center text-[13px] text-ink-soft underline">
+          {t("later")}
+        </button>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 /* ---------- shell ---------- */
 export default function Club({ token }) {
   const [me, setMe] = useState(null)
@@ -1182,7 +1375,8 @@ export default function Club({ token }) {
   const [tab, setTab] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("dm")) return "dms"
-    return p.get("tab") === "chat" ? "dms" : "trips"
+    const wanted = { chat: "dms", people: "members", dates: "trips" }[p.get("tab")]
+    return wanted || "trips"
   })
   const [activeChat, setActiveChat] = useState(null)
   const [dmWith, setDmWith] = useState(() => {
@@ -1192,12 +1386,29 @@ export default function Club({ token }) {
   const [paywall, setPaywall] = useState(null) // reason string -> show paywall
   const [profileOpen, setProfileOpen] = useState(false)
   const [photoMap, setPhotoMap] = useState({})
-  const [setRefresh] = useState(0)
+  const [, setRefresh] = useState(0)
   const [unlockRequest, setUnlockRequest] = useState(0)
   const [closeSheets, setCloseSheets] = useState(0)
   const [postCity, setPostCity] = useState(null)
   const [viewCity, setViewCity] = useState(null) // the city you last added or opened
   const [unreadTotal, setUnreadTotal] = useState(0)
+  const [vibesOpen, setVibesOpen] = useState(false)
+  const [peopleKey, setPeopleKey] = useState(0) // bump to reload the people grid after vibes change
+
+  // members from before the vibes step get asked once per visit
+  useEffect(() => {
+    if (state !== "ok" || !me) return
+    let asked = false
+    try { asked = !!sessionStorage.getItem("irlpass_vibes_asked") } catch { /* private mode */ }
+    if ((me.interests || []).filter((i) => VIBES.some((v) => v.key === i)).length < MIN_VIBES && !asked) {
+      const id = setTimeout(() => setVibesOpen(true), 900)
+      return () => clearTimeout(id)
+    }
+  }, [state, me])
+  const closeVibes = () => {
+    try { sessionStorage.setItem("irlpass_vibes_asked", "1") } catch { /* private mode */ }
+    setVibesOpen(false)
+  }
 
   // the chat tab shows a dot when anything is waiting
   useEffect(() => {
@@ -1275,6 +1486,7 @@ export default function Club({ token }) {
         {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
         {tab === "members" && (
           <Around
+            key={peopleKey}
             token={token}
             me={me}
             viewCity={viewCity}
@@ -1293,7 +1505,23 @@ export default function Club({ token }) {
             me={me}
             onPhoto={(photo) => { setMe((m) => ({ ...m, photo })); setProfileOpen(false) }}
             onSafety={(patch) => setMe((m) => ({ ...m, ...patch }))}
+            onVibes={() => { setProfileOpen(false); setVibesOpen(true) }}
             onClose={() => setProfileOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {vibesOpen && (
+          <VibesSheet
+            token={token}
+            me={me}
+            onClose={closeVibes}
+            onSaved={(interests) => {
+              setMe((m) => ({ ...m, interests }))
+              closeVibes()
+              setTab("members") // the payoff: people ranked by what you just picked
+              setPeopleKey((k) => k + 1)
+            }}
           />
         )}
       </AnimatePresence>

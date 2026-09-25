@@ -21,6 +21,7 @@ export default function Ops({ token }) {
   const [at, setAt] = useState(null)
   const [busy, setBusy] = useState(false)
   const [openCity, setOpenCity] = useState(null)
+  const [photoRun, setPhotoRun] = useState(null) // null | "running" | result
 
   const load = useCallback(async () => {
     setBusy(true)
@@ -145,6 +146,61 @@ export default function Ops({ token }) {
             </div>
           ))}
         </div>
+      )}
+
+      <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">instagram verification</p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <Stat n={d.verifyFunnel?.reached ?? 0} label="saw the code" />
+        <Stat n={d.verifyFunnel?.completed ?? 0} label="verified" tone={d.verifyFunnel?.completed ? "border-ink bg-lime" : ""} />
+        <Stat
+          n={`${d.verifyFunnel?.reached ? Math.round((d.verifyFunnel.completed / d.verifyFunnel.reached) * 100) : 0}%`}
+          label="finished"
+        />
+      </div>
+
+      <button
+        onClick={async () => {
+          setPhotoRun("running")
+          const r = await fetch(`/api/ops?t=${token}&action=backfill-photos`, { method: "POST" })
+            .then((x) => x.json())
+            .catch(() => ({ error: "failed" }))
+          setPhotoRun(r)
+          load()
+        }}
+        disabled={photoRun === "running"}
+        className="mt-6 w-full rounded-full border-2 border-ink py-3 text-[13.5px] font-bold disabled:opacity-50"
+      >
+        {photoRun === "running"
+          ? "pulling instagram photos… (up to a few minutes)"
+          : photoRun?.error
+            ? `photo backfill failed: ${photoRun.error}`
+            : photoRun
+              ? `filled ${photoRun.filled} of ${photoRun.missing} missing photos`
+              : "fill in missing profile photos from instagram"}
+      </button>
+
+      <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">vibes</p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <Stat n={d.vibesFunnel?.seen ?? 0} label="saw the prompt" />
+        <Stat n={d.vibesFunnel?.finished ?? 0} label="have 3+ vibes" tone={d.vibesFunnel?.finished ? "border-ink bg-lime" : ""} />
+        <Stat
+          n={`${d.members?.total ? Math.round(((d.vibesFunnel?.finished || 0) / d.members.total) * 100) : 0}%`}
+          label="of members"
+        />
+      </div>
+
+      {d.requested?.length > 0 && (
+        <>
+          <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">cities people asked for</p>
+          <div className="mt-2 overflow-hidden rounded-[1.25rem] border-2 border-line bg-white/70">
+            {d.requested.map((c) => (
+              <div key={c.city} className="flex items-center justify-between border-b border-line/60 px-4 py-2.5 last:border-b-0">
+                <span className="text-[14px] font-semibold">{cityChip(c.city).emoji} {cityChip(c.city).name}</span>
+                <span className="rounded-full bg-peach px-2.5 py-0.5 text-[12px] font-bold">{c.people}</span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">activity · 7 days</p>

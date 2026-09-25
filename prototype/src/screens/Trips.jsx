@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   CalendarPlus, CheckCircle, CircleNotch, LockSimple,
-  Plus, Trash, X,
+  PencilSimple, Plus, Trash, X,
 } from "@phosphor-icons/react"
 import { CITY_INDEX, cityChip, searchCities, slugify } from "../lib/cities"
 import { t } from "../lib/i18n"
 import RangePicker from "../components/RangePicker"
+import { joinVibes } from "../lib/vibes"
+import HomeScreenCard from "../components/HomeScreenCard"
 
 // v2: the calendar is the product. post your dates, see who overlaps them,
 // pay once to start conversations with them.
@@ -62,6 +64,11 @@ function PersonRow({ p, onMessage, cityLabel }) {
             </span>
           )}
         </div>
+        {p.shared?.length > 0 && (
+          <p className="mt-0.5 w-fit max-w-full truncate rounded-full bg-lime px-2 py-0.5 text-[10.5px] font-bold">
+            {t("you're both into")} {joinVibes(p.shared)}
+          </p>
+        )}
         <p className="truncate text-[12px] text-ink-soft">
           {fmtRange(p.starts, p.ends)}
           {p.flexible && !p.local ? " · flexible" : ""}
@@ -84,26 +91,49 @@ function PersonRow({ p, onMessage, cityLabel }) {
   )
 }
 
-function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
-  const [city, setCity] = useState(defaultCity || "medellin")
-  const [typed, setTyped] = useState("")
+// the next four months, for people who know the month but not the days
+const MONTHS = (() => {
+  const now = new Date()
+  return Array.from({ length: 4 }, (_, i) => {
+    const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1))
+    const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i + 1, 0))
+    return {
+      key: iso(first).slice(0, 7),
+      label: first.toLocaleDateString(undefined, { month: "long", timeZone: "UTC" }).toLowerCase(),
+      s: iso(first) < todayIso() ? todayIso() : iso(first),
+      e: iso(last),
+    }
+  })
+})()
+
+// posting and editing share one form. `trip` set = editing that trip.
+function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose }) {
+  const editing = !!trip
+  const [city, setCity] = useState(trip?.city || defaultCity || "medellin")
+  const [typed, setTyped] = useState(trip ? cityName(trip.city) : "")
   const [locating, setLocating] = useState(false)
-  const [starts, setStarts] = useState(todayIso())
-  const [ends, setEnds] = useState(addDays(todayIso(), prefillMonth ? 29 : 6))
-  const [flexible, setFlexible] = useState(false)
-  const [local, setLocal] = useState(false)
-  const [note, setNote] = useState("")
+  // exact days are the default and nothing is preselected: a range someone
+  // skims past is how wrong dates were getting posted
+  const [mode, setMode] = useState(trip?.local ? "local" : prefillMonth ? "month" : "exact") // exact | month | local
+  const [month, setMonth] = useState(null)
+  const [starts, setStarts] = useState(trip?.starts || null)
+  const [ends, setEnds] = useState(trip?.ends || null)
+  const [flexible, setFlexible] = useState(!!trip?.flexible)
+  const local = mode === "local"
+  const [note, setNote] = useState(trip?.note || "")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState("")
+  const ready = !!starts && !!ends && ends >= starts
 
   const submit = async () => {
+    if (!ready) return setErr(t("pick your dates"))
     setBusy(true)
     setErr("")
     try {
       const r = await fetch("/api/trips", {
-        method: "POST",
+        method: editing ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ t: token, city, starts, ends: ends || starts, flexible, note, local }),
+        body: JSON.stringify({ t: token, id: trip?.id, city, starts, ends, flexible, note, local }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || "could not save your dates")
@@ -113,6 +143,9 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
       setBusy(false)
     }
   }
+
+  const chip = (active) =>
+    `rounded-full border-2 px-3.5 py-2 text-[13px] font-bold ${active ? "border-ink bg-white/90 text-ink" : "border-line bg-white/60 text-ink-soft"}`
 
   return (
     <>
@@ -129,7 +162,7 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
       className="absolute inset-x-0 bottom-0 z-40 max-h-[86%] overflow-y-auto rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
     >
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="display text-[20px]">your dates</h2>
+        <h2 className="display text-[20px]">{editing ? t("edit your dates") : t("your dates")}</h2>
         <button onClick={onClose} aria-label="close"><X size={20} className="text-ink-soft" /></button>
       </div>
 
@@ -187,39 +220,72 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
         ))}
       </div>
 
-      <RangePicker
-        starts={starts}
-        ends={ends}
-        onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e) }}
-      />
+      {mode === "exact" && (
+        <RangePicker
+          starts={starts}
+          ends={ends}
+          onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e) }}
+        />
+      )}
 
-      <button
-        onClick={() => setLocal((l) => !l)}
-        className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[14px] font-medium ${
-          local ? "border-ink bg-lime/60" : "border-line bg-white/60 text-ink-soft"
-        }`}
-      >
-        {t("i live here")}
-        <span className={`h-5 w-9 rounded-full ${local ? "bg-ink" : "bg-line"} relative`}>
-          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-cream transition-all ${local ? "left-[1.15rem]" : "left-0.5"}`} />
-        </span>
-      </button>
+      {mode === "month" && (
+        <div className="grid grid-cols-2 gap-2">
+          {MONTHS.map((m) => (
+            <button
+              key={m.key}
+              onClick={() => { setMonth(m.key); setStarts(m.s); setEnds(m.e); setFlexible(true) }}
+              className={`rounded-[1.2rem] border-2 px-4 py-3 text-[15px] font-bold ${month === m.key ? "border-ink bg-lime" : "border-line bg-white/70 text-ink-soft"}`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      <button
-        onClick={() => setFlexible((f) => !f)}
-        className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[14px] font-medium ${
-          flexible ? "border-ink bg-lime/60" : "border-line bg-white/60 text-ink-soft"
-        }`}
-      >
-        i'm flexible on these dates
-        <span className={`h-5 w-9 rounded-full ${flexible ? "bg-ink" : "bg-line"} relative`}>
-          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-cream transition-all ${flexible ? "left-[1.15rem]" : "left-0.5"}`} />
-        </span>
-      </button>
+      {mode === "local" && (
+        <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+          <p className="text-[14.5px] font-bold">{t("you live here")}</p>
+          <p className="mt-0.5 text-[12.5px]">
+            {t("you'll show up for anyone landing here through")} {fmt(ends)}. {t("we'll check in before then.")}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {mode !== "exact" && (
+          <button onClick={() => { setMode("exact"); setStarts(null); setEnds(null); setFlexible(false); setMonth(null) }} className={chip(true)}>
+            📅 {t("pick exact dates")}
+          </button>
+        )}
+        {mode !== "month" && (
+          <button onClick={() => { setMode("month"); setStarts(null); setEnds(null); setMonth(null) }} className={chip(false)}>
+            {t("not sure of the days? just the month")}
+          </button>
+        )}
+        {mode !== "local" && (
+          <button onClick={() => { setMode("local"); setStarts(todayIso()); setEnds(addDays(todayIso(), 89)); setFlexible(true) }} className={chip(false)}>
+            🏠 {t("i live here")}
+          </button>
+        )}
+      </div>
+
+      {mode === "exact" && ready && (
+        <button
+          onClick={() => setFlexible((f) => !f)}
+          className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[14px] font-medium ${
+            flexible ? "border-ink bg-lime/60" : "border-line bg-white/60 text-ink-soft"
+          }`}
+        >
+          {t("i'm flexible on these dates")}
+          <span className={`h-5 w-9 rounded-full ${flexible ? "bg-ink" : "bg-line"} relative`}>
+            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-cream transition-all ${flexible ? "left-[1.15rem]" : "left-0.5"}`} />
+          </span>
+        </button>
+      )}
 
       <input
         id="trip-note" value={note} maxLength={140} onChange={(e) => setNote(e.target.value)}
-        placeholder="what you're up for. surf, coffee, gym…"
+        placeholder={t("what you're up for. surf, coffee, gym…")}
         className="mt-3 w-full rounded-2xl border border-line bg-white/70 px-4 py-3 text-[15px] placeholder:text-ink-soft/50"
       />
 
@@ -227,14 +293,18 @@ function DateForm({ token, defaultCity, prefillMonth, onPosted, onClose }) {
 
       <button
         onClick={submit}
-        disabled={busy}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-4 text-[16px] font-semibold text-cream disabled:opacity-60"
+        disabled={busy || !ready}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-4 text-[16px] font-semibold text-cream disabled:opacity-40"
       >
         {busy ? <CircleNotch size={18} className="animate-spin" /> : <CalendarPlus size={18} weight="fill" />}
-        post my dates
+        {!ready
+          ? t("pick your dates")
+          : editing
+            ? `${t("save")} · ${cityName(city)} ${fmtRange(starts, ends)}`
+            : `${t("post")} ${cityName(city)} · ${fmtRange(starts, ends)}`}
       </button>
       <p className="mt-2 text-center text-[11px] text-ink-soft">
-        anyone already there on those days gets told you're coming
+        {t("anyone already there on those days gets told you're coming")}
       </p>
     </motion.div>
     </>
@@ -395,6 +465,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [justUnlocked, setJustUnlocked] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [editTrip, setEditTrip] = useState(null) // trip open in the form for editing
   const [prefillMonth] = useState(
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("post") === "month"
   )
@@ -427,6 +498,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
   useEffect(() => {
     if (!closeSheets) return
     setFormOpen(false)
+    setEditTrip(null)
     setUnlockOpen(false)
     setInviteOpen(false)
   }, [closeSheets])
@@ -454,7 +526,7 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
       .then((r) => r.json())
       .then(setOverlap)
       .catch(() => setOverlap({ people: [], count: 0 }))
-  }, [token, trip?.id, justUnlocked]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, trip?.id, trip?.city, trip?.starts, trip?.ends, justUnlocked]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const lockedCount = useMemo(() => (overlap?.people || []).filter((p) => p.locked).length, [overlap])
 
@@ -517,12 +589,21 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
               <h2 className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
                 {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}
               </h2>
-              <button
-                onClick={() => removeTrip(trip.id)}
-                className="flex items-center gap-1.5 rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold text-ink-soft"
-              >
-                <Trash size={13} weight="bold" /> {t("remove")}
-              </button>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setEditTrip(trip)}
+                  className="flex items-center gap-1.5 rounded-full border-2 border-ink px-3 py-1.5 text-[12px] font-bold"
+                >
+                  <PencilSimple size={13} weight="bold" /> {t("edit")}
+                </button>
+                <button
+                  onClick={() => { if (confirm(t("remove these dates?"))) removeTrip(trip.id) }}
+                  aria-label={t("remove")}
+                  className="flex items-center gap-1.5 rounded-full border-2 border-line px-2.5 py-1.5 text-[12px] font-bold text-ink-soft"
+                >
+                  <Trash size={13} weight="bold" />
+                </button>
+              </div>
             </div>
 
             {!overlap ? (
@@ -530,8 +611,8 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
             ) : overlap.count === 0 ? (
               <div className="rounded-[1.75rem] border-2 border-line bg-white/60 px-5 py-6 text-center">
                 <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
-                <p className="display mt-1 text-[20px] font-bold">nobody yet</p>
-                <p className="mt-1 text-[13px] text-ink-soft">we'll ping you the second someone lands on your dates</p>
+                <p className="display mt-1 text-[20px] font-bold">{t("nobody yet")}</p>
+                <p className="mt-1 text-[13px] text-ink-soft">{t("be the one who brings someone. we'll also ping you the second anyone lands on your dates.")}</p>
               </div>
             ) : (
               <>
@@ -563,20 +644,6 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
                     message {lockedCount === overlap.count ? "them" : `the other ${lockedCount}`} · $19
                   </button>
                 )}
-                <button
-              onClick={() => setInviteOpen(true)}
-              className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-lime-deep bg-lime/25 px-4 py-3.5 text-left"
-            >
-              <img src="/art/icon-people.png" alt="" className="h-11 w-11 shrink-0 object-contain" draggable="false" />
-              <div className="min-w-0 flex-1">
-                <p className="text-[14.5px] font-bold leading-tight">{t("invite someone to these dates")}</p>
-                <p className="text-[12.5px] text-ink-soft">
-                  {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}
-                </p>
-              </div>
-              <span className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-[12px] font-bold text-cream">{t("invite")}</span>
-            </button>
-
             {overlap.access && (
                   <p className="mt-3 text-center text-[12px] text-ink-soft">
                     {overlap.access === "pass" && "you have the pass · every city, every trip"}
@@ -585,20 +652,45 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
                 )}
               </>
             )}
+
+            {/* the growth loop: always there, most of all when you're alone on your dates */}
+            {overlap && (
+              <button
+                onClick={() => setInviteOpen(true)}
+                className={`mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 px-4 py-3.5 text-left ${
+                  overlap.count === 0 ? "border-ink bg-lime" : "border-dashed border-lime-deep bg-lime/25"
+                }`}
+              >
+                <img src="/art/icon-people.png" alt="" className="h-11 w-11 shrink-0 object-contain" draggable="false" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14.5px] font-bold leading-tight">{t("invite someone to these dates")}</p>
+                  <p className="text-[12.5px] text-ink-soft">
+                    {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-[12px] font-bold text-cream">{t("invite")}</span>
+              </button>
+            )}
+
+            <HomeScreenCard />
           </>
         )}
       </div>
 
       <AnimatePresence>
-        {formOpen && (
+        {(formOpen || editTrip) && (
           <DateForm
+            key={editTrip?.id || "new"}
             token={token}
+            trip={editTrip}
             defaultCity={postCity || me?.city}
             prefillMonth={prefillMonth}
-            onClose={() => setFormOpen(false)}
+            onClose={() => { setFormOpen(false); setEditTrip(null) }}
             onPosted={(d) => {
+              const wasEdit = !!editTrip
               setFormOpen(false)
-              setActive(0)
+              setEditTrip(null)
+              if (!wasEdit) setActive(0)
               if (d?.trip?.city) onCityPosted?.(d.trip.city)
               load()
             }}

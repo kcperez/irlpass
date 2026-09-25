@@ -42,8 +42,21 @@ export default async function handler(req, res) {
     const { data: memberRows } = await db.from("members").select("*").in("member_no", nos.length ? nos : ["-"])
     const byNo = new Map((memberRows || []).map((r) => [r.member_no, rowToMember(r)]))
 
-    const people = []
+    // one entry per person: two trips on the same window is still one human,
+    // and counting them twice inflates the number the whole screen leans on
+    const merged = new Map()
     for (const t of rows) {
+      const prev = merged.get(t.member_no)
+      if (!prev) { merged.set(t.member_no, { ...t }); continue }
+      prev.starts = prev.starts < t.starts ? prev.starts : t.starts
+      prev.ends = prev.ends > t.ends ? prev.ends : t.ends
+      prev.flexible = prev.flexible || t.flexible
+      prev.local = prev.local || t.local
+      prev.note = prev.note || t.note
+    }
+
+    const people = []
+    for (const t of merged.values()) {
       const m = byNo.get(t.member_no)
       if (!m || m.banned) continue
       // safety: a member who only accepts women/non-binary dms stays masked to men
@@ -60,6 +73,8 @@ export default async function handler(req, res) {
         repScore: m.repScore,
         repCount: m.repCount,
         interests: open ? m.interests : (m.interests || []).slice(0, 2),
+        // vibes you both picked: they rank the list, they never hide anyone
+        shared: sharedWith(me.interests, m.interests),
         starts: t.starts,
         ends: t.ends,
         flexible: !!t.flexible,
@@ -74,7 +89,7 @@ export default async function handler(req, res) {
 
     // show the freshest face first, and put one unlocked person up top when
     // everything is locked so the screen is never a wall of blur
-    people.sort((a, b) => (a.starts < b.starts ? -1 : a.starts > b.starts ? 1 : 0))
+    people.sort((a, b) => b.shared.length - a.shared.length || (a.starts < b.starts ? -1 : a.starts > b.starts ? 1 : 0))
     if (!access.ok && people.length) {
       const teaser = people.find((p) => !p.womenOnly) || people[0]
       teaser.locked = false
@@ -100,3 +115,8 @@ export default async function handler(req, res) {
 }
 
 const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "someone"
+
+const sharedWith = (mine = [], theirs = []) => {
+  const set = new Set((mine || []).map((x) => String(x).toLowerCase()))
+  return (theirs || []).filter((x) => set.has(String(x).toLowerCase())).slice(0, 3)
+}

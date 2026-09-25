@@ -2,18 +2,32 @@ import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { isMod } from "./_mods.js"
 import { today } from "./_access.js"
+import { backfillPhotos } from "./_instagram.js"
+
+// long enough for one scraper run over every member missing a photo
+export const config = { maxDuration: 300 }
 
 // the founders' view: what happened today, what's on the calendar, who's stuck.
 export default async function handler(req, res) {
   const me = await getUser(req.query?.t)
   if (!me || !isMod(me.memberNo)) return res.status(401).json({ error: "not allowed" })
 
+  // POST ?t=&action=backfill-photos -> pull instagram photos for everyone without one
+  if (req.method === "POST" && req.query?.action === "backfill-photos") {
+    try {
+      return res.status(200).json(await backfillPhotos())
+    } catch (e) {
+      console.error("backfill error:", e)
+      return res.status(500).json({ error: "backfill failed" })
+    }
+  }
+
   try {
     const since = (days) => new Date(Date.now() - days * 864e5).toISOString()
 
     const { data: members } = await db
       .from("members")
-      .select("member_no, name, ig, email, city, accepted_at, photo_url, ig_verified, ig_followers, paid, comped, stripe_customer, founding_no, banned")
+      .select("member_no, name, ig, email, city, accepted_at, photo_url, ig_verified, ig_followers, paid, comped, stripe_customer, founding_no, banned, verify_seen_at, interests")
       .lt("member_no", "900")
       .order("accepted_at", { ascending: false })
       .limit(400)
@@ -36,7 +50,22 @@ export default async function handler(req, res) {
 
     const { data: unlocks } = await db.from("unlocks").select("id, city, created_at, source")
 
+    // cities people asked for but we haven't opened, most-wanted first
+    const { data: asks } = await db.from("city_requests").select("city, member_no")
+    const askTally = {}
+    for (const a of asks || []) {
+      askTally[a.city] = askTally[a.city] || new Set()
+      if (a.member_no) askTally[a.city].add(a.member_no)
+    }
+    const requested = Object.entries(askTally)
+      .map(([city, set]) => ({ city, people: set.size }))
+      .sort((a, b) => b.people - a.people)
+      .slice(0, 12)
+
     const all = members || []
+    // vibes_seen_at comes from migration 004. read on its own so ops still loads if it hasn't run.
+    const { data: seenRows } = await db.from("members").select("member_no").not("vibes_seen_at", "is", null).lt("member_no", "900")
+    const vibesSeen = (seenRows || []).length
     const joinedSince = (days) => all.filter((m) => m.accepted_at >= since(days)).length
 
     // which cities have dates on them, and how many people each
@@ -91,6 +120,17 @@ export default async function handler(req, res) {
         peopleWithDates: withTrips.size,
         silent: all.length - withTrips.size, // signed up, never posted dates
         cities,
+      },
+      requested,
+      verifyFunnel: {
+        reached: all.filter((m) => m.verify_seen_at).length,
+        completed: all.filter((m) => m.ig_verified).length,
+      },
+      // vibes: existing members who were shown the prompt vs everyone with 3+
+      // picked. new signups pick inside the flow, so they count as finished.
+      vibesFunnel: {
+        seen: vibesSeen,
+        finished: all.filter((m) => (m.interests || []).length >= 3).length,
       },
       activity: {
         dmsWeek: (dms || []).length,

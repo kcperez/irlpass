@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
+import { joinVibes } from "../lib/vibes"
 import YearView from "./YearView"
 
 // who is actually around: only people with dates posted. no dates, no listing,
@@ -44,6 +45,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
   const [typed, setTyped] = useState("")
   const [view, setView] = useState("weeks") // weeks | year
   const [selectedDay, setSelectedDay] = useState(null)
+  const [othersShown, setOthersShown] = useState(24) // the city roster can be hundreds; reveal it a page at a time
 
   const load = useCallback(() => {
     fetch(`/api/members?t=${token}&city=${city}`)
@@ -63,13 +65,39 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
     return out
   }, [data, from])
 
-  const byPresence = (a, b) => (b.hereNow === true) - (a.hereNow === true) || (a.starts < b.starts ? -1 : 1)
+  // under a handful of people the day chart is just bars of height one, which
+  // reads as an empty room. lead with the faces until the city fills up.
+  const sparse = (data?.total || 0) < 8
+
+  // here now first, then whoever shares the most vibes with you, then soonest
+  const byPresence = (a, b) =>
+    (b.hereNow === true) - (a.hereNow === true) ||
+    (b.shared?.length || 0) - (a.shared?.length || 0) ||
+    (a.starts < b.starts ? -1 : 1)
+
+  // one card per person: someone with two trips in the same window is still one
+  // person, so merge their stays into a single span instead of listing them twice
+  const dedupe = (list) => {
+    const by = new Map()
+    for (const p of list) {
+      const prev = by.get(p.memberNo)
+      if (!prev) { by.set(p.memberNo, { ...p }); continue }
+      prev.starts = prev.starts < p.starts ? prev.starts : p.starts
+      prev.ends = prev.ends > p.ends ? prev.ends : p.ends
+      prev.hereNow = prev.hereNow || p.hereNow
+      prev.overlapsMe = prev.overlapsMe || p.overlapsMe
+      prev.local = prev.local || p.local
+      prev.canMessage = prev.canMessage || p.canMessage
+      if ((p.shared?.length || 0) > (prev.shared?.length || 0)) prev.shared = p.shared
+    }
+    return [...by.values()]
+  }
 
   const visible = useMemo(() => {
     const to = addDays(from, 13)
     const inWindow = (data?.people || []).filter((p) => p.starts <= to && p.ends >= from)
-    if (!selectedDay) return [...inWindow].sort(byPresence)
-    return inWindow.filter((p) => p.starts <= selectedDay && p.ends >= selectedDay).sort(byPresence)
+    if (!selectedDay) return dedupe(inWindow).sort(byPresence)
+    return dedupe(inWindow.filter((p) => p.starts <= selectedDay && p.ends >= selectedDay)).sort(byPresence)
   }, [data, from, selectedDay])
 
   if (!data) {
@@ -131,7 +159,16 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
             ))}
             {typed.trim() && searchCities(typed).length === 0 && (
               <button
-                onClick={() => { const s = slugify(typed); setCity(s); onViewCity?.(s); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
+                onClick={() => {
+                  const s = slugify(typed)
+                  // a city nobody has opened yet is a request: log it as roadmap data
+                  fetch("/api/city-request", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ t: token, city: typed, source: "browse" }),
+                  }).catch(() => {})
+                  setCity(s); onViewCity?.(s); setTyped(""); setPicking(false); setWeek(0); setData(null)
+                }}
                 className="rounded-full border-2 border-ink bg-lime px-3 py-1.5 text-[12.5px] font-bold"
               >
                 📍 {typed}
@@ -166,7 +203,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
 
       {view === "weeks" && (<>
       {/* one cell per day: the number is people here that day. tap to filter. */}
-      <div className="mt-3 rounded-[1.75rem] border-2 border-line bg-white/70 p-4">
+      <div className={`mt-3 rounded-[1.75rem] border-2 border-line bg-white/70 p-4 ${sparse ? "hidden" : ""}`}>
         <div className="flex items-baseline justify-between">
           <p className="text-[13px] font-bold">{t("people here each day")}</p>
           <span className="text-[11.5px] text-ink-soft">{fmt(from)} – {fmt(addDays(from, 13))}</span>
@@ -224,24 +261,27 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
           <p className="mt-1 text-[13px] text-ink-soft">{t("try later dates, or post yours and get told when someone lands.")}</p>
         </div>
       ) : (
-        <div className="mt-4 overflow-hidden rounded-[1.75rem] border-2 border-line bg-white/70">
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
           {visible.map((p) => (
-            <div key={`${p.memberNo}-${p.starts}`} className="flex items-center gap-3 border-b border-line/60 px-4 py-3 last:border-b-0">
-              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-cream-deep">
+            <div key={`${p.memberNo}-${p.starts}`} className="overflow-hidden rounded-[1.5rem] border-2 border-line bg-white/80">
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-cream-deep">
                 {p.photo ? (
-                  <img src={p.photo} alt="" className={`h-full w-full object-cover ${p.locked ? "blur-[6px]" : ""}`} />
+                  <img
+                    src={p.photo}
+                    alt=""
+                    loading="lazy"
+                    className={`h-full w-full object-cover ${p.locked ? "scale-110 blur-[10px]" : ""}`}
+                  />
                 ) : (
-                  <div className={`flex h-full w-full items-center justify-center font-bold text-ink-soft ${p.locked ? "blur-[5px]" : ""}`}>
+                  <div className={`display flex h-full w-full items-center justify-center text-[44px] font-bold text-ink-soft/40 ${p.locked ? "blur-[8px]" : ""}`}>
                     {(p.name || p.first)[0]?.toUpperCase()}
                   </div>
                 )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1.5 text-[15px] font-bold">
-                  <span className={p.locked ? "blur-[4px] select-none" : ""}>{p.locked ? `${p.first} ••••` : p.name}</span>
-                  {p.verified && <CheckCircle size={15} weight="fill" className="shrink-0 text-lime-deep" />}
+
+                {/* one badge, not three: three wrap and clip on a half-width card */}
+                <div className="absolute left-2 top-2 flex gap-1">
                   {p.hereNow && !p.local && (
-                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#e8f6e8] px-2 py-0.5 text-[10px] font-bold text-[#2f7a2f]">
+                    <span className="flex items-center gap-1 rounded-full bg-[#e8f6e8] px-2 py-0.5 text-[10px] font-bold text-[#2f7a2f]">
                       <span className="relative flex h-1.5 w-1.5">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" />
                         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#5fd35f]" />
@@ -249,48 +289,67 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
                       {t("here now")}
                     </span>
                   )}
-                  {p.local && (
-                    <span className="shrink-0 rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">
-                      {cityChip(city).name.toLowerCase()} {t("local")}
-                    </span>
+                  {p.local && <span className="rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">{t("local")}</span>}
+                  {isMod(p.memberNo) && !p.hereNow && !p.local && (
+                    <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">{t("founder")}</span>
                   )}
-                  {isMod(p.memberNo) && (
-                    <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">{t("co-founder")}</span>
-                  )}
-                </p>
+                </div>
+
                 {p.overlapsMe && (
-                  <p className="mt-0.5 w-fit rounded-full bg-lime px-2 py-0.5 text-[11px] font-bold">
-                    {t("same days as you")}
-                  </p>
+                  <span className="absolute right-2 top-2 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">
+                    {t("same days")}
+                  </span>
                 )}
-                <p className="truncate text-[12px] text-ink-soft">
-                  {fmt(p.starts)} – {fmt(p.ends)}
-                  {p.flexible && !p.local ? ` · ${t("flexible")}` : ""}
-                  {p.note ? ` · ${p.note}` : ""}
-                </p>
+
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2.5 pb-2 pt-8 text-cream">
+                  <p className="flex items-center gap-1 text-[14.5px] font-bold leading-tight">
+                    <span className={`truncate ${p.locked ? "select-none blur-[4px]" : ""}`}>
+                      {p.locked ? `${p.first} ••••` : p.name}
+                    </span>
+                    {p.verified && <CheckCircle size={14} weight="fill" className="shrink-0 text-lime" />}
+                  </p>
+                  <p className="truncate text-[11px] font-semibold text-cream/75">
+                    {p.local ? t("lives here") : `${fmt(p.starts)} – ${fmt(p.ends)}`}
+                    {p.flexible && !p.local ? ` · ${t("flexible")}` : ""}
+                  </p>
+                </div>
               </div>
-              {p.canMessage ? (
-                <button onClick={() => onOpenDM(p)} className="shrink-0 rounded-full bg-ink px-3.5 py-2 text-[12px] font-bold text-cream">
-                  {t("say hi")}
-                </button>
-              ) : p.womenOnly ? (
-                <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">{t("women only")}</span>
-              ) : !data.iHaveDates ? (
-                <button
-                  onClick={() => onNeedDates?.(city)}
-                  className="shrink-0 rounded-full bg-lime px-3 py-1.5 text-[12px] font-bold"
-                >
-                  {t("post your dates")}
-                </button>
-              ) : (
-                <button
-                  onClick={() => onUnlock(p)}
-                  className="flex shrink-0 items-center gap-1 rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold text-ink-soft"
-                >
-                  <LockSimple size={13} weight="fill" />
-                  {t("unlock")}
-                </button>
+
+              {p.shared?.length > 0 && (
+                <p className="mx-2 mt-2 truncate rounded-full bg-lime px-2 py-0.5 text-center text-[10.5px] font-bold">
+                  {t("both into")} {joinVibes(p.shared)}
+                </p>
               )}
+
+              <div className="p-2">
+                {p.canMessage ? (
+                  <button
+                    onClick={() => onOpenDM(p)}
+                    className="w-full rounded-full bg-ink py-2 text-[12.5px] font-bold text-cream"
+                  >
+                    {t("say hi")}
+                  </button>
+                ) : p.womenOnly ? (
+                  <span className="flex justify-center py-2 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">
+                    {t("women only")}
+                  </span>
+                ) : !data.iHaveDates ? (
+                  <button
+                    onClick={() => onNeedDates?.(city)}
+                    className="w-full rounded-full bg-lime py-2 text-[12.5px] font-bold"
+                  >
+                    {t("post your dates")}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onUnlock(p)}
+                    className="flex w-full items-center justify-center gap-1 rounded-full border-2 border-line py-1.5 text-[12.5px] font-bold text-ink-soft"
+                  >
+                    <LockSimple size={13} weight="fill" />
+                    {t("unlock")}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -306,32 +365,34 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
             <span className="text-[12px] text-ink-soft">{data.others.length}</span>
           </div>
           <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("here, but no dates up yet")}</p>
-          <div className="mt-2 overflow-hidden rounded-[1.75rem] border-2 border-line bg-white/60">
-            {data.others.slice(0, 40).map((p) => (
-              <div key={p.memberNo} className="flex items-center gap-3 border-b border-line/60 px-4 py-2.5 last:border-b-0">
-                <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-cream-deep">
+          <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-5">
+            {data.others.slice(0, othersShown).map((p) => (
+              <button
+                key={p.memberNo}
+                onClick={() => p.canMessage && onOpenDM(p)}
+                className="flex flex-col items-center gap-1"
+              >
+                <div className="aspect-square w-full overflow-hidden rounded-[1rem] bg-cream-deep">
                   {p.photo ? (
-                    <img src={p.photo} alt="" className="h-full w-full object-cover" />
+                    <img src={p.photo} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-[13px] font-bold text-ink-soft">
+                    <div className="display flex h-full w-full items-center justify-center text-[20px] font-bold text-ink-soft/40">
                       {(p.name || p.first)[0]?.toUpperCase()}
                     </div>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-semibold">{p.name || p.first}</p>
-                  <p className="text-[11.5px] text-ink-soft">
-                    {p.hasDates ? `${fmt(p.starts)} – ${fmt(p.ends)}` : t("no dates posted")}
-                  </p>
-                </div>
-                {p.canMessage && (
-                  <button onClick={() => onOpenDM(p)} className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-[11.5px] font-bold text-cream">
-                    {t("say hi")}
-                  </button>
-                )}
-              </div>
+                <span className="w-full truncate text-center text-[11px] font-semibold">{p.name || p.first}</span>
+              </button>
             ))}
           </div>
+          {data.others.length > othersShown && (
+            <button
+              onClick={() => setOthersShown((n) => n + 24)}
+              className="mt-3 w-full rounded-full border-2 border-line bg-white/70 py-2.5 text-[13px] font-bold"
+            >
+              {t("show more")} · {data.others.length - othersShown}
+            </button>
+          )}
         </>
       )}
     </div>

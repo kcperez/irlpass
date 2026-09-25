@@ -1,7 +1,8 @@
 import { put } from "@vercel/blob"
 import { createAcceptedMember } from "./accept.js"
 import { canonicalCity } from "./_cities.js"
-import { sendEmail, acceptanceEmail } from "./_email.js"
+import { sendEmail, acceptanceEmail, loginEmail } from "./_email.js"
+import { db } from "./_db.js"
 import { enrichMember } from "./_instagram.js"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
 
 
     const cleanInterests = Array.isArray(interests)
-      ? interests.slice(0, 10).map((i) => String(i).slice(0, 40))
+      ? interests.slice(0, 16).map((i) => String(i).slice(0, 40))
       : []
 
     const record = {
@@ -86,6 +87,28 @@ export default async function handler(req, res) {
       })
     } catch (e) {
       console.error("apply blob error:", e)
+    }
+
+    // this instagram is already a member. the handle alone is not proof: only
+    // the email on file gets the token back, anyone else triggers a login link
+    // to that email. (before this, typing someone's handle handed you their account.)
+    const { data: already } = await db.from("members").select("token, email, name, member_no, interests, banned").eq("ig", record.ig).maybeSingle()
+    if (already) {
+      if (already.banned) return res.status(403).json({ error: "this account can't join" })
+      if (String(already.email || "").toLowerCase() === record.email) {
+        // same person coming back: keep their vibes if they picked new ones
+        if (record.interests.length && !(already.interests || []).length) {
+          await db.from("members").update({ interests: record.interests }).eq("member_no", already.member_no)
+        }
+        return res.status(200).json({ ok: true, token: already.token, memberNo: already.member_no, existing: true })
+      }
+      if (already.email) {
+        await sendEmail({
+          to: already.email,
+          ...loginEmail({ name: already.name, url: `https://irlpass.xyz/?screen=app&t=${already.token}`, label: "open irlpass" }),
+        }).catch((e) => console.error("apply login email error:", e))
+      }
+      return res.status(200).json({ ok: true, existing: true, emailed: true })
     }
 
     // AUTO-ACCEPT: create the member row + mint a token, instantly

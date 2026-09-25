@@ -1,8 +1,9 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 
-// POST { t, allowDmFromMen?, showIgToMen? } -> update a member's safety prefs.
-// these power the women-safety layer: who can dm you, who sees your instagram.
+// POST { t, allowDmFromMen?, showIgToMen?, interests?, vibesSeen? } -> update a
+// member's safety prefs and vibes. safety powers the women-safety layer: who can
+// dm you, who sees your instagram. vibes rank who you see first.
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
   const me = await getUser(req.body?.t)
@@ -11,6 +12,17 @@ export default async function handler(req, res) {
   const patch = {}
   if (typeof req.body?.allowDmFromMen === "boolean") patch.allow_dm_from_men = req.body.allowDmFromMen
   if (typeof req.body?.showIgToMen === "boolean") patch.show_ig_to_men = req.body.showIgToMen
+  if (Array.isArray(req.body?.interests)) {
+    patch.interests = req.body.interests.slice(0, 16).map((i) => String(i).slice(0, 40))
+  }
+
+  // the vibes prompt was shown: stamp it once, for the ops funnel. its own write
+  // so a missing column (migration 004 not run) never blocks the real save.
+  if (req.body?.vibesSeen === true) {
+    await db.from("members").update({ vibes_seen_at: new Date().toISOString() }).eq("token", me.token).is("vibes_seen_at", null)
+      .then(() => {}, () => {})
+    if (!Object.keys(patch).length) return res.status(200).json({ ok: true })
+  }
   if (!Object.keys(patch).length) return res.status(400).json({ error: "nothing to update" })
 
   try {

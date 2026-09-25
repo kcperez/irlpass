@@ -5,6 +5,7 @@ import { useEffect } from "react"
 import { t } from "../lib/i18n"
 import RangePicker from "../components/RangePicker"
 import { CITY_INDEX, searchCities, slugify, cityChip } from "../lib/cities"
+import { VIBES, MIN_VIBES, vibeLabel, joinVibes } from "../lib/vibes"
 
 // two taps and you're on the calendar: where + when, then how we reach you.
 
@@ -19,6 +20,22 @@ const addDays = (isoDate, n) => {
 }
 const fmtShort = (isoDate) =>
   new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+
+// the next four months as "just the month" choices: first to last day, never before today
+const MONTHS = (() => {
+  const now = new Date()
+  return Array.from({ length: 4 }, (_, i) => {
+    const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1))
+    const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i + 1, 0))
+    const s = iso(first) < todayIso() ? todayIso() : iso(first)
+    return {
+      key: iso(first).slice(0, 7),
+      label: first.toLocaleDateString(undefined, { month: "long", timeZone: "UTC" }).toLowerCase(),
+      s,
+      e: iso(last),
+    }
+  })
+})()
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -70,9 +87,13 @@ export default function Join({ ig, onBack, onDone }) {
   const [city, setCity] = useState(params.get("city") || "medellin")
   const [customCity, setCustomCity] = useState("")
   const [flexible, setFlexible] = useState(false)
-  const [picked, setPicked] = useState(params.get("starts") ? "shared" : null) // which preset, or "exact"
-  const [exact, setExact] = useState(false)
+  // exact days are the default. "month" and "local" are the fallbacks for
+  // people who don't know yet or live there.
+  const [mode, setMode] = useState("exact") // exact | month | local
+  const [month, setMonth] = useState(null)
   const [local, setLocal] = useState(false)
+  const [vibes, setVibes] = useState([])
+  const [already, setAlready] = useState(false) // handle belongs to an existing member
   const matches = (() => {
     const found = searchCities(customCity)
     const slug = slugify(customCity)
@@ -80,8 +101,9 @@ export default function Join({ ig, onBack, onDone }) {
     if (slug && !found.some((c) => c.slug === slug)) return [cityChip(slug, customCity), ...found].slice(0, 6)
     return found
   })()
-  const [starts, setStarts] = useState(params.get("starts") || todayIso())
-  const [ends, setEnds] = useState(params.get("ends") || addDays(todayIso(), 6))
+  // nothing preselected: a default range someone skims past is how wrong dates got posted
+  const [starts, setStarts] = useState(params.get("starts") || null)
+  const [ends, setEnds] = useState(params.get("ends") || null)
   const [email, setEmail] = useState("")
   const [adult, setAdult] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -108,14 +130,21 @@ export default function Join({ ig, onBack, onDone }) {
           adult,
           city,
           dates: `${starts} to ${ends || starts}`,
+          interests: vibes,
         }),
       })
       const d = await r.json()
+      if (r.ok && d.emailed) {
+        // that instagram already has an account under another email
+        setBusy(false)
+        setAlready(true)
+        return
+      }
       if (!r.ok || !d.token) throw new Error(d.error || "something went wrong")
       await fetch("/api/trips", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ t: d.token, city, starts, ends: ends || starts, local }),
+        body: JSON.stringify({ t: d.token, city, starts, ends: ends || starts, local, flexible }),
       }).catch(() => {})
       localStorage.setItem("irlpass_member_token", d.token)
       onDone(d.token)
@@ -131,7 +160,7 @@ export default function Join({ ig, onBack, onDone }) {
       const r = await fetch("/api/preview", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ city, starts, ends }),
+        body: JSON.stringify({ city, starts, ends: ends || starts, vibes }),
       })
       setPreview(await r.json())
     } catch {
@@ -191,51 +220,115 @@ export default function Join({ ig, onBack, onDone }) {
       key: "when",
       art: "/art/icon-dates.png",
       title: t("when?"),
-      valid: !!picked && !!starts && (!ends || ends >= starts),
+      valid: !!starts && !!ends && ends >= starts,
       body: (
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { key: "local", label: t("i live here"), s: todayIso(), e: addDays(todayIso(), 89), flex: true, local: true },
-              { key: "now", label: t("i'm here now"), s: todayIso(), e: addDays(todayIso(), 13), flex: false },
-              { key: "week", label: t("next week"), s: addDays(todayIso(), 7), e: addDays(todayIso(), 13), flex: false },
-              { key: "month", label: t("next month"), s: addDays(todayIso(), 30), e: addDays(todayIso(), 36), flex: false },
-              { key: "soon", label: t("not sure yet"), s: todayIso(), e: addDays(todayIso(), 29), flex: true },
-            ].map((q) => (
-              <Bubble
-                key={q.key}
-                active={picked === q.key}
-                onClick={() => { setPicked(q.key); setStarts(q.s); setEnds(q.e); setFlexible(q.flex); setLocal(!!q.local); setExact(false) }}
-              >
-                {q.label}
-              </Bubble>
-            ))}
-          </div>
-
-          {exact ? (
+          {mode === "exact" && (
             <RangePicker
               starts={starts}
               ends={ends}
-              onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e); setPicked("exact") }}
+              onChange={({ starts: s, ends: e }) => { setStarts(s); setEnds(e); setFlexible(false); setLocal(false) }}
             />
-          ) : (
-            <button
-              onClick={() => { setExact(true); setPicked("exact") }}
-              className="w-fit text-[13px] font-semibold text-ink-soft underline underline-offset-4"
-            >
-              {t("pick exact dates")}
-            </button>
           )}
 
-          {picked && (
-            <p className="text-[13px] font-semibold text-ink-soft">
-              {local
-                ? t("you'll show up for anyone landing here")
-                : flexible
-                  ? t("we'll look at the next month and ping you when someone matches")
-                  : `${fmtShort(starts)} → ${fmtShort(ends)}`}
+          {mode === "month" && (
+            <div className="grid grid-cols-2 gap-2">
+              {MONTHS.map((m) => (
+                <Bubble
+                  key={m.key}
+                  active={month === m.key}
+                  onClick={() => { setMonth(m.key); setStarts(m.s); setEnds(m.e); setFlexible(true); setLocal(false) }}
+                >
+                  {m.label}
+                </Bubble>
+              ))}
+            </div>
+          )}
+
+          {mode === "local" && (
+            <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+              <p className="text-[15px] font-bold">{t("you live here")}</p>
+              <p className="mt-0.5 text-[13px] text-ink">
+                {t("you'll show up for anyone landing here through")} {fmtShort(ends)}. {t("we'll check in before then.")}
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {mode !== "exact" && (
+              <button
+                onClick={() => { setMode("exact"); setStarts(null); setEnds(null); setFlexible(false); setLocal(false); setMonth(null) }}
+                className="rounded-full border-2 border-ink bg-white/80 px-3.5 py-2 text-[13px] font-bold"
+              >
+                📅 {t("pick exact dates")}
+              </button>
+            )}
+            {mode === "exact" && (
+              <button
+                onClick={() => { setStarts(todayIso()); setEnds(null) }}
+                className="rounded-full border-2 border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
+              >
+                {t("i'm here now")}
+              </button>
+            )}
+            {mode !== "month" && (
+              <button
+                onClick={() => { setMode("month"); setStarts(null); setEnds(null); setMonth(null); setLocal(false) }}
+                className="rounded-full border-2 border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
+              >
+                {t("not sure of the days? just the month")}
+              </button>
+            )}
+            {mode !== "local" && (
+              <button
+                onClick={() => { setMode("local"); setStarts(todayIso()); setEnds(addDays(todayIso(), 89)); setFlexible(true); setLocal(true); setMonth(null) }}
+                className="rounded-full border-2 border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
+              >
+                🏠 {t("i live here")}
+              </button>
+            )}
+          </div>
+
+          {starts && ends && mode !== "local" && (
+            <p className="text-[14px] font-bold">
+              {fmtShort(starts)} → {fmtShort(ends)}
+              {flexible && <span className="font-semibold text-ink-soft"> · {t("flexible")}</span>}
             </p>
           )}
+        </div>
+      ),
+    },
+    {
+      key: "vibes",
+      art: "/art/icon-people.png",
+      title: t("what's your vibe?"),
+      valid: vibes.length >= MIN_VIBES,
+      body: (
+        <div className="flex flex-col gap-3">
+          <p className="-mt-2 text-[14px] text-ink-soft">
+            {t("pick at least 3. we put people who like the same things at the top.")}
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {VIBES.map((v) => {
+              const on = vibes.includes(v.key)
+              return (
+                <motion.button
+                  key={v.key}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => setVibes((l) => (on ? l.filter((x) => x !== v.key) : [...l, v.key]))}
+                  className={`flex aspect-[1/0.9] flex-col items-center justify-center gap-1 rounded-[1.2rem] border-2 px-1 text-center transition-colors ${
+                    on ? "border-ink bg-lime" : "border-line bg-white/70"
+                  }`}
+                >
+                  <span className="text-[26px] leading-none">{v.emoji}</span>
+                  <span className={`text-[12px] font-bold leading-tight ${on ? "text-ink" : "text-ink-soft"}`}>{vibeLabel(v.key)}</span>
+                </motion.button>
+              )
+            })}
+          </div>
+          <p className="text-center text-[12.5px] font-semibold text-ink-soft">
+            {vibes.length < MIN_VIBES ? `${vibes.length} / ${MIN_VIBES}` : `${vibes.length} ${t("picked")} ✓`}
+          </p>
         </div>
       ),
     },
@@ -279,6 +372,12 @@ export default function Join({ ig, onBack, onDone }) {
                   )}
                 </p>
               </div>
+
+              {preview.vibeMatches > 0 && (
+                <div className="w-fit rounded-full border-2 border-ink bg-lime px-3.5 py-1.5 text-[13px] font-bold">
+                  {preview.vibeMatches} {preview.vibeMatches === 1 ? t("of them is into") : t("of them are into")} {joinVibes(preview.topShared || [])}
+                </div>
+              )}
 
               {((preview.count > 0 ? preview.faces : preview.cityFaces) || []).length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -356,6 +455,21 @@ export default function Join({ ig, onBack, onDone }) {
     },
   ]
 
+  if (already) {
+    return (
+      <div className="relative flex min-h-[var(--app-h)] flex-col justify-center px-6">
+        <img src="/art/icon-chat.png" alt="" className="h-24 w-24 object-contain" draggable="false" />
+        <h1 className="display mt-2 text-[32px] font-bold leading-[0.98] tracking-tight">{t("you're already a member")}</h1>
+        <p className="mt-3 text-[15px] text-ink-soft">
+          @{ig} {t("already has an account. we just emailed a link that opens it to the address you signed up with.")}
+        </p>
+        <button onClick={onBack} className="mt-6 w-fit text-[14px] font-semibold text-ink-soft underline underline-offset-4">
+          {t("back")}
+        </button>
+      </div>
+    )
+  }
+
   const chip = cityChip(city, customCity)
   const cur = steps[step]
   const last = step === steps.length - 1
@@ -399,7 +513,7 @@ export default function Join({ ig, onBack, onDone }) {
         disabled={!cur.valid || busy}
         onClick={() => {
           if (last) return submit()
-          if (steps[step].key === "when") loadPreview()
+          if (steps[step].key === "vibes") loadPreview()
           setStep((s) => s + 1)
         }}
         className="relative flex items-center justify-center gap-2 rounded-full bg-ink py-4 text-[17px] font-bold text-cream disabled:opacity-40"

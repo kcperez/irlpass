@@ -39,5 +39,6 @@ export default async function handler(req, res) {
     showIgToMen: member.showIgToMen,
     foundingFree: !!member.foundingFree,
     foundingNo: member.foundingNo,
+    interests: member.interests || [],
   })
 }

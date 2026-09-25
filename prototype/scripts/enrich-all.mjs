@@ -1,17 +1,20 @@
 // one-off: pull instagram photo + follower count for every member.
-// usage: node --env-file=.env.local scripts/enrich-all.mjs [--go] [--force 001,002]
+// usage: node --env-file=.env.local scripts/enrich-all.mjs [--go] [--force 001,002] [--missing]
+// --missing only scrapes members with no photo yet (the photo backfill)
 import { createClient } from "@supabase/supabase-js"
 
 const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
 const GO = process.argv.includes("--go")
 const forceArg = process.argv.indexOf("--force")
 const FORCE = forceArg > -1 ? (process.argv[forceArg + 1] || "").split(",") : []
+const MISSING = process.argv.includes("--missing")
 
-const { data: members } = await db
+const { data: all } = await db
   .from("members")
   .select("member_no, name, ig, photo_url")
   .lt("member_no", "900")
   .order("member_no")
+const members = MISSING ? all.filter((m) => !m.photo_url) : all
 
 const handles = members
   .map((m) => String(m.ig || "").replace(/^@+/, "").trim().toLowerCase())

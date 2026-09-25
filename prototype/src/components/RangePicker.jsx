@@ -5,6 +5,21 @@ import { t } from "../lib/i18n"
 // Our own date range picker. The native one showed MM/DD/YYYY to an audience
 // that reads DD/MM, and it dropped an OS calendar glyph into a rounded app.
 
+// the week starts where the reader's calendar starts: sunday in the US (most of
+// our members), monday across latam and europe. 0 = sunday, 1 = monday.
+const WEEK_START = (() => {
+  try {
+    const lang = navigator.language || "en-US"
+    const loc = new Intl.Locale(lang)
+    const info = loc.getWeekInfo?.() || loc.weekInfo
+    if (info?.firstDay) return info.firstDay % 7
+    // no region on the locale: english readers get sunday, everyone else monday
+    return /^en(-US|-CA)?$/i.test(lang) || /-US$/i.test(lang) ? 0 : 1
+  } catch {
+    return 0
+  }
+})()
+
 const iso = (d) => d.toISOString().slice(0, 10)
 const todayIso = () => iso(new Date())
 const monthOf = (isoDate) => isoDate.slice(0, 7)
@@ -15,7 +30,7 @@ function buildMonth(ym) {
   const [y, m] = ym.split("-").map(Number)
   const first = new Date(Date.UTC(y, m - 1, 1))
   const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
-  const pad = (first.getUTCDay() + 6) % 7 // monday first
+  const pad = (first.getUTCDay() - WEEK_START + 7) % 7
   return {
     label: first.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" }),
     pad,
@@ -42,10 +57,11 @@ export default function RangePicker({ starts, ends, onChange, busyDays = {} }) {
   }
 
   const weekdays = useMemo(() => {
-    const base = new Date(Date.UTC(2024, 0, 1)) // a monday
-    return Array.from({ length: 7 }, (_, i) =>
-      new Date(Date.UTC(2024, 0, 1 + i)).toLocaleDateString(undefined, { weekday: "narrow", timeZone: "UTC" })
-    ).map((d, i) => ({ d, i, key: base.getTime() + i }))
+    // 2023-12-31 was a sunday, so day 0 + WEEK_START lands on the first column
+    return Array.from({ length: 7 }, (_, i) => {
+      const day = new Date(Date.UTC(2023, 11, 31 + WEEK_START + i))
+      return { d: day.toLocaleDateString(undefined, { weekday: "narrow", timeZone: "UTC" }), key: i }
+    })
   }, [])
 
   return (

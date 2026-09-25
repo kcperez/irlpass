@@ -132,3 +132,55 @@ export async function refreshIfStale(member) {
   }
   await db.from("members").update(patch).eq("member_no", member.memberNo)
 }
+
+// Backfill: every member still without a photo, in one scraper run (far cheaper
+// than one run each). Only fills blanks, never replaces a photo someone has.
+export async function backfillPhotos() {
+  const token = process.env.APIFY_TOKEN
+  if (!token) return { error: "no scraper key" }
+  const { data: members } = await db
+    .from("members")
+    .select("member_no, ig, photo_url, banned")
+    .lt("member_no", "900")
+    .is("photo_url", null)
+  const todo = (members || [])
+    .filter((m) => !m.banned)
+    .map((m) => ({ no: m.member_no, handle: String(m.ig || "").replace(/^@+/, "").trim().toLowerCase() }))
+    .filter((m) => /^[a-z0-9._]{1,30}$/.test(m.handle))
+  if (!todo.length) return { missing: 0, filled: 0 }
+
+  const r = await fetch(
+    `https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=240`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ usernames: todo.map((m) => m.handle) }),
+    }
+  )
+  if (!r.ok) return { error: `scraper ${r.status}`, missing: todo.length, filled: 0 }
+  const items = await r.json()
+  const byUser = new Map((items || []).filter((p) => p?.username).map((p) => [p.username.toLowerCase(), p]))
+
+  let filled = 0
+  const notFound = []
+  for (const m of todo) {
+    const p = byUser.get(m.handle)
+    const src = p && !p.error ? p.profilePicUrlHD || p.profilePicUrl : null
+    if (!src) { notFound.push(m.handle); continue }
+    const stored = await storePhoto(src, m.no)
+    if (!stored) { notFound.push(m.handle); continue }
+    await db
+      .from("members")
+      .update({
+        photo_url: stored,
+        photo_source: "instagram",
+        ig_followers: typeof p.followersCount === "number" ? p.followersCount : null,
+        ig_private: !!p.private,
+        ig_checked_at: new Date().toISOString(),
+      })
+      .eq("member_no", m.no)
+      .is("photo_url", null)
+    filled++
+  }
+  return { missing: todo.length, filled, notFound }
+}

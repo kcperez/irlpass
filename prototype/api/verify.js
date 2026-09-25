@@ -16,6 +16,15 @@ export default async function handler(req, res) {
   const code = verifyCode(me.memberNo, token)
 
   if (req.method === "GET") {
+    // Josh's #10: stamp the moment someone first sees the code, so
+    // ig_verified_at against this tells us where the drop-off happens.
+    if (!me.verified) {
+      db.from("members")
+        .update({ verify_seen_at: new Date().toISOString() })
+        .eq("member_no", me.memberNo)
+        .is("verify_seen_at", null)
+        .then(() => {}, () => {})
+    }
     return res.status(200).json({ code, verified: me.verified, ig: me.ig })
   }
 

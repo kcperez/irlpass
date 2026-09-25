@@ -63,7 +63,7 @@ export async function createAcceptedMember(input = {}) {
     gender: VALID_GENDERS.includes(input.gender) ? input.gender : null,
     birthday: input.birthday ? String(input.birthday).slice(0, 10) : null,
     interests: Array.isArray(input.interests)
-      ? input.interests.slice(0, 10).map((i) => String(i).slice(0, 40))
+      ? input.interests.slice(0, 16).map((i) => String(i).slice(0, 40))
       : [],
     verified_selfie: !!input.verifiedSelfie,
     allow_dm_from_men: input.allowDmFromMen !== false, // default on
