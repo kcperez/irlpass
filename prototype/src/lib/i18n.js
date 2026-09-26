@@ -499,6 +499,11 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "more in": "más en",
   "no dates yet": "sin fechas aún",
   "members who joined for this city but haven't said when they're here. once they post dates they move up top.": "miembros que se unieron por esta ciudad pero no han dicho cuándo están. cuando pongan fechas suben arriba.",
+  "nobody's posted these days yet. post yours and you're the first face people see.": "nadie ha puesto estos días aún. pon los tuyos y eres la primera cara que ven.",
+  "person is there then": "persona está ahí esos días",
+  "people are there then": "personas están ahí esos días",
+  "tap another day to make it a range": "toca otro día para hacer un rango",
+  "post these dates to meet them": "pon estas fechas para conocerles",
 }
 
 export function t(str, vars) {
