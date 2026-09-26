@@ -3,6 +3,7 @@ import { db } from "./_db.js"
 import { today } from "./_access.js"
 import { refreshIfStale } from "./_instagram.js"
 import { waitUntil } from "@vercel/functions"
+import { isMod } from "./_mods.js"
 
 export default async function handler(req, res) {
   // free tier: any accepted, non-banned user gets in. `paid` tells the client
@@ -41,5 +42,9 @@ export default async function handler(req, res) {
     foundingFree: !!member.foundingFree,
     foundingNo: member.foundingNo,
     interests: member.interests || [],
+    // isMod = this account has mod powers at all; memberView = it's switched
+    // them off to test as a regular member. the app shows which one clearly.
+    isMod: isMod(member.memberNo),
+    memberView: !!member.modOff,
   })
 }

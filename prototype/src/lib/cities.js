@@ -3,6 +3,8 @@
 
 export const CITY_INDEX = [
   ["medellin", "Medellín", "🇨🇴"], ["bogota", "Bogotá", "🇨🇴"], ["cartagena", "Cartagena", "🇨🇴"],
+  ["cali", "Cali", "🇨🇴"], ["barranquilla", "Barranquilla", "🇨🇴"], ["santa-marta", "Santa Marta", "🇨🇴"],
+  ["pereira", "Pereira", "🇨🇴"], ["guatape", "Guatapé", "🇨🇴"],
   ["cdmx", "Mexico City", "🇲🇽"], ["playa-del-carmen", "Playa del Carmen", "🇲🇽"], ["oaxaca", "Oaxaca", "🇲🇽"],
   ["tulum", "Tulum", "🇲🇽"], ["guadalajara", "Guadalajara", "🇲🇽"],
   ["miami", "Miami", "🇺🇸"], ["new-york", "New York", "🇺🇸"], ["los-angeles", "Los Angeles", "🇺🇸"],
@@ -51,9 +53,21 @@ export function searchCities(q, limit = 6) {
   return [...starts, ...contains].slice(0, limit)
 }
 
+// real cities beyond our list, with their flags: learned from the server
+// (stats.cityMeta) and from whatever someone picks in a search
+const EXTRA = new Map()
+export const rememberCity = (c) => {
+  if (c?.slug && c.name && !CITY_INDEX.some((k) => k.slug === c.slug)) {
+    EXTRA.set(c.slug, { slug: c.slug, name: c.name, emoji: c.emoji || "📍" })
+  }
+}
+export const registerCities = (meta) => {
+  for (const [slug, m] of Object.entries(meta || {})) rememberCity({ slug, ...m })
+}
+
 // a typed city we don't know yet still deserves a chip
 export const cityChip = (slug, typed) => {
-  const known = CITY_INDEX.find((c) => c.slug === slug)
+  const known = CITY_INDEX.find((c) => c.slug === slug) || EXTRA.get(slug)
   if (known) return known
   const name = String(typed || slug || "")
     .split(/[-\s]+/)

@@ -1,6 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
-import { isMod } from "./_mods.js"
+import { actsAsMod } from "./_mods.js"
 import { today } from "./_access.js"
 import { backfillPhotos } from "./_instagram.js"
 
@@ -10,7 +10,7 @@ export const config = { maxDuration: 300 }
 // the founders' view: what happened today, what's on the calendar, who's stuck.
 export default async function handler(req, res) {
   const me = await getUser(req.query?.t)
-  if (!me || !isMod(me.memberNo)) return res.status(401).json({ error: "not allowed" })
+  if (!me || !actsAsMod(me)) return res.status(401).json({ error: "not allowed" })
 
   // POST ?t=&action=backfill-photos -> pull instagram photos for everyone without one
   // POST ?t=&action=refresh-photos&batch=N -> re-pull instagram photos for everyone, 60 at a time

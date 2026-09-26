@@ -34,6 +34,10 @@ export default async function handler(req, res) {
     const cities = Object.keys(counts)
     const travelling = new Set((trips || []).map((t) => t.member_no)).size
 
+    // names + flags for real cities beyond the built-in list
+    const { data: known } = await db.from("cities").select("slug, name, emoji")
+    const cityMeta = Object.fromEntries((known || []).map((c) => [c.slug, { name: c.name, emoji: c.emoji }]))
+
     res.setHeader("cache-control", "public, s-maxage=120, stale-while-revalidate=600")
     return res.status(200).json({
       members: members || 0,
@@ -41,6 +45,7 @@ export default async function handler(req, res) {
       cities: cities.length,
       byCity: counts,
       membersByCity,
+      cityMeta,
     })
   } catch (e) {
     console.error("stats error:", e)

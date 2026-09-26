@@ -1,6 +1,7 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { canonicalCity, cityLabel } from "./_cities.js"
+import { isRealCity, saveCity } from "./_realcity.js"
 
 // Josh's ask: every "is this in ___" is roadmap data and right now it
 // evaporates. POST { t, city } logs one. GET (mods only) reads the tally.
@@ -12,6 +13,8 @@ export default async function handler(req, res) {
     const raw = String(req.body?.city || "").trim()
     if (!raw || raw.length > 60) return res.status(400).json({ error: "which city?" })
     const city = canonicalCity(raw)
+    if (!(await isRealCity(city))) return res.status(400).json({ error: "that isn't a city we can find" })
+    await saveCity(city)
     try {
       await db.from("city_requests").insert({
         city,

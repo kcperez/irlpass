@@ -1,5 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
+import { isMod } from "./_mods.js"
 
 // POST { t, allowDmFromMen?, showIgToMen?, interests?, vibesSeen? } -> update a
 // member's safety prefs and vibes. safety powers the women-safety layer: who can
@@ -12,6 +13,11 @@ export default async function handler(req, res) {
   const patch = {}
   if (typeof req.body?.allowDmFromMen === "boolean") patch.allow_dm_from_men = req.body.allowDmFromMen
   if (typeof req.body?.showIgToMen === "boolean") patch.show_ig_to_men = req.body.showIgToMen
+  // mods only: flip between mod mode and member view (test as a regular member)
+  if (typeof req.body?.testAsMember === "boolean" && isMod(me.memberNo)) {
+    patch.test_as_member = req.body.testAsMember
+  }
+
   if (Array.isArray(req.body?.interests)) {
     patch.interests = req.body.interests.slice(0, 16).map((i) => String(i).slice(0, 40))
   }

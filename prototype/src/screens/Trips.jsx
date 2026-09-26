@@ -4,7 +4,8 @@ import {
   CalendarPlus, CheckCircle, CircleNotch, LockSimple,
   PencilSimple, Plus, Trash, X,
 } from "@phosphor-icons/react"
-import { CITY_INDEX, cityChip, searchCities, slugify } from "../lib/cities"
+import { CITY_INDEX, cityChip, rememberCity } from "../lib/cities"
+import { useCitySearch } from "../lib/useCitySearch"
 import { t } from "../lib/i18n"
 import RangePicker from "../components/RangePicker"
 import { joinVibes } from "../lib/vibes"
@@ -113,6 +114,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
   const [city, setCity] = useState(trip?.city || defaultCity || "medellin")
   const [typed, setTyped] = useState(trip ? cityName(trip.city) : "")
   const [locating, setLocating] = useState(false)
+  const found = useCitySearch(typed && typed !== cityName(city) ? typed : "")
   // exact days are the default and nothing is preselected: a range someone
   // skims past is how wrong dates were getting posted
   const [mode, setMode] = useState(trip?.local ? "local" : prefillMonth ? "month" : "exact") // exact | month | local
@@ -172,9 +174,9 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
       <input
         id="trip-city"
         value={typed}
-        onChange={(e) => { setTyped(e.target.value); const s = slugify(e.target.value); if (s) setCity(s) }}
+        onChange={(e) => setTyped(e.target.value)}
         autoComplete="off"
-        placeholder={t("type any city")}
+        placeholder={t("search a city")}
         className="mb-2 mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-4 py-3 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
       />
       <button
@@ -199,20 +201,10 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
       </button>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
-        {(typed.trim()
-          ? (() => {
-              const found = searchCities(typed)
-              const slug = slugify(typed)
-              // a city we don't know yet still gets a button, with a pin
-              return slug && !found.some((c) => c.slug === slug)
-                ? [cityChip(slug, typed), ...found].slice(0, 6)
-                : found
-            })()
-          : CITIES
-        ).map((c) => (
+        {(typed.trim() && typed !== cityName(city) ? found.results : CITIES).map((c) => (
           <button
             key={c.slug}
-            onClick={() => { setCity(c.slug); setTyped(c.name) }}
+            onClick={() => { rememberCity(c); setCity(c.slug); setTyped(c.name) }}
             className={`rounded-full border-2 px-3.5 py-2 text-[13px] font-semibold ${
               city === c.slug ? "border-ink bg-lime text-ink" : "border-line bg-white/60 text-ink-soft"
             }`}
@@ -221,6 +213,9 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
           </button>
         ))}
       </div>
+      {found.none && (
+        <p className="-mt-1 mb-3 text-[12.5px] font-semibold text-ink-soft">{t("no city by that name. try the full name, like coimbatore or los angeles.")}</p>
+      )}
 
       {mode === "exact" && (
         <RangePicker

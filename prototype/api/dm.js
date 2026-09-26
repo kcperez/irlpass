@@ -3,7 +3,7 @@ import { db } from "./_db.js"
 import { rowToMember } from "./_lib.js"
 import { notifyMemberNo } from "./_notify.js"
 import { canReachMember } from "./_access.js"
-import { isMod } from "./_mods.js"
+import { isMod, actsAsMod } from "./_mods.js"
 
 const pair = (a, b) => (String(a) < String(b) ? [String(a), String(b)] : [String(b), String(a)])
 
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       if (!other) return res.status(404).json({ error: "no such member" })
 
       // women-safety: respect the recipient's "allow dms from men" toggle
-      if (me.gender === "man" && other.allowDmFromMen === false && !isMod(me.memberNo)) {
+      if (me.gender === "man" && other.allowDmFromMen === false && !actsAsMod(me)) {
         return res.status(403).json({ error: "this member only accepts dms from women & non-binary members" })
       }
 
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
           .eq("from_no", String(to))
         theyWroteFirst = (count || 0) > 0
       }
-      if (!theyWroteFirst && !isMod(me.memberNo) && !isMod(String(to))) {
+      if (!theyWroteFirst && !actsAsMod(me) && !isMod(String(to))) {
         const reach = await canReachMember(me, String(to))
         const shared = reach.ok ? true : await shareActivity(me.memberNo, String(to))
         if (!reach.ok && !shared) {

@@ -1,5 +1,6 @@
 import { get } from "@vercel/blob"
 import { db } from "./_db.js"
+import { isMod } from "./_mods.js"
 
 export const TOKEN_RE = /^[a-f0-9]{32}$/
 
@@ -41,6 +42,7 @@ export const rowToMember = (r) =>
     // v2: founding slot = messaging is free for this member, forever
     foundingFree: !!r.founding_free,
     foundingNo: r.founding_no || null,
+    testAsMember: r.test_as_member === true,
   }
 
 // look up an accepted person by token (paid or not)
@@ -55,6 +57,11 @@ export async function getAccepted(token) {
 export async function getUser(token) {
   const m = await getAccepted(token)
   if (!m || m.banned) return null
+  // member view: a mod testing as a regular free member loses the pass, the
+  // founding slot and mod powers (see actsAsMod) until they flip back
+  if (m.testAsMember && isMod(m.memberNo)) {
+    return { ...m, modOff: true, paid: false, foundingFree: false, comped: false }
+  }
   return m
 }
 

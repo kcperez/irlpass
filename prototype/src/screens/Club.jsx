@@ -17,8 +17,10 @@ import { Logo } from "../components/bits"
 import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
-import { cityChip } from "../lib/cities"
-import { isMod } from "../lib/mods"
+import { cityChip, registerCities } from "../lib/cities"
+
+// mod powers are on only in mod mode; member view tests the regular experience
+const modOn = (me) => !!me?.isMod && !me?.memberView
 import { VIBES, MIN_VIBES, vibeLabel } from "../lib/vibes"
 
 const CITIES = [
@@ -331,7 +333,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onClose }) {
                 <span className="font-semibold">{me.igFollowers.toLocaleString()} {t("followers")}</span>
               )}
               <span>nº {me.memberNo}</span>
-              {isMod(me.memberNo) && <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold text-ink">{t("co-founder")}</span>}
+              {modOn(me) && <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold text-ink">{t("co-founder")}</span>}
             </p>
           </div>
         </div>
@@ -368,7 +370,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onClose }) {
           </span>
         </button>
 
-        {isMod(me.memberNo) && (
+        {modOn(me) && (
           <a
             href={`/?screen=ops&t=${token}`}
             className="mt-4 flex items-center justify-between rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-3.5"
@@ -459,7 +461,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onClose }) {
 // from real places, pinned to the city the plan is being created in)
 function TopBar({ me, onProfile }) {
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line/70 bg-cream/95 px-5 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur md:pt-12">
+    <header className={`sticky top-0 z-10 flex items-center justify-between border-b border-line/70 bg-cream/95 px-5 pb-3 backdrop-blur ${me?.isMod ? "pt-3" : "pt-[max(1rem,env(safe-area-inset-top))] md:pt-12"}`}>
       <Logo h="h-9" />
       <button
         onClick={onProfile}
@@ -1115,7 +1117,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         setRooms(cities.length ? cities : [me.city || "medellin"])
         if (cities.length && !cities.includes(roomCity)) setRoomCity(cities[0])
         // mods (josh, kevin) moderate every room, not only the cities they have dates in
-        if (isMod(me.memberNo)) {
+        if (modOn(me)) {
           fetch("/api/stats")
             .then((r) => r.json())
             .then((st) => {
@@ -1270,7 +1272,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         me={me}
         photoMap={photoMap}
         channel={roomCity}
-        title={`${cityName} chat`}
+        title={`${cityChip(roomCity).emoji} ${cityName} chat`}
         onBack={() => setRoomOpen(false)}
         onNeedDates={onNeedDates}
         onSeen={(lastId) => markRoomSeen(roomCity, lastId)}
@@ -1289,7 +1291,9 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           onClick={() => { setRoomCity(c); setRoomOpen(true) }}
           className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left active:scale-[0.99]"
         >
-          <img src="/art/icon-chat.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable="false" />
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-cream text-[26px] leading-none" aria-hidden>
+            {cityChip(c).emoji}
+          </span>
           <div className="min-w-0">
             <p className="display text-[19px] font-bold leading-tight">{cityChip(c).name.toLowerCase()} {t("chat")}</p>
             <p className="text-[12.5px] text-ink-soft">
@@ -1414,6 +1418,48 @@ function VibesSheet({ token, me, onSaved, onClose }) {
   )
 }
 
+/* ---------- mod mode vs member view ---------- */
+// kevin and josh test both sides. a strip that can't be missed says which one
+// they're in, and one tap flips it (the server enforces it, the page reloads).
+function ModeStrip({ token, me }) {
+  const [busy, setBusy] = useState(false)
+  if (!me?.isMod) return null
+  const member = !!me.memberView
+  const flip = async () => {
+    setBusy(true)
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, testAsMember: !member }),
+    }).catch(() => {})
+    try { sessionStorage.removeItem("irlpass_vibes_asked") } catch { /* private mode */ }
+    window.location.reload()
+  }
+  return (
+    <button
+      onClick={flip}
+      disabled={busy}
+      className={`flex w-full items-center justify-between gap-2 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-left ${
+        member ? "bg-peach text-ink" : "bg-ink text-cream"
+      }`}
+    >
+      <span className="min-w-0">
+        <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.16em]">
+          {member ? "member view" : "mod mode"}
+        </span>
+        <span className="block truncate text-[11.5px] font-semibold opacity-80">
+          {member
+            ? "you see exactly what a regular free member sees"
+            : "every room, no paywalls, ops dashboard"}
+        </span>
+      </span>
+      <span className={`shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${member ? "bg-ink text-cream" : "bg-lime text-ink"}`}>
+        {busy ? "switching…" : member ? "back to mod" : "test as member"}
+      </span>
+    </button>
+  )
+}
+
 /* ---------- shell ---------- */
 export default function Club({ token }) {
   const [me, setMe] = useState(null)
@@ -1455,6 +1501,15 @@ export default function Club({ token }) {
     try { sessionStorage.setItem("irlpass_vibes_asked", "1") } catch { /* private mode */ }
     setVibesOpen(false)
   }
+
+  // flags + names for every real city in use, so rooms and chips have an identity
+  const [, setCitiesReady] = useState(0)
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((d) => { registerCities(d.cityMeta); setCitiesReady((x) => x + 1) })
+      .catch(() => {})
+  }, [])
 
   // the chat tab shows a dot when anything is waiting
   useEffect(() => {
@@ -1527,6 +1582,7 @@ export default function Club({ token }) {
 
   return (
     <div className="relative flex h-[var(--app-h)] flex-col">
+      <ModeStrip token={token} me={me} />
       {!inThread && <TopBar me={me} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}

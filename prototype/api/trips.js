@@ -3,6 +3,7 @@ import { db } from "./_db.js"
 import { isValidCity, cityLabel, OPEN_AT, cityBySlug, canonicalCity } from "./_cities.js"
 import { claimFoundingSlot, foundingLeft, myUnlocks, today, isDate, overlaps } from "./_access.js"
 import { sendEmail, matchEmail, cityOpenEmail } from "./_email.js"
+import { isRealCity, saveCity } from "./_realcity.js"
 
 const MAX_TRIPS = 6
 const MAX_NIGHTS = 120
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
       const { ends, flexible, note, local } = req.body || {}
       const area = cleanArea(req.body?.area)
       const city = canonicalCity(req.body?.city)
-      if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
+      if (!isValidCity(city) || !(await isRealCity(city))) return res.status(400).json({ error: "pick a real city from the list" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
       if (ends < starts) return res.status(400).json({ error: "the end date is before the start date" })
       if (ends < today()) return res.status(400).json({ error: "those dates have already passed" })
@@ -105,6 +106,7 @@ export default async function handler(req, res) {
         .single()
       if (error) throw error
 
+      await saveCity(trip.city)
       // first dates posted = claim one of the founding slots, while they last
       const foundingNo = await claimFoundingSlot(me)
       // tell the people already on those dates that someone new is coming
@@ -130,7 +132,7 @@ export default async function handler(req, res) {
       const { ends, flexible, note, local } = req.body || {}
       const area = cleanArea(req.body?.area)
       const city = canonicalCity(req.body?.city || prev.city)
-      if (!isValidCity(city)) return res.status(400).json({ error: "pick a city" })
+      if (!isValidCity(city) || !(await isRealCity(city))) return res.status(400).json({ error: "pick a real city from the list" })
       if (!isDate(starts) || !isDate(ends)) return res.status(400).json({ error: "pick your dates" })
       if (ends < starts) return res.status(400).json({ error: "the end date is before the start date" })
       if (ends < today()) return res.status(400).json({ error: "those dates have already passed" })
@@ -156,6 +158,7 @@ export default async function handler(req, res) {
         .single()
       if (error) throw error
 
+      await saveCity(trip.city)
       // new days or a new city means new people to tell
       if (trip.city !== prev.city || trip.starts !== prev.starts || trip.ends !== prev.ends) {
         notifyOverlap(me, trip).catch((e) => console.error("match email error:", e))

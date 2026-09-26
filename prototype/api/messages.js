@@ -1,12 +1,12 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { notifyMemberNo } from "./_notify.js"
-import { isMod } from "./_mods.js"
+import { actsAsMod } from "./_mods.js"
 import { today } from "./_access.js"
 
 // channels: a city slug (everyone in that city, plus mods) or a legacy activity id
 async function canAccess(channel, me) {
-  if (isMod(me.memberNo)) return true
+  if (actsAsMod(me)) return true
   if (/^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) return true
   if (!/^[a-f0-9]{16}$/.test(channel)) return false
   const { data } = await db.from("activities").select("joined").eq("id", channel).single()
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         if (!text || !String(text).trim()) return res.status(400).json({ error: "empty" })
         if (!(await canAccess(channel, me))) return res.status(403).json({ error: "join first" })
         // a city room is for people who are actually going to be there
-        if (!isMod(me.memberNo) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
+        if (!actsAsMod(me) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
           const { count } = await db
             .from("trips")
             .select("id", { count: "exact", head: true })

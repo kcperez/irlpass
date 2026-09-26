@@ -4,7 +4,8 @@ import { ArrowLeft, ArrowRight, CircleNotch, LockSimple } from "@phosphor-icons/
 import { useEffect } from "react"
 import { t } from "../lib/i18n"
 import RangePicker from "../components/RangePicker"
-import { CITY_INDEX, searchCities, slugify, cityChip } from "../lib/cities"
+import { CITY_INDEX, cityChip, registerCities, rememberCity } from "../lib/cities"
+import { useCitySearch } from "../lib/useCitySearch"
 import { VIBES, MIN_VIBES, vibeLabel, joinVibes } from "../lib/vibes"
 
 // two taps and you're on the calendar: where + when, then how we reach you.
@@ -94,13 +95,8 @@ export default function Join({ ig, onBack, onDone }) {
   const [local, setLocal] = useState(false)
   const [vibes, setVibes] = useState([])
   const [already, setAlready] = useState(false) // handle belongs to an existing member
-  const matches = (() => {
-    const found = searchCities(customCity)
-    const slug = slugify(customCity)
-    // anything we don't know still gets a chip, with a pin
-    if (slug && !found.some((c) => c.slug === slug)) return [cityChip(slug, customCity), ...found].slice(0, 6)
-    return found
-  })()
+  // only real cities: what's typed searches, a tapped result is the city
+  const found = useCitySearch(customCity)
   // nothing preselected: a default range someone skims past is how wrong dates got posted
   const [starts, setStarts] = useState(params.get("starts") || null)
   const [ends, setEnds] = useState(params.get("ends") || null)
@@ -111,7 +107,7 @@ export default function Join({ ig, onBack, onDone }) {
 
   // live head count per city, so a chip can show what's actually happening
   useEffect(() => {
-    fetch("/api/stats").then((r) => r.json()).then((d) => setByCity(d.byCity || {})).catch(() => {})
+    fetch("/api/stats").then((r) => r.json()).then((d) => { registerCities(d.cityMeta); setByCity(d.byCity || {}) }).catch(() => {})
   }, [])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState("")
@@ -185,22 +181,18 @@ export default function Join({ ig, onBack, onDone }) {
           <input
             id="join-city"
             value={customCity}
-            onChange={(e) => {
-              setCustomCity(e.target.value)
-              const slug = slugify(e.target.value)
-              if (slug) setCity(slug)
-            }}
+            onChange={(e) => setCustomCity(e.target.value)}
             autoComplete="off"
-            placeholder={t("type any city")}
+            placeholder={t("search a city")}
             className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
 
           <div className="flex flex-wrap gap-2">
-            {(customCity.trim() ? matches : QUICK).map((c) => (
+            {(customCity.trim() ? found.results : QUICK).map((c) => (
               <Bubble
                 key={c.slug}
                 active={city === c.slug}
-                onClick={() => { setCity(c.slug); setCustomCity(c.name) }}
+                onClick={() => { rememberCity(c); setCity(c.slug); setCustomCity(c.name) }}
               >
                 <span className="mr-1.5">{c.emoji}</span>
                 {c.name}
@@ -213,6 +205,12 @@ export default function Join({ ig, onBack, onDone }) {
               </Bubble>
             ))}
           </div>
+          {found.loading && found.results.length === 0 && (
+            <p className="text-[13px] font-semibold text-ink-soft">{t("searching…")}</p>
+          )}
+          {found.none && (
+            <p className="text-[13px] font-semibold text-ink-soft">{t("no city by that name. try the full name, like coimbatore or los angeles.")}</p>
+          )}
         </div>
       ),
     },

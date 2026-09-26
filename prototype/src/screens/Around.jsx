@@ -19,7 +19,8 @@ const fmt = (isoDate) =>
 const dayLetter = (isoDate) =>
   new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "narrow", timeZone: "UTC" })
 
-import { cityChip, searchCities, slugify, CITY_INDEX } from "../lib/cities"
+import { cityChip, CITY_INDEX, rememberCity } from "../lib/cities"
+import { useCitySearch } from "../lib/useCitySearch"
 import { isMod } from "../lib/mods"
 
 export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, viewCity, onViewCity }) {
@@ -43,6 +44,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
   }, [token])
   const [picking, setPicking] = useState(false)
   const [typed, setTyped] = useState("")
+  const found = useCitySearch(typed)
   const [view, setView] = useState("weeks") // weeks | year
   const [selectedDay, setSelectedDay] = useState(null)
   const [othersShown, setOthersShown] = useState(24) // the city roster can be hundreds; reveal it a page at a time
@@ -148,31 +150,28 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
             className="w-full rounded-[1.1rem] border-2 border-line bg-white px-3 py-2.5 text-[15px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {(typed.trim() ? searchCities(typed) : CITY_INDEX.slice(0, 6)).map((c) => (
+            {(typed.trim() ? found.results : CITY_INDEX.slice(0, 6)).map((c) => (
               <button
                 key={c.slug}
-                onClick={() => { setCity(c.slug); onViewCity?.(c.slug); setTyped(""); setPicking(false); setWeek(0); setData(null) }}
+                onClick={() => {
+                  rememberCity(c)
+                  // a real city nobody has opened yet is a request: roadmap data
+                  if (!CITY_INDEX.some((k) => k.slug === c.slug)) {
+                    fetch("/api/city-request", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ t: token, city: c.name, source: "browse" }),
+                    }).catch(() => {})
+                  }
+                  setCity(c.slug); onViewCity?.(c.slug); setTyped(""); setPicking(false); setWeek(0); setData(null)
+                }}
                 className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12.5px] font-bold"
               >
                 {c.emoji} {c.name}
               </button>
             ))}
-            {typed.trim() && searchCities(typed).length === 0 && (
-              <button
-                onClick={() => {
-                  const s = slugify(typed)
-                  // a city nobody has opened yet is a request: log it as roadmap data
-                  fetch("/api/city-request", {
-                    method: "POST",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify({ t: token, city: typed, source: "browse" }),
-                  }).catch(() => {})
-                  setCity(s); onViewCity?.(s); setTyped(""); setPicking(false); setWeek(0); setData(null)
-                }}
-                className="rounded-full border-2 border-ink bg-lime px-3 py-1.5 text-[12.5px] font-bold"
-              >
-                📍 {typed}
-              </button>
+            {found.none && (
+              <p className="w-full px-1 text-[12.5px] font-semibold text-ink-soft">{t("no city by that name. try the full name, like coimbatore or los angeles.")}</p>
             )}
           </div>
         </div>
