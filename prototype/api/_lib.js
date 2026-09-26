@@ -77,11 +77,23 @@ export async function getPaid(token) {
 // that are still strictly paid-only (portal, seat checkout/activate).
 export const getMember = getPaid
 
-// a locked person's face: a ~12px thumbnail the app blurs. enough to show a
-// real person is there, too small to recognize, and the full photo never
-// reaches someone who hasn't unlocked them. only works for photos we store.
+// a locked person's face: a 36x45 thumbnail the app softly blurs. enough to get
+// a read on who's there (guy, girl, their vibe), not enough to recognize them,
+// and the full photo never reaches someone who hasn't unlocked. stored photos only.
 export const lockedPhoto = (url) => {
   const u = String(url || "")
   if (!u.includes("/storage/v1/object/public/")) return null
-  return `${u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/").split("?")[0]}?width=12&height=15&resize=cover&quality=40`
+  return `${u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/").split("?")[0]}?width=36&height=45&resize=cover&quality=50`
+}
+
+// the first name a locked viewer sees. many members' "name" is just their
+// instagram handle, and showing that would give the account away before
+// they've unlocked, so a handle-looking name becomes an initial ("L.")
+export const safeFirstName = (name, ig) => {
+  const n = String(name || "").trim()
+  const first = n.split(/\s+/)[0] || ""
+  const handle = String(ig || "").replace(/^@+/, "").toLowerCase()
+  const looksLikeHandle = !first || first.toLowerCase() === handle || /[_.\d]/.test(first) || n.toLowerCase() === handle
+  if (looksLikeHandle) return first ? `${first[0].toUpperCase()}.` : "someone"
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase()
 }

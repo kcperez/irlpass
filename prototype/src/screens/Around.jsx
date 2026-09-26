@@ -269,7 +269,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
                     src={p.photo}
                     alt=""
                     loading="lazy"
-                    className={`h-full w-full object-cover ${p.locked ? "scale-110 blur-[10px]" : ""}`}
+                    className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[4px]" : ""}`}
                   />
                 ) : (
                   <div className={`display flex h-full w-full items-center justify-center text-[44px] font-bold text-ink-soft/40 ${p.locked ? "blur-[8px]" : ""}`}>
@@ -302,9 +302,8 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
 
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2.5 pb-2 pt-8 text-cream">
                   <p className="flex items-center gap-1 text-[14.5px] font-bold leading-tight">
-                    <span className={`truncate ${p.locked ? "select-none blur-[4px]" : ""}`}>
-                      {p.locked ? `${p.first} ••••` : p.name}
-                    </span>
+                    <span className="truncate">{p.locked ? p.first : p.name}</span>
+                    {p.locked && <LockSimple size={12} weight="fill" className="shrink-0 text-cream/70" />}
                     {p.verified && <CheckCircle size={14} weight="fill" className="shrink-0 text-lime" />}
                   </p>
                   <p className="truncate text-[11px] font-semibold text-cream/75">
@@ -360,11 +359,13 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
         <>
           <div className="mt-6 flex items-baseline justify-between">
             <h3 className="display text-[19px] font-bold">
-              {t("also in")} {cityChip(city).name.toLowerCase()}
+              {data.others.length} {t("more in")} {cityChip(city).name.toLowerCase()}
             </h3>
-            <span className="text-[12px] text-ink-soft">{data.others.length}</span>
+            <span className="rounded-full bg-cream-deep px-2 py-0.5 text-[11px] font-bold text-ink-soft">{t("no dates yet")}</span>
           </div>
-          <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("here, but no dates up yet")}</p>
+          <p className="mt-0.5 text-[12.5px] text-ink-soft">
+            {t("members who joined for this city but haven't said when they're here. once they post dates they move up top.")}
+          </p>
           <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-5">
             {data.others.slice(0, othersShown).map((p) => (
               <button
@@ -374,14 +375,14 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
               >
                 <div className="aspect-square w-full overflow-hidden rounded-[1rem] bg-cream-deep">
                   {p.photo ? (
-                    <img src={p.photo} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <img src={p.photo} alt="" loading="lazy" className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[3px]" : ""}`} />
                   ) : (
                     <div className="display flex h-full w-full items-center justify-center text-[20px] font-bold text-ink-soft/40">
                       {(p.name || p.first)[0]?.toUpperCase()}
                     </div>
                   )}
                 </div>
-                <span className="w-full truncate text-center text-[11px] font-semibold">{p.name || p.first}</span>
+                <span className="w-full truncate text-center text-[11px] font-semibold">{p.locked ? p.first : p.name || p.first}</span>
               </button>
             ))}
           </div>

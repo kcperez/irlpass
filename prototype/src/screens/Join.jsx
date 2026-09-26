@@ -388,7 +388,7 @@ export default function Join({ ig, onBack, onDone }) {
                       className="relative"
                     >
                       {f.photo ? (
-                        <img src={f.photo} alt="" className={`h-14 w-14 rounded-full object-cover ${i > 0 ? "blur-[5px]" : ""}`} />
+                        <img src={f.photo} alt="" className={`h-14 w-14 rounded-full object-cover ${i > 0 ? "scale-105 blur-[2.5px]" : ""}`} />
                       ) : (
                         <div className={`flex h-14 w-14 items-center justify-center rounded-full bg-cream-deep text-[18px] font-bold ${i > 0 ? "blur-[4px]" : ""}`}>
                           {f.first[0]?.toUpperCase()}

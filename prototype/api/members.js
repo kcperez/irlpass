@@ -1,4 +1,4 @@
-import { getUser, lockedPhoto, rowToMember } from "./_lib.js"
+import { getUser, lockedPhoto, rowToMember, safeFirstName } from "./_lib.js"
 import { db } from "./_db.js"
 import { isValidCity, canonicalCity } from "./_cities.js"
 import { canReach, today, overlaps } from "./_access.js"
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
 
       out.push({
         memberNo: m.memberNo,
-        first: String(m.name || "").trim().split(/\s+/)[0] || "someone",
+        first: open ? String(m.name || "").trim().split(/\s+/)[0] || "someone" : safeFirstName(m.name, m.ig),
         name: open ? m.name : null,
         ig: open ? m.ig : null,
         photo: open ? m.photo : lockedPhoto(m.photo),
@@ -121,9 +121,12 @@ export default async function handler(req, res) {
       const anyTrip = (trips || []).find((tr) => tr.member_no === m.memberNo)
       others.push({
         memberNo: m.memberNo,
-        first: String(m.name || "").trim().split(/\s+/)[0] || "someone",
-        name: m.name,
-        photo: m.photo,
+        // same rules as the dated list: people you haven't talked to are a
+        // preview (first name + soft photo) until you share dates or unlock
+        first: known.has(m.memberNo) ? String(m.name || "").trim().split(/\s+/)[0] || "someone" : safeFirstName(m.name, m.ig),
+        name: known.has(m.memberNo) ? m.name : null,
+        photo: known.has(m.memberNo) ? m.photo : lockedPhoto(m.photo),
+        locked: !known.has(m.memberNo),
         verified: m.verified,
         hasDates: !!anyTrip,
         shared: sharedWith(me.interests, m.interests),

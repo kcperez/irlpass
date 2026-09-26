@@ -1,4 +1,4 @@
-import { getUser, lockedPhoto, rowToMember } from "./_lib.js"
+import { getUser, lockedPhoto, rowToMember, safeFirstName } from "./_lib.js"
 import { db } from "./_db.js"
 import { isValidCity, canonicalCity } from "./_cities.js"
 import { canReach, isDate, overlaps, today } from "./_access.js"
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
       const open = access.ok || known.has(m.memberNo)
       people.push({
         memberNo: m.memberNo,
-        first: firstName(m.name),
+        first: open ? firstName(m.name) : safeFirstName(m.name, m.ig),
         name: open ? m.name : null,
         ig: open && (m.showIgToMen || me.gender !== "man") ? m.ig : null,
         photo: open ? m.photo : lockedPhoto(m.photo),

@@ -496,6 +496,9 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "say hi. you're in the same city on the same days.": "saluda. están en la misma ciudad los mismos días.",
   "this link didn't open an account. log in below, or start on the homepage: it takes 20 seconds.": "este link no abrió una cuenta. entra abajo, o empieza en la página principal: toma 20 segundos.",
   "or join on the homepage": "o únete en la página principal",
+  "more in": "más en",
+  "no dates yet": "sin fechas aún",
+  "members who joined for this city but haven't said when they're here. once they post dates they move up top.": "miembros que se unieron por esta ciudad pero no han dicho cuándo están. cuando pongan fechas suben arriba.",
 }
 
 export function t(str, vars) {

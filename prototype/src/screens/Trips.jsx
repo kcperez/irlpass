@@ -33,7 +33,7 @@ function Initials({ name, photo, locked, size = "h-11 w-11" }) {
   return (
     <div className={`relative ${size} shrink-0 overflow-hidden rounded-full bg-cream-deep`}>
       {photo ? (
-        <img src={photo} alt="" className={`h-full w-full object-cover ${locked ? "blur-[6px]" : ""}`} />
+        <img src={photo} alt="" className={`h-full w-full object-cover ${locked ? "scale-105 blur-[2.5px]" : ""}`} />
       ) : (
         <div className={`flex h-full w-full items-center justify-center font-semibold text-ink-soft ${locked ? "blur-[5px]" : ""}`}>
           {letter}
@@ -49,9 +49,7 @@ function PersonRow({ p, onMessage, cityLabel }) {
       <Initials name={p.name || p.first} photo={p.photo} locked={p.locked} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className={`truncate text-[15px] font-semibold ${p.locked ? "blur-[4px] select-none" : ""}`}>
-            {p.locked ? `${p.first} ${"•".repeat(6)}` : p.name || p.first}
-          </span>
+          <span className="truncate text-[15px] font-semibold">{p.locked ? p.first : p.name || p.first}</span>
           {p.verified && <CheckCircle size={15} weight="fill" className="shrink-0 text-lime-deep" />}
           {p.hereNow && !p.local && (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#e8f6e8] px-2 py-0.5 text-[10px] font-bold text-[#2f7a2f]">
