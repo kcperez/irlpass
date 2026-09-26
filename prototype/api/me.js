@@ -2,6 +2,7 @@ import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { today } from "./_access.js"
 import { refreshIfStale } from "./_instagram.js"
+import { waitUntil } from "@vercel/functions"
 
 export default async function handler(req, res) {
   // free tier: any accepted, non-banned user gets in. `paid` tells the client
@@ -9,7 +10,7 @@ export default async function handler(req, res) {
   const member = await getUser(req.query?.t)
   if (!member) return res.status(401).json({ error: "not a member" })
   // keep their instagram photo and follower count current, quietly
-  refreshIfStale(member).catch(() => {})
+  waitUntil(refreshIfStale(member).catch(() => {}))
 
   // v2: where you are is where your next trip is
   const { data: trip } = await db

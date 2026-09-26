@@ -4,6 +4,7 @@ import { canonicalCity } from "./_cities.js"
 import { sendEmail, acceptanceEmail, loginEmail } from "./_email.js"
 import { db } from "./_db.js"
 import { enrichMember } from "./_instagram.js"
+import { waitUntil } from "@vercel/functions"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const VALID_GENDERS = ["woman", "man", "nonbinary"]
@@ -129,7 +130,9 @@ export default async function handler(req, res) {
     })
 
     // pull their instagram photo and follower count in the background
-    enrichMember(memberNo, record.ig).catch((e) => console.error("enrich error:", e))
+    // waitUntil keeps the function alive after the response. a bare promise here
+    // got frozen by vercel once we answered, so most signups never got a photo.
+    waitUntil(enrichMember(memberNo, record.ig).catch((e) => console.error("enrich error:", e)))
 
     // welcome email (preserves the existing email + token mechanics)
     try {

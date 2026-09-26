@@ -1,6 +1,7 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { fetchIgProfile, verifyCode, enrichMember } from "./_instagram.js"
+import { waitUntil } from "@vercel/functions"
 
 // Proof that the handle is theirs: we give them a code, they put it in their
 // instagram bio for a minute, we read the bio back. Works on any account type,
@@ -49,7 +50,7 @@ export default async function handler(req, res) {
       .update({ ig_verified: true, ig_verified_at: new Date().toISOString(), verified_selfie: true })
       .eq("member_no", me.memberNo)
     // now that we know it's theirs, fill in the photo and follower count
-    enrichMember(me.memberNo, me.ig).catch(() => {})
+    waitUntil(enrichMember(me.memberNo, me.ig).catch(() => {}))
 
     return res.status(200).json({ ok: true, verified: true })
   } catch (e) {
