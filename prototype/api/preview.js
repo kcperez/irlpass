@@ -1,4 +1,5 @@
 import { db } from "./_db.js"
+import { lockedPhoto } from "./_lib.js"
 import { isValidCity, cityBySlug, cityLabel, OPEN_AT, canonicalCity } from "./_cities.js"
 import { isDate, overlaps, today, foundingLeft } from "./_access.js"
 
@@ -63,10 +64,11 @@ export default async function handler(req, res) {
         shared(b.interests).length - shared(a.interests).length ||
         (!!b.photo_url - !!a.photo_url)
     )
-    const cityFaces = anchors.slice(0, 8).map((m) => ({
-      // initial only: a stranger sees faces and numbers, never names
+    const cityFaces = anchors.slice(0, 8).map((m, i) => ({
+      // initial only: a stranger sees faces and numbers, never names. only the
+      // first face is clear; the rest get a thumbnail too small to recognize
       first: (String(m.name || "?").trim()[0] || "?").toUpperCase(),
-      photo: m.photo_url || null,
+      photo: i === 0 ? m.photo_url || null : lockedPhoto(m.photo_url),
     }))
 
     // how many land on the same day you do — the line that makes it feel real
@@ -108,7 +110,7 @@ export default async function handler(req, res) {
       vibeMatches,
       topShared,
       // the people actually on those dates: first initial and photo only
-      faces: people.slice(0, 8).map((p) => ({ first: (p.first[0] || "?").toUpperCase(), photo: p.photo })),
+      faces: people.slice(0, 8).map((p, i) => ({ first: (p.first[0] || "?").toUpperCase(), photo: i === 0 ? p.photo : lockedPhoto(p.photo) })),
       foundingLeft: await foundingLeft(),
     })
   } catch (e) {

@@ -76,3 +76,12 @@ export async function getPaid(token) {
 // back-compat alias — getMember historically meant "paid". keep for endpoints
 // that are still strictly paid-only (portal, seat checkout/activate).
 export const getMember = getPaid
+
+// a locked person's face: a ~12px thumbnail the app blurs. enough to show a
+// real person is there, too small to recognize, and the full photo never
+// reaches someone who hasn't unlocked them. only works for photos we store.
+export const lockedPhoto = (url) => {
+  const u = String(url || "")
+  if (!u.includes("/storage/v1/object/public/")) return null
+  return `${u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/").split("?")[0]}?width=12&height=15&resize=cover&quality=40`
+}

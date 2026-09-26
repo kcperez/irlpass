@@ -1,4 +1,4 @@
-import { getUser, rowToMember } from "./_lib.js"
+import { getUser, lockedPhoto, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
 import { isValidCity, canonicalCity } from "./_cities.js"
 import { canReach, isDate, overlaps, today } from "./_access.js"
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         first: firstName(m.name),
         name: open ? m.name : null,
         ig: open && (m.showIgToMen || me.gender !== "man") ? m.ig : null,
-        photo: open ? m.photo : null,
+        photo: open ? m.photo : lockedPhoto(m.photo),
         gender: m.gender,
         verified: m.verified,
         repScore: m.repScore,
