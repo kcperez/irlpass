@@ -135,16 +135,21 @@ export async function refreshIfStale(member) {
 
 // Backfill: every member still without a photo, in one scraper run (far cheaper
 // than one run each). Only fills blanks, never replaces a photo someone has.
-export async function backfillPhotos() {
+// refresh: re-pull everyone whose photo came from instagram (or predates us
+// tracking the source), in batches of `size`. uploads are never touched.
+export async function backfillPhotos({ refresh = false, batch = 0, size = 60 } = {}) {
   const token = process.env.APIFY_TOKEN
   if (!token) return { error: "no scraper key" }
-  const { data: members } = await db
+  let query = db
     .from("members")
-    .select("member_no, ig, photo_url, banned")
+    .select("member_no, ig, photo_url, photo_source, banned")
     .lt("member_no", "900")
-    .is("photo_url", null)
+    .order("member_no")
+  if (!refresh) query = query.is("photo_url", null)
+  const { data: members } = await query
   const todo = (members || [])
-    .filter((m) => !m.banned)
+    .filter((m) => !m.banned && m.photo_source !== "upload")
+    .slice(refresh ? batch * size : 0, refresh ? (batch + 1) * size : undefined)
     .map((m) => ({ no: m.member_no, handle: String(m.ig || "").replace(/^@+/, "").trim().toLowerCase() }))
     .filter((m) => /^[a-z0-9._]{1,30}$/.test(m.handle))
   if (!todo.length) return { missing: 0, filled: 0 }
@@ -169,7 +174,7 @@ export async function backfillPhotos() {
     if (!src) { notFound.push(m.handle); continue }
     const stored = await storePhoto(src, m.no)
     if (!stored) { notFound.push(m.handle); continue }
-    await db
+    let update = db
       .from("members")
       .update({
         photo_url: stored,
@@ -179,7 +184,9 @@ export async function backfillPhotos() {
         ig_checked_at: new Date().toISOString(),
       })
       .eq("member_no", m.no)
-      .is("photo_url", null)
+    // a plain backfill only fills blanks; a refresh may replace an old pull
+    update = refresh ? update.or("photo_source.is.null,photo_source.neq.upload") : update.is("photo_url", null)
+    await update
     filled++
   }
   return { missing: todo.length, filled, notFound }

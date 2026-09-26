@@ -13,9 +13,11 @@ export default async function handler(req, res) {
   if (!me || !isMod(me.memberNo)) return res.status(401).json({ error: "not allowed" })
 
   // POST ?t=&action=backfill-photos -> pull instagram photos for everyone without one
-  if (req.method === "POST" && req.query?.action === "backfill-photos") {
+  // POST ?t=&action=refresh-photos&batch=N -> re-pull instagram photos for everyone, 60 at a time
+  if (req.method === "POST" && (req.query?.action === "backfill-photos" || req.query?.action === "refresh-photos")) {
     try {
-      return res.status(200).json(await backfillPhotos())
+      const refresh = req.query.action === "refresh-photos"
+      return res.status(200).json(await backfillPhotos({ refresh, batch: Number(req.query.batch || 0) }))
     } catch (e) {
       console.error("backfill error:", e)
       return res.status(500).json({ error: "backfill failed" })
