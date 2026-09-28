@@ -80,9 +80,9 @@ function PersonRow({ p, onMessage, cityLabel }) {
       ) : p.canMessage ? (
         <button
           onClick={() => onMessage(p)}
-          className="shrink-0 rounded-full bg-ink px-3.5 py-1.5 text-[12px] font-semibold text-cream"
+          className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
         >
-          say hi
+          {p.unread > 0 ? `${p.unread} ${t("new")}` : p.talked ? t("open chat") : t("say hi")}
         </button>
       ) : (
         <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">women only</span>
@@ -608,13 +608,58 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
               </div>
             </div>
 
+            {/* this trip came from an old quick-pick button: ask once if it's real */}
+            {trip.guess && (
+              <div className="mb-3 rounded-[1.5rem] border-2 border-ink bg-peach px-4 py-3">
+                <p className="text-[14px] font-bold leading-snug">{t("are these your real dates?")}</p>
+                <p className="mt-0.5 text-[12.5px]">
+                  {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}. {t("they came from a quick-pick button, and matches are only as good as your dates.")}
+                </p>
+                <div className="mt-2.5 flex gap-2">
+                  <button
+                    onClick={async () => {
+                      await fetch("/api/trips", {
+                        method: "PATCH",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ t: token, id: trip.id, confirm: true }),
+                      }).catch(() => {})
+                      load()
+                    }}
+                    className="flex-1 rounded-full bg-ink py-2.5 text-[13px] font-bold text-cream"
+                  >
+                    {t("yes, these are right")}
+                  </button>
+                  <button onClick={() => setEditTrip(trip)} className="flex-1 rounded-full border-2 border-ink bg-white py-2.5 text-[13px] font-bold">
+                    {t("fix them")}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {!overlap ? (
               <div className="flex justify-center py-10"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
             ) : overlap.count === 0 ? (
               <div className="rounded-[1.75rem] border-2 border-line bg-white/60 px-5 py-6 text-center">
                 <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
-                <p className="display mt-1 text-[20px] font-bold">{t("nobody yet")}</p>
+                <p className="display mt-1 text-[20px] font-bold">{t("no travelers on these dates yet")}</p>
                 <p className="mt-1 text-[13px] text-ink-soft">{t("be the one who brings someone. we'll also ping you the second anyone lands on your dates.")}</p>
+                {overlap.localsCount > 0 && (
+                  <div className="mt-4 border-t border-line/70 pt-4">
+                    <p className="text-[13.5px] font-bold">
+                      {overlap.localsCount} {overlap.localsCount === 1 ? t("local lives in") : t("locals live in")} {cityName(trip.city)}
+                    </p>
+                    <div className="mt-2 flex justify-center -space-x-2">
+                      {overlap.locals.slice(0, 7).map((p) => (
+                        <div key={p.memberNo} className="h-10 w-10 overflow-hidden rounded-full border-2 border-cream bg-cream-deep">
+                          {p.photo && (
+                            <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[2px]" : ""}`} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-1.5 text-[12px] text-ink-soft">{t("they're there whenever you land. find them on the people tab.")}</p>
+                  </div>
+                )}
               </div>
             ) : (
               <>

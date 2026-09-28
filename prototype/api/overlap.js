@@ -1,5 +1,6 @@
 import { getUser, lockedPhoto, rowToMember, safeFirstName } from "./_lib.js"
 import { db } from "./_db.js"
+import { dmState } from "./_dmstate.js"
 import { isValidCity, canonicalCity } from "./_cities.js"
 import { canReach, isDate, overlaps, today } from "./_access.js"
 
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
       .select("a_no, b_no")
       .or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`)
     const known = new Set((threads || []).map((t) => (t.a_no === me.memberNo ? t.b_no : t.a_no)))
+    const dms = await dmState(me.memberNo)
 
     const nos = [...new Set(rows.map((t) => t.member_no))]
     const { data: memberRows } = await db.from("members").select("*").in("member_no", nos.length ? nos : ["-"])
@@ -85,6 +87,8 @@ export default async function handler(req, res) {
         area: open ? t.area || "" : "",
         locked: !open,
         canMessage: open && !blocked,
+        talked: !!dms.get(m.memberNo)?.talked,
+        unread: dms.get(m.memberNo)?.unread || 0,
         womenOnly: m.allowDmFromMen === false,
       })
     }
@@ -101,10 +105,38 @@ export default async function handler(req, res) {
       teaser.canMessage = false // you can see them; the first message is the paywall
     }
 
+    // locals are always there: people who live in this city. they're what a trip
+    // six months out sees instead of an empty screen.
+    const listed = new Set(people.map((p) => p.memberNo))
+    const { data: localRows } = await db
+      .from("members")
+      .select("*")
+      .eq("home_city", city)
+      .eq("banned", false)
+      .lt("member_no", "900")
+      .neq("member_no", me.memberNo)
+      .limit(60)
+    const locals = (localRows || [])
+      .map(rowToMember)
+      .filter((m) => m && !listed.has(m.memberNo))
+      .map((m) => {
+        const open = access.ok || known.has(m.memberNo)
+        return {
+          memberNo: m.memberNo,
+          first: open ? firstName(m.name) : safeFirstName(m.name, m.ig),
+          photo: open ? m.photo : lockedPhoto(m.photo),
+          locked: !open,
+          shared: sharedWith(me.interests, m.interests),
+        }
+      })
+      .sort((a, b) => b.shared.length - a.shared.length || !!b.photo - !!a.photo)
+
     return res.status(200).json({
       city,
       starts,
       ends,
+      locals: locals.slice(0, 12),
+      localsCount: locals.length,
       access: access.via, // 'founding' | 'pass' | 'unlock' | null
       count: people.length,
       women: people.filter((p) => p.gender === "woman").length,

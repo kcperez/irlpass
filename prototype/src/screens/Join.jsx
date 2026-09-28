@@ -95,6 +95,10 @@ export default function Join({ ig, onBack, onDone }) {
   const [local, setLocal] = useState(false)
   const [vibes, setVibes] = useState([])
   const [already, setAlready] = useState(false) // handle belongs to an existing member
+  // where they live. locals are what fill an empty calendar, so it's asked of everyone
+  const [home, setHome] = useState(null) // { slug, name, emoji } | "nomad"
+  const [homeTyped, setHomeTyped] = useState("")
+  const homeFound = useCitySearch(homeTyped)
   // only real cities: what's typed searches, a tapped result is the city
   const found = useCitySearch(customCity)
   // nothing preselected: a default range someone skims past is how wrong dates got posted
@@ -127,6 +131,7 @@ export default function Join({ ig, onBack, onDone }) {
           city,
           dates: `${starts} to ${ends || starts}`,
           interests: vibes,
+          homeCity: local ? city : home && home !== "nomad" ? home.slug : null,
         }),
       })
       const d = await r.json()
@@ -142,6 +147,14 @@ export default function Join({ ig, onBack, onDone }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ t: d.token, city, starts, ends: ends || starts, local, flexible }),
       }).catch(() => {})
+      // they live somewhere else: they're a local there, and show up for anyone landing
+      if (!local && home && home !== "nomad" && home.slug !== city) {
+        await fetch("/api/trips", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ t: d.token, city: home.slug, starts: todayIso(), ends: addDays(todayIso(), 89), local: true, flexible: true }),
+        }).catch(() => {})
+      }
       localStorage.setItem("irlpass_member_token", d.token)
       onDone(d.token)
     } catch (e) {
@@ -296,6 +309,52 @@ export default function Join({ ig, onBack, onDone }) {
         </div>
       ),
     },
+    ...(local ? [] : [{
+      key: "home",
+      art: "/art/icon-globe.png",
+      title: t("where do you live?"),
+      valid: !!home,
+      body: (
+        <div className="flex flex-col gap-3">
+          <p className="-mt-2 text-[14px] text-ink-soft">
+            {t("you'll show up for travelers landing in your city, and meet the locals when you travel.")}
+          </p>
+          {home && home !== "nomad" ? (
+            <div className="flex items-center justify-between rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+              <span className="text-[17px] font-bold">{home.emoji} {home.name}</span>
+              <button onClick={() => { setHome(null); setHomeTyped("") }} className="text-[13px] font-semibold underline">{t("change")}</button>
+            </div>
+          ) : (
+            <>
+              <input
+                id="join-home"
+                value={homeTyped}
+                onChange={(e) => { setHomeTyped(e.target.value); if (home === "nomad") setHome(null) }}
+                autoComplete="off"
+                placeholder={t("search a city")}
+                className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+              />
+              <div className="flex flex-wrap gap-2">
+                {homeFound.results.map((c) => (
+                  <Bubble key={c.slug} active={false} onClick={() => { rememberCity(c); setHome(c) }}>
+                    <span className="mr-1.5">{c.emoji}</span>{c.name}
+                  </Bubble>
+                ))}
+              </div>
+              {homeFound.none && (
+                <p className="text-[13px] font-semibold text-ink-soft">{t("no city by that name. try the full name, like coimbatore or los angeles.")}</p>
+              )}
+              <button
+                onClick={() => setHome("nomad")}
+                className={`w-fit rounded-full border-2 px-3.5 py-2 text-[13px] font-bold ${home === "nomad" ? "border-ink bg-lime" : "border-line bg-white/70 text-ink-soft"}`}
+              >
+                🎒 {t("i travel full-time")}
+              </button>
+            </>
+          )}
+        </div>
+      ),
+    }]),
     {
       key: "vibes",
       art: "/art/icon-people.png",

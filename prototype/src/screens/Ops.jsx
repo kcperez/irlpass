@@ -15,6 +15,66 @@ function Stat({ n, label, tone = "" }) {
   )
 }
 
+// josh curates the mood boards here: rename, move, hide, add
+function SpotsEditor({ token, spots, onSaved }) {
+  const [draft, setDraft] = useState({ mood: "pregame", name: "", area: "", kind: "", recovery: false })
+  const save = async (body) => {
+    await fetch("/api/mood", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, action: "spot", ...body }),
+    }).catch(() => {})
+    onSaved()
+  }
+  const field = "w-full min-w-0 rounded-lg border border-line bg-white px-2 py-1.5 text-[13px]"
+  return (
+    <div className="mt-4 rounded-[1.25rem] border-2 border-line bg-white/70 p-3">
+      <p className="text-[13px] font-bold">mood board spots (medellín)</p>
+      {["pregame", "afters", "chill"].map((mood) => (
+        <div key={mood} className="mt-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{mood}</p>
+          {spots.filter((sp) => sp.mood === mood).map((sp) => (
+            <div key={sp.id} className={`mt-1.5 grid grid-cols-[1fr_0.8fr_auto] items-center gap-1.5 ${sp.active ? "" : "opacity-45"}`}>
+              <input defaultValue={sp.name} onBlur={(e) => e.target.value !== sp.name && save({ id: sp.id, name: e.target.value })} className={field} />
+              <input defaultValue={sp.area || ""} onBlur={(e) => e.target.value !== (sp.area || "") && save({ id: sp.id, area: e.target.value })} className={field} placeholder="area" />
+              <span className="flex items-center gap-1.5">
+                {sp.goingTonight > 0 && <span className="rounded-full bg-lime px-1.5 text-[11px] font-bold">{sp.goingTonight}</span>}
+                <button onClick={() => save({ id: sp.id, active: !sp.active })} className="rounded-full border border-line px-2 py-1 text-[11px] font-bold">
+                  {sp.active ? "hide" : "show"}
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="mt-4 grid grid-cols-2 gap-1.5 border-t border-line/70 pt-3">
+        <select value={draft.mood} onChange={(e) => setDraft({ ...draft, mood: e.target.value })} className={field}>
+          <option value="pregame">pregame</option>
+          <option value="afters">afters</option>
+          <option value="chill">chill</option>
+        </select>
+        <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="spot name" className={field} />
+        <input value={draft.area} onChange={(e) => setDraft({ ...draft, area: e.target.value })} placeholder="area (el poblado)" className={field} />
+        <input value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })} placeholder="kind (rooftop, club, gym)" className={field} />
+        <label className="col-span-2 flex items-center gap-2 text-[12.5px] font-semibold">
+          <input type="checkbox" checked={draft.recovery} onChange={(e) => setDraft({ ...draft, recovery: e.target.checked })} />
+          recovery (daytime wellness list)
+        </label>
+        <button
+          onClick={async () => {
+            if (!draft.name.trim()) return
+            await save({ mood: draft.mood, name: draft.name, area: draft.area, kind: draft.kind, tag: draft.recovery ? "recovery" : "" })
+            setDraft({ ...draft, name: "", area: "", kind: "" })
+          }}
+          className="col-span-2 rounded-full bg-ink py-2 text-[13px] font-bold text-cream"
+        >
+          add spot
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Ops({ token }) {
   const [d, setD] = useState(null)
   const [err, setErr] = useState("")
@@ -178,6 +238,18 @@ export default function Ops({ token }) {
               ? `filled ${photoRun.filled} of ${photoRun.missing} missing photos`
               : "fill in missing profile photos from instagram"}
       </button>
+
+      <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">mood · tonight</p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <Stat n={d.mood?.setTonight ?? 0} label="set a mood" />
+        <Stat n={d.mood?.goingTonight ?? 0} label="i'm going taps" tone={d.mood?.goingTonight ? "border-ink bg-lime" : ""} />
+        <Stat n={d.mood?.changedMood ?? 0} label="changed mood across nights" />
+      </div>
+      <p className="mt-1.5 text-[11.5px] text-ink-soft">
+        all time: {d.mood?.setEver ?? 0} set a mood · {d.mood?.goingPeople ?? 0} tapped going · {d.mood?.cameBack ?? 0} came back another night
+      </p>
+
+      <SpotsEditor token={token} spots={d.spots || []} onSaved={load} />
 
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">vibes</p>
       <div className="mt-2 grid grid-cols-3 gap-2">

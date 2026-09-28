@@ -1,4 +1,5 @@
 import { db } from "./_db.js"
+import { storeLockedThumb } from "./_thumb.js"
 
 // Pull the public shape of an instagram profile (photo, name, follower count,
 // private or not). This is ENRICHMENT, never proof: anyone can type any handle.
@@ -90,6 +91,7 @@ async function storePhoto(url, memberNo) {
       body: buf,
     })
     if (!up.ok) return null
+    await storeLockedThumb(memberNo, buf)
     return `${process.env.SUPABASE_URL}/storage/v1/object/public/${path}?v=${Date.now()}`
   } catch (e) {
     console.error("avatar store error:", e.message)

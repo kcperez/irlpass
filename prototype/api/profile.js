@@ -1,5 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
+import { storeLockedThumb } from "./_thumb.js"
 
 export const config = { api: { bodyParser: { sizeLimit: "3mb" } } }
 
@@ -27,6 +28,7 @@ export default async function handler(req, res) {
       body: buf,
     })
     if (!up.ok) throw new Error("upload failed: " + (await up.text()).slice(0, 120))
+    await storeLockedThumb(me.memberNo, buf)
 
     // cache-bust so the new photo shows immediately everywhere
     const url = `${process.env.SUPABASE_URL}/storage/v1/object/public/${path}?v=${Date.now()}`

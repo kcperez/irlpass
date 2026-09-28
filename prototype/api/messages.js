@@ -52,8 +52,19 @@ export default async function handler(req, res) {
       if (action === "send") {
         if (!text || !String(text).trim()) return res.status(400).json({ error: "empty" })
         if (!(await canAccess(channel, me))) return res.status(403).json({ error: "join first" })
+        // a spot's room tonight (spot-<id>-<yyyymmdd>) is for people going there
+        const spotRoom = channel.match(/^spot-(\d+)-(\d{4})(\d{2})(\d{2})$/)
+        if (spotRoom && !actsAsMod(me)) {
+          const { count } = await db
+            .from("spot_going")
+            .select("spot_id", { count: "exact", head: true })
+            .eq("spot_id", Number(spotRoom[1]))
+            .eq("member_no", me.memberNo)
+            .eq("night", `${spotRoom[2]}-${spotRoom[3]}-${spotRoom[4]}`)
+          if (!count) return res.status(402).json({ error: "tap i'm going to write here", gate: "going" })
+        }
         // a city room is for people who are actually going to be there
-        if (!actsAsMod(me) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
+        else if (!actsAsMod(me) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
           const { count } = await db
             .from("trips")
             .select("id", { count: "exact", head: true })

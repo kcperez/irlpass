@@ -77,13 +77,14 @@ export async function getPaid(token) {
 // that are still strictly paid-only (portal, seat checkout/activate).
 export const getMember = getPaid
 
-// a locked person's face: a 36x45 thumbnail the app softly blurs. enough to get
-// a read on who's there (guy, girl, their vibe), not enough to recognize them,
-// and the full photo never reaches someone who hasn't unlocked. stored photos only.
+// a locked person's face: the small blurred copy stored next to their photo
+// (api/_thumb.js). enough to get a read on who's there, not enough to
+// recognize them, and the full photo never reaches someone who hasn't unlocked.
 export const lockedPhoto = (url) => {
   const u = String(url || "")
-  if (!u.includes("/storage/v1/object/public/")) return null
-  return `${u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/").split("?")[0]}?width=36&height=45&resize=cover&quality=50`
+  const m = u.match(/^(.*\/storage\/v1\/object\/public\/avatars\/)(\d+)\.jpg(\?.*)?$/)
+  if (!m) return null
+  return `${m[1]}lock/${m[2]}.jpg${m[3] || ""}`
 }
 
 // the first name a locked viewer sees. many members' "name" is just their

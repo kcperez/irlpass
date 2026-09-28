@@ -17,6 +17,7 @@ import { Logo } from "../components/bits"
 import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
+import Mood from "./Mood"
 import { cityChip, registerCities } from "../lib/cities"
 
 // mod powers are on only in mod mode; member view tests the regular experience
@@ -633,6 +634,16 @@ const looksForeign = (text) => {
   return LANG === "es" ? en >= 2 && en > es : es >= 2 && es > en
 }
 
+// "9:41 pm", or "tue 9:41 pm" when it wasn't today
+const msgTime = (at) => {
+  if (!at) return ""
+  const d = new Date(at)
+  if (Number.isNaN(d.getTime())) return ""
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()
+  const today = new Date().toDateString() === d.toDateString()
+  return today ? time : `${d.toLocaleDateString([], { weekday: "short" }).toLowerCase()} ${time}`
+}
+
 // @name in a message renders bold
 function WithMentions({ text }) {
   const parts = String(text).split(/(@[\w.]{2,30})/g)
@@ -782,7 +793,11 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
           <p className="truncate text-[15px] font-semibold leading-tight">{title}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
             {/* city rooms are open to everyone in town; only old activity threads are private */}
-            {activity ? t("private · joined members only") : t("everyone in town right now")}
+            {activity
+              ? t("private · joined members only")
+              : channel.startsWith("spot-")
+                ? t("everyone going tonight")
+                : t("everyone in town right now")}
           </p>
         </div>
       </div>
@@ -831,7 +846,10 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       className={`min-w-0 max-w-full break-words rounded-2xl px-3.5 py-2 [overflow-wrap:anywhere] ${m.deleted ? "border border-dashed border-line bg-transparent" : mine ? "rounded-br-md bg-lime text-ink" : "rounded-bl-md border border-line bg-white/80 text-ink"}`}
                     >
                       {!mine && !m.deleted && (
-                        <p className="font-mono text-[9.5px] font-semibold text-ink-soft">{m.from.name.toLowerCase()} · {m.from.memberNo}</p>
+                        <p className="font-mono text-[9.5px] font-semibold text-ink-soft">
+                          {m.from.name.toLowerCase()} · {m.from.memberNo}
+                          <span className="font-normal opacity-70"> · {msgTime(m.at)}</span>
+                        </p>
                       )}
                       {/* the quote clamps to two lines. it used to be one unwrapped line,
                           which pushed a long quote's bubble past the edge of the screen */}
@@ -853,6 +871,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       <p className={`text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
                         {m.deleted ? t("message deleted") : <WithMentions text={m.text} />}
                         {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
+                        {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>}
                       </p>
                       {translated[m.key] && !m.deleted && (
                         <p className="mt-1 border-t border-ink/10 pt-1 text-[13.5px] italic leading-snug">
@@ -1211,6 +1230,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                   className={`max-w-full break-words rounded-2xl px-3.5 py-2 text-[13.5px] [overflow-wrap:anywhere] ${m.fromMe ? "bg-lime text-ink" : "bg-white/80 text-ink"}`}
                 >
                   {m.text}
+                  <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>
                   {dmTranslated[m.key] && (
                     <p className="mt-1 border-t border-ink/10 pt-1 italic">
                       {dmTranslated[m.key] === "loading"
@@ -1467,7 +1487,7 @@ export default function Club({ token }) {
   const [tab, setTab] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("dm")) return "dms"
-    const wanted = { chat: "dms", people: "members", dates: "trips" }[p.get("tab")]
+    const wanted = { chat: "dms", people: "members", dates: "trips", mood: "mood" }[p.get("tab")]
     return wanted || "trips"
   })
   const [activeChat, setActiveChat] = useState(null)
@@ -1485,6 +1505,8 @@ export default function Club({ token }) {
   const [viewCity, setViewCity] = useState(null) // the city you last added or opened
   const [unreadTotal, setUnreadTotal] = useState(0)
   const [vibesOpen, setVibesOpen] = useState(false)
+  const [spotRoom, setSpotRoom] = useState(null) // { channel, title } of a spot's room tonight
+  const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
   const [peopleKey, setPeopleKey] = useState(0) // bump to reload the people grid after vibes change
 
   // members from before the vibes step get asked once per visit
@@ -1573,19 +1595,21 @@ export default function Club({ token }) {
     return <DeniedScreen />
   }
 
+  // josh's order: dates and chat together, tonight's mood next to people
   const TABS = [
     { key: "trips", label: t("dates"), icon: CalendarPlus },
-    { key: "members", label: t("people"), icon: UsersThree },
     { key: "dms", label: t("chat"), icon: ChatsCircle },
+    { key: "mood", label: t("mood"), icon: Sparkle },
+    { key: "members", label: t("people"), icon: UsersThree },
   ]
-  const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith)
+  const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || (tab === "mood" && spotRoom)
 
   return (
     <div className="relative flex h-[var(--app-h)] flex-col">
       <ModeStrip token={token} me={me} />
       {!inThread && <TopBar me={me} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setTab("dms") }} />}
+        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} />}
         {tab === "members" && (
           <Around
             key={peopleKey}
@@ -1593,12 +1617,27 @@ export default function Club({ token }) {
             me={me}
             viewCity={viewCity}
             onViewCity={setViewCity}
-            onOpenDM={(m) => { setDmWith(m); setTab("dms") }}
+            onOpenDM={(m) => { setDmWith(m); setDmReturn("members"); setTab("dms") }}
             onUnlock={() => { setTab("trips"); setUnlockRequest(Date.now()) }}
             onNeedDates={(c) => { setTab("trips"); setPostCity(c) }}
           />
         )}
-        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={setDmWith} photoMap={photoMap} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
+        {tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} />}
+        {tab === "mood" && spotRoom && (
+          <Thread
+            token={token}
+            me={me}
+            channel={spotRoom.channel}
+            title={spotRoom.title}
+            photoMap={photoMap}
+            onBack={() => setSpotRoom(null)}
+          />
+        )}
+        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={(v) => {
+          setDmWith(v)
+          // back out of a thread opened from "say hi": return to that screen
+          if (v === null && dmReturn) { setTab(dmReturn); setDmReturn(null) }
+        }} photoMap={photoMap} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
       </div>
       <AnimatePresence>
         {profileOpen && (
@@ -1633,7 +1672,7 @@ export default function Club({ token }) {
       {!inThread && (
         <nav className="sticky bottom-0 z-10 flex border-t-2 border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
           {TABS.map((tb) => (
-            <button key={tb.key} onClick={() => { setTab(tb.key); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
+            <button key={tb.key} onClick={() => { setTab(tb.key); setSpotRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
               <span className={`relative flex h-9 w-14 items-center justify-center rounded-full transition-colors ${tab === tb.key ? "bg-lime" : ""}`}>
                 <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={tab === tb.key ? "text-ink" : "text-ink-soft/60"} />
                 {tb.key === "dms" && unreadTotal > 0 && (

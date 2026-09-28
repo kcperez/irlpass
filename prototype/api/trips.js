@@ -128,6 +128,12 @@ export default async function handler(req, res) {
       const { data: prev } = await db.from("trips").select("*").eq("id", id).eq("member_no", me.memberNo).maybeSingle()
       if (!prev) return res.status(404).json({ error: "that trip is gone" })
 
+      // "yes, these are right": a guessed trip becomes a real one, nothing else changes
+      if (req.body?.confirm === true) {
+        const { data: trip } = await db.from("trips").update({ guess: false }).eq("id", id).eq("member_no", me.memberNo).select("*").single()
+        return res.status(200).json({ trip: shape(trip) })
+      }
+
       let { starts } = req.body || {}
       const { ends, flexible, note, local } = req.body || {}
       const area = cleanArea(req.body?.area)
@@ -151,6 +157,7 @@ export default async function handler(req, res) {
           // only touch the column when the client sent one, so an edit from an
           // older build can't wipe it
           ...(req.body?.area !== undefined ? { area } : {}),
+          guess: false, // they looked at these dates and saved them
         })
         .eq("id", id)
         .eq("member_no", me.memberNo)
@@ -191,6 +198,7 @@ const shape = (t) => ({
   local: !!t.local,
   note: t.note || "",
   area: t.area || "",
+  guess: !!t.guess,
 })
 
 // a neighborhood, not an address: short, and no digits (house numbers)

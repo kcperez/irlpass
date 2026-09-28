@@ -68,6 +68,8 @@ export async function createAcceptedMember(input = {}) {
     verified_selfie: !!input.verifiedSelfie,
     allow_dm_from_men: input.allowDmFromMen !== false, // default on
     show_ig_to_men: input.showIgToMen !== false, // default on
+    // where they live: locals are what fill an empty calendar
+    home_city: input.homeCity ? String(input.homeCity).slice(0, 40) : null,
   }
 
   const { error } = await db.from("members").insert(row)

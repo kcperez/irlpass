@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const {
       name, ig, email, dates, reasons, city, country,
       gender, birthday, interests, verifiedSelfie,
-      allowDmFromMen, showIgToMen,
+      allowDmFromMen, showIgToMen, homeCity,
     } = req.body || {}
 
     if (!ig || String(ig).trim().length < 3) {
@@ -127,6 +127,7 @@ export default async function handler(req, res) {
       verifiedSelfie: record.verifiedSelfie,
       allowDmFromMen: record.allowDmFromMen,
       showIgToMen: record.showIgToMen,
+      homeCity: homeCity ? canonicalCity(homeCity) : null,
     })
 
     // pull their instagram photo and follower count in the background

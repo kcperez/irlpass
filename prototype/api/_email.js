@@ -166,3 +166,41 @@ export const cityOpenEmail = ({ name, city, count, url }) => ({
       see who's there
     </a>`,
 })
+
+// EDC weekend reactivation (josh's sprint #2): the pre-v2 list, pointed at the
+// mood tab. descriptive only: no festival logos, nothing that implies we're official.
+export const edcEmail = ({ name, memberNo, url, unsub }) => ({
+  subject: "EDC weekend in medellín: see who's going",
+  html: `
+    <p style="font:700 11px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#837a70;margin:0">medellín · oct 10–11</p>
+    <h1 style="font:800 34px/0.98 Archivo,'Helvetica Neue',Arial,sans-serif;letter-spacing:-1.1px;margin:10px 0 0;color:#3a322c">
+      EDC weekend<br>is in your<br>city.
+    </h1>
+    <p style="font:400 16px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#655c53;margin:16px 0 0">
+      hey ${name ? String(name).toLowerCase() : "there"}, the festival lands in medellín on october 10 and 11,
+      and a lot of irlpass will be in town for it.
+    </p>
+    <p style="font:400 16px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#655c53;margin:12px 0 0">
+      there's a new mood tab. pick pregame, afters or something chill, tap "i'm going" on a spot,
+      and see who else from irlpass is headed there that night.
+    </p>
+
+    <div style="background:#f2ecfc;border-radius:18px;padding:16px;margin-top:20px">
+      <p style="font:700 16px/1.7 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#3a322c;margin:0">
+        🍸 pregame · rooftops, bars, dinner<br>
+        🪩 afters · the clubs, late<br>
+        ☕ something chill · coffee, a gym, a walk the day after
+      </p>
+    </div>
+
+    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font:700 17px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;text-align:center;border-radius:999px;padding:17px;margin-top:20px">
+      pick your mood
+    </a>
+    <p style="font:400 13px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#837a70;text-align:center;margin:12px 0 0">
+      the link opens your account · nº ${memberNo} is still yours
+    </p>
+    <p style="font:400 11px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#b8afa5;text-align:center;margin:14px 0 0">
+      irlpass is independent and has no connection to the festival or its organizers ·
+      <a href="${unsub || "https://irlpass.xyz"}" style="color:#b8afa5">turn off these emails</a>
+    </p>`,
+})

@@ -64,6 +64,28 @@ export default async function handler(req, res) {
       .sort((a, b) => b.people - a.people)
       .slice(0, 12)
 
+    // EDC mood funnel: mood set -> "i'm going" -> do people come back and change it
+    const [{ data: moodRows }, { data: goingRows }, { data: spotsRows }] = await Promise.all([
+      db.from("moods").select("member_no, night, mood"),
+      db.from("spot_going").select("spot_id, member_no, night"),
+      db.from("spots").select("*").order("mood").order("sort").order("id"),
+    ])
+    const tonightKey = new Date(Date.now() - 11 * 3600e3).toISOString().slice(0, 10)
+    const nightsBy = {}
+    for (const m of moodRows || []) (nightsBy[m.member_no] = nightsBy[m.member_no] || []).push(m.mood)
+    const goingPeople = new Set((goingRows || []).map((g) => g.member_no))
+    const moodStats = {
+      setTonight: (moodRows || []).filter((m) => m.night === tonightKey).length,
+      setEver: Object.keys(nightsBy).length,
+      goingTonight: (goingRows || []).filter((g) => g.night === tonightKey).length,
+      goingPeople: goingPeople.size,
+      cameBack: Object.values(nightsBy).filter((l) => l.length >= 2).length,
+      changedMood: Object.values(nightsBy).filter((l) => new Set(l).size >= 2).length,
+    }
+    const goingCount = {}
+    for (const g of goingRows || []) if (g.night === tonightKey) goingCount[g.spot_id] = (goingCount[g.spot_id] || 0) + 1
+    const spotsAll = (spotsRows || []).map((sp) => ({ ...sp, goingTonight: goingCount[sp.id] || 0 }))
+
     const all = members || []
     // vibes_seen_at comes from migration 004. read on its own so ops still loads if it hasn't run.
     const { data: seenRows } = await db.from("members").select("member_no").not("vibes_seen_at", "is", null).lt("member_no", "900")
@@ -128,6 +150,8 @@ export default async function handler(req, res) {
         reached: all.filter((m) => m.verify_seen_at).length,
         completed: all.filter((m) => m.ig_verified).length,
       },
+      mood: moodStats,
+      spots: spotsAll,
       // vibes: existing members who were shown the prompt vs everyone with 3+
       // picked. new signups pick inside the flow, so they count as finished.
       vibesFunnel: {

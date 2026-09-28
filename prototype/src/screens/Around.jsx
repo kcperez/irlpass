@@ -229,6 +229,37 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
           })}
         </div>
 
+        {/* tapping a day shows its three best matches: most vibes in common */}
+        {selectedDay && visible.length > 0 && (
+          <div className="mt-3 flex items-center gap-2.5 rounded-[1.1rem] bg-cream-deep/60 px-3 py-2">
+            <div className="flex -space-x-2">
+              {[...visible]
+                .sort((a, b) => (b.shared?.length || 0) - (a.shared?.length || 0))
+                .slice(0, 3)
+                .map((p) => (
+                  <div key={p.memberNo} className="h-9 w-9 overflow-hidden rounded-full border-2 border-cream bg-cream-deep">
+                    {p.photo && (
+                      <img
+                        src={p.photo}
+                        alt=""
+                        onError={(e) => { e.currentTarget.style.display = "none" }}
+                        className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[2px]" : ""}`}
+                      />
+                    )}
+                  </div>
+                ))}
+            </div>
+            <p className="min-w-0 truncate text-[12.5px] font-semibold">
+              {(() => {
+                const top = [...visible].sort((a, b) => (b.shared?.length || 0) - (a.shared?.length || 0)).slice(0, 3)
+                const names = top.map((p) => (p.locked ? p.first : String(p.name || p.first).split(" ")[0]))
+                const more = visible.length - top.length
+                return `${names.join(", ")}${more > 0 ? ` + ${more} ${t("more")}` : ""}`
+              })()}
+            </p>
+          </div>
+        )}
+
         <div className="mt-3 flex items-center justify-between">
           <button
             onClick={() => { setWeek((w) => Math.max(0, w - 1)); setSelectedDay(null) }}
@@ -324,9 +355,9 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
                 {p.canMessage ? (
                   <button
                     onClick={() => onOpenDM(p)}
-                    className="w-full rounded-full bg-ink py-2 text-[12.5px] font-bold text-cream"
+                    className={`w-full rounded-full py-2 text-[12.5px] font-bold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
                   >
-                    {t("say hi")}
+                    {p.unread > 0 ? `${p.unread} ${t("new")} · ${t("open chat")}` : p.talked ? t("open chat") : t("say hi")}
                   </button>
                 ) : p.womenOnly ? (
                   <span className="flex justify-center py-2 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">
