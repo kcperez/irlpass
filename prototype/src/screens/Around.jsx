@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
+import { countryOf } from "../lib/countries"
 import YearView from "./YearView"
 
 // who is actually around: only people with dates posted. no dates, no listing,
@@ -337,6 +338,13 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
                     {p.locked && <LockSimple size={12} weight="fill" className="shrink-0 text-cream/70" />}
                     {p.verified && <CheckCircle size={14} weight="fill" className="shrink-0 text-lime" />}
                   </p>
+                  {/* where they're from, then when they're here */}
+                  {(() => {
+                    const c = countryOf(p.country)
+                    return c ? (
+                      <p className="truncate text-[11.5px] font-bold text-cream/95">{c.flag} {t("from")} {c.label}</p>
+                    ) : null
+                  })()}
                   <p className="truncate text-[11px] font-semibold text-cream/75">
                     {p.local ? t("lives here") : `${fmt(p.starts)} – ${fmt(p.ends)}`}
                     {p.flexible && !p.local ? ` · ${t("flexible")}` : ""}
@@ -413,7 +421,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
                     </div>
                   )}
                 </div>
-                <span className="w-full truncate text-center text-[11px] font-semibold">{p.locked ? p.first : p.name || p.first}</span>
+                <span className="w-full truncate text-center text-[11px] font-semibold">{countryOf(p.country)?.flag} {p.locked ? p.first : p.name || p.first}</span>
               </button>
             ))}
           </div>

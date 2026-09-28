@@ -105,6 +105,8 @@ export default function Join({ ig, onBack, onDone }) {
   const [starts, setStarts] = useState(params.get("starts") || null)
   const [ends, setEnds] = useState(params.get("ends") || null)
   const [email, setEmail] = useState("")
+  // a real first name: people meet a person, not a handle
+  const [firstName, setFirstName] = useState("")
   const [adult, setAdult] = useState(false)
   const [preview, setPreview] = useState(null)
   const [byCity, setByCity] = useState({})
@@ -124,7 +126,7 @@ export default function Join({ ig, onBack, onDone }) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          name: ig,
+          name: firstName.trim() || ig,
           ig: `@${ig}`,
           email: email.trim(),
           adult,
@@ -486,10 +488,16 @@ export default function Join({ ig, onBack, onDone }) {
     {
       key: "you",
       art: "/art/icon-chat.png",
-      title: t("where do we send your pass?"),
-      valid: EMAIL_RE.test(email.trim()) && adult,
+      title: t("almost in. who are you?"),
+      valid: EMAIL_RE.test(email.trim()) && adult && firstName.trim().length >= 2,
       body: (
         <div className="flex flex-col gap-2.5">
+          <input
+            id="join-name" value={firstName} onChange={(e) => setFirstName(e.target.value.slice(0, 30))}
+            autoComplete="given-name"
+            placeholder={t("your first name")}
+            className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+          />
           <input
             id="join-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             autoCapitalize="none" autoCorrect="off" spellCheck="false"

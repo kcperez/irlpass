@@ -9,6 +9,7 @@ import { useCitySearch } from "../lib/useCitySearch"
 import { t } from "../lib/i18n"
 import RangePicker from "../components/RangePicker"
 import { joinVibes } from "../lib/vibes"
+import { countryOf } from "../lib/countries"
 import HomeScreenCard from "../components/HomeScreenCard"
 
 // v2: the calendar is the product. post your dates, see who overlaps them,
@@ -69,6 +70,7 @@ function PersonRow({ p, onMessage, cityLabel }) {
           </p>
         )}
         <p className="truncate text-[12px] text-ink-soft">
+          {countryOf(p.country) ? `${countryOf(p.country).flag} ${countryOf(p.country).label} · ` : ""}
           {fmtRange(p.starts, p.ends)}
           {p.flexible && !p.local ? " · flexible" : ""}
           {p.area ? ` · 📍 ${p.area}` : ""}

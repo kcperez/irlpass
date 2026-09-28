@@ -40,9 +40,22 @@ export default async function handler(req, res) {
         .order("id", { ascending: false })
         .limit(150)
       if (error) throw error
+      // everyone's current photo and name: a room is people, not emoji, and a
+      // name fixed after the message was sent should show on it too
+      const nos = [...new Set(data.map((m) => m.from_member_no))]
+      const { data: people } = nos.length
+        ? await db.from("members").select("member_no, name, photo_url, country").in("member_no", nos)
+        : { data: [] }
+      const who = new Map((people || []).map((p) => [p.member_no, p]))
       // the newest 150, oldest first. ascending + limit returned the first 150
       // ever sent, so a busy room would have stopped showing new messages.
-      return res.status(200).json({ messages: data.reverse().map(rowToMsg) })
+      const messages = data.reverse().map((m) => {
+        const msg = rowToMsg(m)
+        const p = who.get(m.from_member_no)
+        if (p) msg.from = { ...msg.from, name: p.name || msg.from.name, photo: p.photo_url || null, country: p.country || null }
+        return msg
+      })
+      return res.status(200).json({ messages })
     }
 
     if (req.method === "POST") {

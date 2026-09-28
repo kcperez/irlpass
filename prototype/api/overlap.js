@@ -88,6 +88,9 @@ export default async function handler(req, res) {
         locked: !open,
         canMessage: open && !blocked,
         talked: !!dms.get(m.memberNo)?.talked,
+        // where they're from: the country they gave, and the city they live in
+        country: m.country || null,
+        home: m.homeCity || null,
         unread: dms.get(m.memberNo)?.unread || 0,
         womenOnly: m.allowDmFromMen === false,
       })

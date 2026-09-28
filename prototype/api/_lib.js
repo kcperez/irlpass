@@ -43,6 +43,7 @@ export const rowToMember = (r) =>
     foundingFree: !!r.founding_free,
     foundingNo: r.founding_no || null,
     testAsMember: r.test_as_member === true,
+    homeCity: r.home_city || null,
   }
 
 // look up an accepted person by token (paid or not)

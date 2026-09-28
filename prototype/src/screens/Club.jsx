@@ -634,6 +634,16 @@ const looksForeign = (text) => {
   return LANG === "es" ? en >= 2 && en > es : es >= 2 && es > en
 }
 
+const dayKey = (at) => new Date(at).toDateString()
+const chatDay = (at) => {
+  const d = new Date(at)
+  const today = new Date()
+  const y = new Date(); y.setDate(today.getDate() - 1)
+  if (d.toDateString() === today.toDateString()) return t("today")
+  if (d.toDateString() === y.toDateString()) return t("yesterday")
+  return d.toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" }).toLowerCase()
+}
+
 // "9:41 pm", or "tue 9:41 pm" when it wasn't today
 const msgTime = (at) => {
   if (!at) return ""
@@ -821,11 +831,28 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
           ) : msgs.length === 0 ? (
             <p className="pb-8 text-center font-mono text-[11px] text-ink-soft">{t("no messages yet. say something.")}</p>
           ) : (
-            msgs.map((m) => {
+            msgs.map((m, i) => {
               const mine = m.from.memberNo === me.memberNo
               const system = m.from.memberNo === "000"
               const quoted = m.replyTo ? msgs.find((x) => x.key === m.replyTo) : null
               const reactions = Object.entries(m.reactions || {})
+              // messenger-style grouping: same person within 5 minutes is one run.
+              // name on the first, avatar on the last, a day line when the day changes.
+              const prev = msgs[i - 1]
+              const next = msgs[i + 1]
+              const sameRun = (a, b) =>
+                a && b && a.from.memberNo === b.from.memberNo && a.from.memberNo !== "000" &&
+                Math.abs(new Date(b.at) - new Date(a.at)) < 5 * 60e3 && dayKey(a.at) === dayKey(b.at)
+              const first = !sameRun(prev, m)
+              const last = !sameRun(m, next)
+              const newDay = !prev || dayKey(prev.at) !== dayKey(m.at)
+              const dayLine = newDay && (
+                <div className="flex items-center gap-3 py-1">
+                  <span className="h-px flex-1 bg-line" />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{chatDay(m.at)}</span>
+                  <span className="h-px flex-1 bg-line" />
+                </div>
+              )
 
               if (system) {
                 return (
@@ -838,19 +865,29 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               }
 
               return (
-                <div key={m.key} id={`msg-${m.key}`} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
-                  {!mine && <Avatar member={m.from} photo={photoMap[m.from.memberNo]} size="h-7 w-7 text-[12px]" />}
+                <div key={m.key} className={first ? "pt-2" : "-mt-2"}>
+                {dayLine}
+                <div id={`msg-${m.key}`} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+                  {!mine && (last
+                    ? <Avatar member={m.from} photo={m.from.photo || photoMap[m.from.memberNo]} size="h-8 w-8 text-[12px]" />
+                    : <span className="w-8 shrink-0" />)}
                   <div className={`min-w-0 max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
+                    {!mine && first && !m.deleted && (
+                      <p className="mb-0.5 ml-1 text-[12px] font-bold text-ink">
+                        {m.from.name.split(" ")[0]}
+                        <span className="font-normal text-ink-soft"> · {msgTime(m.at)}</span>
+                      </p>
+                    )}
                     <div
                       onClick={(e) => { e.stopPropagation(); if (!m.deleted) setFocused(focused === m.key ? null : m.key) }}
-                      className={`min-w-0 max-w-full break-words rounded-2xl px-3.5 py-2 [overflow-wrap:anywhere] ${m.deleted ? "border border-dashed border-line bg-transparent" : mine ? "rounded-br-md bg-lime text-ink" : "rounded-bl-md border border-line bg-white/80 text-ink"}`}
+                      className={`min-w-0 max-w-full break-words px-3.5 py-2 [overflow-wrap:anywhere] ${
+                        m.deleted
+                          ? "rounded-[1.2rem] border border-dashed border-line bg-transparent"
+                          : mine
+                            ? `rounded-[1.2rem] bg-lime text-ink ${last ? "rounded-br-md" : ""}`
+                            : `rounded-[1.2rem] bg-white text-ink shadow-[0_1px_2px_rgba(58,50,44,0.08)] ${last ? "rounded-bl-md" : ""}`
+                      }`}
                     >
-                      {!mine && !m.deleted && (
-                        <p className="font-mono text-[9.5px] font-semibold text-ink-soft">
-                          {m.from.name.toLowerCase()} · {m.from.memberNo}
-                          <span className="font-normal opacity-70"> · {msgTime(m.at)}</span>
-                        </p>
-                      )}
                       {/* the quote clamps to two lines. it used to be one unwrapped line,
                           which pushed a long quote's bubble past the edge of the screen */}
                       {m.replyTo && !m.deleted && (
@@ -950,6 +987,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       )}
                     </AnimatePresence>
                   </div>
+                </div>
                 </div>
               )
             })
@@ -1292,7 +1330,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         me={me}
         photoMap={photoMap}
         channel={roomCity}
-        title={`${cityChip(roomCity).emoji} ${cityName} chat`}
+        title={`${cityChip(roomCity).emoji}  ${cityName} chat`}
         onBack={() => setRoomOpen(false)}
         onNeedDates={onNeedDates}
         onSeen={(lastId) => markRoomSeen(roomCity, lastId)}
@@ -1553,7 +1591,11 @@ export default function Club({ token }) {
       .then((r) => r.json())
       .then((d) => {
         const map = {}
-        for (const m of d.members || []) if (m.photo) map[m.memberNo] = m.photo
+        // the people api returns people (with dates) and others (without); the old
+        // "members" list is gone, which left every chat avatar an emoji
+        for (const m of [...(d.people || []), ...(d.others || []), ...(d.members || [])]) {
+          if (m.photo && !m.locked) map[m.memberNo] = m.photo
+        }
         setPhotoMap(map)
       })
       .catch(() => {})

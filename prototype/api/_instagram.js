@@ -193,3 +193,47 @@ export async function backfillPhotos({ refresh = false, batch = 0, size = 60 } =
   }
   return { missing: todo.length, filled, notFound }
 }
+
+// members whose "name" is really their handle get the name on their instagram
+// profile. only fills a real-looking name; never touches one they typed.
+export async function backfillNames() {
+  const token = process.env.APIFY_TOKEN
+  if (!token) return { error: "no scraper key" }
+  const { data: members } = await db.from("members").select("member_no, name, ig, banned").lt("member_no", "900")
+  const looksLikeHandle = (m) => {
+    const n = String(m.name || "").trim()
+    const h = String(m.ig || "").replace(/^@+/, "").toLowerCase()
+    const first = n.split(/\s+/)[0] || ""
+    return !first || n.toLowerCase() === h || first.toLowerCase() === h || /[_.\d]/.test(first)
+  }
+  const todo = (members || [])
+    .filter((m) => !m.banned && looksLikeHandle(m))
+    .map((m) => ({ no: m.member_no, handle: String(m.ig || "").replace(/^@+/, "").trim().toLowerCase() }))
+    .filter((m) => /^[a-z0-9._]{1,30}$/.test(m.handle))
+  if (!todo.length) return { missing: 0, named: 0 }
+
+  const r = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=240`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ usernames: todo.map((m) => m.handle) }),
+  })
+  if (!r.ok) return { error: `scraper ${r.status}` }
+  const byUser = new Map(((await r.json()) || []).filter((p) => p?.username).map((p) => [p.username.toLowerCase(), p]))
+
+  let named = 0
+  const none = []
+  for (const m of todo) {
+    // "Juan Pérez 🇨🇴 | DJ" -> "Juan Pérez": drop emoji, bars and job titles
+    const full = String(byUser.get(m.handle)?.fullName || "")
+      .split(/[|•·]|\s-\s/)[0]
+      .replace(/[^\p{L}\p{M}\s'.-]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 40)
+    const ok = full && /\p{L}{2,}/u.test(full) && full.toLowerCase() !== m.handle
+    if (!ok) { none.push(m.handle); continue }
+    await db.from("members").update({ name: full }).eq("member_no", m.no)
+    named++
+  }
+  return { missing: todo.length, named, none }
+}

@@ -40,7 +40,8 @@ const highlights = (info = {}) =>
     .flatMap((o) => Object.entries(o || {}).filter(([, v]) => v === true).map(([k]) => k))
     .slice(0, 12)
 
-export async function enrichSpots({ ids = null, limit = 5 } = {}) {
+// query: a better search for one spot when its name alone finds the wrong place
+export async function enrichSpots({ ids = null, limit = 5, query = null } = {}) {
   const token = process.env.APIFY_TOKEN
   if (!token) return { error: "no scraper key" }
   let q = db.from("spots").select("*").eq("active", true).order("id")
@@ -50,7 +51,7 @@ export async function enrichSpots({ ids = null, limit = 5 } = {}) {
 
   const out = []
   for (const s of spots) {
-    const search = `${s.name}, ${s.area || ""}, Medellín, Colombia`
+    const search = query && ids?.length === 1 ? query : `${s.name}, ${s.area || ""}, Medellín, Colombia`
     const r = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=120`, {
       method: "POST",
       headers: { "content-type": "application/json" },

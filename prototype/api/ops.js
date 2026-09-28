@@ -2,7 +2,7 @@ import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { actsAsMod } from "./_mods.js"
 import { today } from "./_access.js"
-import { backfillPhotos } from "./_instagram.js"
+import { backfillPhotos, backfillNames } from "./_instagram.js"
 import { enrichSpots } from "./_guide.js"
 
 // long enough for one scraper run over every member missing a photo
@@ -14,11 +14,21 @@ export default async function handler(req, res) {
   if (!me || !actsAsMod(me)) return res.status(401).json({ error: "not allowed" })
 
   // POST ?t=&action=backfill-photos -> pull instagram photos for everyone without one
+  // POST ?t=&action=backfill-names -> real names from instagram for handle-only members
+  if (req.method === "POST" && req.query?.action === "backfill-names") {
+    try {
+      return res.status(200).json(await backfillNames())
+    } catch (e) {
+      console.error("backfill names error:", e)
+      return res.status(500).json({ error: "names failed" })
+    }
+  }
+
   // POST ?t=&action=enrich-spots -> next few spots get their google maps listing + photos
   if (req.method === "POST" && req.query?.action === "enrich-spots") {
     try {
       const ids = req.query.ids ? String(req.query.ids).split(",").map(Number).filter(Boolean) : null
-      return res.status(200).json(await enrichSpots({ ids, limit: Number(req.query.limit || 4) }))
+      return res.status(200).json(await enrichSpots({ ids, limit: Number(req.query.limit || 4), query: req.query.q || null }))
     } catch (e) {
       console.error("enrich spots error:", e)
       return res.status(500).json({ error: "enrich failed" })

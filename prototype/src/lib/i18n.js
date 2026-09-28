@@ -543,6 +543,22 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "yes, these are right": "sí, son correctas",
   "fix them": "corregirlas",
   "everyone going tonight": "todos los que van esta noche",
+  "closed today": "cerrado hoy",
+  "you're going": "vas",
+  "nobody from irlpass yet. be the first.": "nadie de irlpass aún. sé el primero.",
+  "going tonight": "van esta noche",
+  "a google review": "reseña de google",
+  "open in maps": "abrir en mapas",
+  "website": "sitio web",
+  "the guide": "la guía",
+  "before the night": "antes de la noche",
+  "after midnight": "después de medianoche",
+  "slow day": "día tranqui",
+  "from irlpass going": "de irlpass van",
+  "yesterday": "ayer",
+  "what should people call you?": "¿cómo te llamamos?",
+  "your first name": "tu nombre",
+  "almost in. who are you?": "casi listo. ¿quién eres?",
 }
 
 export function t(str, vars) {
