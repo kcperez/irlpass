@@ -3,6 +3,7 @@ import { db } from "./_db.js"
 import { actsAsMod } from "./_mods.js"
 import { today } from "./_access.js"
 import { backfillPhotos } from "./_instagram.js"
+import { enrichSpots } from "./_guide.js"
 
 // long enough for one scraper run over every member missing a photo
 export const config = { maxDuration: 300 }
@@ -13,6 +14,17 @@ export default async function handler(req, res) {
   if (!me || !actsAsMod(me)) return res.status(401).json({ error: "not allowed" })
 
   // POST ?t=&action=backfill-photos -> pull instagram photos for everyone without one
+  // POST ?t=&action=enrich-spots -> next few spots get their google maps listing + photos
+  if (req.method === "POST" && req.query?.action === "enrich-spots") {
+    try {
+      const ids = req.query.ids ? String(req.query.ids).split(",").map(Number).filter(Boolean) : null
+      return res.status(200).json(await enrichSpots({ ids, limit: Number(req.query.limit || 4) }))
+    } catch (e) {
+      console.error("enrich spots error:", e)
+      return res.status(500).json({ error: "enrich failed" })
+    }
+  }
+
   // POST ?t=&action=refresh-photos&batch=N -> re-pull instagram photos for everyone, 60 at a time
   if (req.method === "POST" && (req.query?.action === "backfill-photos" || req.query?.action === "refresh-photos")) {
     try {
