@@ -76,8 +76,9 @@ export default async function handler(req, res) {
             .eq("night", `${spotRoom[2]}-${spotRoom[3]}-${spotRoom[4]}`)
           if (!count) return res.status(402).json({ error: "tap i'm going to write here", gate: "going" })
         }
-        // a city room is for people who are actually going to be there
-        else if (!actsAsMod(me) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
+        // a city room is for people who are actually going to be there, or who
+        // hold the pass (every city's chat is part of it)
+        else if (!actsAsMod(me) && !me.paid && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
           const { count } = await db
             .from("trips")
             .select("id", { count: "exact", head: true })

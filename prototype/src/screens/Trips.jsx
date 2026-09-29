@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { cachedJson } from "../lib/cached"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   CalendarPlus, CheckCircle, CircleNotch, LockSimple,
@@ -44,9 +45,10 @@ function Initials({ name, photo, locked, size = "h-11 w-11" }) {
   )
 }
 
-function PersonRow({ p, onMessage, cityLabel }) {
+function PersonRow({ p, onMessage, onOpen, cityLabel }) {
   return (
     <div className="flex items-center gap-3 border-b border-line/60 px-4 py-3 last:border-b-0">
+      <button onClick={() => onOpen?.(p.memberNo)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
       <Initials name={p.name || p.first} photo={p.photo} locked={p.locked} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -77,6 +79,7 @@ function PersonRow({ p, onMessage, cityLabel }) {
           {p.note ? ` · ${p.note}` : p.interests?.length ? ` · ${p.interests.slice(0, 2).join(", ")}` : ""}
         </p>
       </div>
+      </button>
       {p.locked || (!p.canMessage && !p.womenOnly) ? (
         <LockSimple size={17} weight="fill" className="shrink-0 text-ink-soft/50" />
       ) : p.canMessage ? (
@@ -458,7 +461,7 @@ function UnlockSheet({ token, trip, count, onClose, onDone }) {
   )
 }
 
-export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets, postCity, onCityPosted }) {
+export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest, closeSheets, postCity, onCityPosted }) {
   const [state, setState] = useState("loading")
   const [trips, setTrips] = useState([])
   const [active, setActive] = useState(0) // index of the trip being viewed
@@ -475,10 +478,8 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
   )
 
   const load = useCallback(async () => {
-    const r = await fetch(`/api/trips?t=${token}`)
-    const d = await r.json()
-    setTrips(d.trips || [])
-    setState("ok")
+    await cachedJson(`/api/trips?t=${token}`, (d) => { setTrips(d.trips || []); setState("ok") })
+      .catch(() => setState("ok"))
   }, [token])
 
   useEffect(() => { load() }, [load])
@@ -673,12 +674,13 @@ export default function Trips({ token, me, onOpenDM, unlockRequest, closeSheets,
                   </span>
                 </div>
 
-                <div className="overflow-hidden rounded-[1.75rem] border-2 border-line bg-white/70">
+                <div className="lift overflow-hidden rounded-[1.75rem] bg-white">
                   {overlap.people.map((p) => (
                     <PersonRow
                       key={`${p.memberNo}-${p.starts}`}
                       p={p}
                       cityLabel={cityName(trip.city).toLowerCase()}
+                      onOpen={onOpenPerson}
                       onMessage={(person) => onOpenDM({ memberNo: person.memberNo, name: person.name, ig: person.ig, photo: person.photo })}
                     />
                   ))}

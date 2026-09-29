@@ -51,11 +51,13 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const city = String(req.query?.city || "medellin")
-      const [{ data: spots }, { data: going }, { data: myMood }, { data: out }] = await Promise.all([
+      const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }] = await Promise.all([
         db.from("spots").select("*").eq("city", city).eq("active", true).order("sort").order("id"),
         db.from("spot_going").select("spot_id, member_no").eq("night", night),
         db.from("moods").select("mood").eq("member_no", me.memberNo).eq("night", night).maybeSingle(),
         db.from("presence").select("*").eq("city", city).gt("expires_at", new Date().toISOString()),
+        canReach(me, city, night, night),
+        db.from("dm_threads").select("a_no, b_no").or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`),
       ])
 
       // everyone we need to draw: people going somewhere tonight + people out
@@ -65,8 +67,6 @@ export default async function handler(req, res) {
 
       // tonight is a shared plan, so the same rules as dates: people you've
       // talked to or can reach are in the clear, everyone else is a preview
-      const access = await canReach(me, city, night, night)
-      const { data: threads } = await db.from("dm_threads").select("a_no, b_no").or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`)
       const known = new Set((threads || []).map((t) => (t.a_no === me.memberNo ? t.b_no : t.a_no)))
       const mineSet = new Set((me.interests || []).map((x) => String(x).toLowerCase()))
       const face = (no) => {

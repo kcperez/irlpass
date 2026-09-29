@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { cachedJson } from "../lib/cached"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
@@ -24,7 +25,7 @@ import { cityChip, CITY_INDEX, rememberCity } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
 import { isMod } from "../lib/mods"
 
-export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, viewCity, onViewCity }) {
+export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld, onUnlock, onNeedDates, viewCity, onViewCity }) {
   const [data, setData] = useState(null)
   const [week, setWeek] = useState(0) // which 14-day window we're looking at
   const [city, setCity] = useState(viewCity || me.city || "medellin")
@@ -51,10 +52,8 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
   const [othersShown, setOthersShown] = useState(24) // the city roster can be hundreds; reveal it a page at a time
 
   const load = useCallback(() => {
-    fetch(`/api/members?t=${token}&city=${city}`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => setData({ people: [], days: {} }))
+    cachedJson(`/api/members?t=${token}&city=${city}`, setData)
+      .catch(() => setData((d) => d || { people: [], days: {} }))
   }, [token, city])
   useEffect(() => { load() }, [load])
 
@@ -107,7 +106,15 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
   }, [data, from, selectedDay])
 
   if (!data) {
-    return <div className="flex flex-1 items-center justify-center pt-20"><CircleNotch size={24} className="animate-spin text-ink-soft" /></div>
+    return (
+      <div className="px-5 pt-4">
+        <div className="shimmer h-8 w-40 rounded-xl" />
+        <div className="shimmer mt-3 h-4 w-56 rounded-lg" />
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer aspect-[4/5] rounded-[1.5rem]" />)}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -117,10 +124,16 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
           <h2 className="display text-[30px] font-bold">{cityChip(city).name.toLowerCase()}</h2>
           <span className="text-[13px] font-bold text-ink-soft">{picking ? "×" : "▾"}</span>
         </button>
-        <span className="text-[13px] font-semibold text-ink-soft">
-          {data.total} {data.total === 1 ? t("person with dates") : t("people with dates")}
-        </span>
+        <button
+          onClick={onOpenWorld}
+          className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12.5px] font-bold shadow-[0_1px_2px_rgba(58,50,44,0.08),0_6px_16px_-8px_rgba(58,50,44,0.35)] active:scale-95"
+        >
+          🌍 {t("every city")}
+        </button>
       </div>
+      <p className="mt-0.5 text-[13px] font-semibold text-ink-soft">
+        {data.total} {data.total === 1 ? t("person with dates") : t("people with dates")}
+      </p>
       <p className="mt-1 text-[14px] text-ink-soft">
         {data.iHaveDates
           ? t("people here on your dates. say hi to join them.")
@@ -297,8 +310,11 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-2.5">
           {visible.map((p) => (
-            <div key={`${p.memberNo}-${p.starts}`} className="overflow-hidden rounded-[1.5rem] border-2 border-line bg-white/80">
-              <div className="relative aspect-[4/5] w-full overflow-hidden bg-cream-deep">
+            <div key={`${p.memberNo}-${p.starts}`} className="lift overflow-hidden rounded-[1.5rem] bg-white">
+              <div
+                onClick={() => onOpenPerson?.(p.memberNo)}
+                className="relative aspect-[4/5] w-full cursor-pointer overflow-hidden bg-cream-deep"
+              >
                 {p.photo ? (
                   <img
                     src={p.photo}
@@ -412,7 +428,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
             {data.others.slice(0, othersShown).map((p) => (
               <button
                 key={p.memberNo}
-                onClick={() => p.canMessage && onOpenDM(p)}
+                onClick={() => onOpenPerson?.(p.memberNo)}
                 className="flex flex-col items-center gap-1"
               >
                 <div className="aspect-square w-full overflow-hidden rounded-[1rem] bg-cream-deep">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { cachedJson } from "../lib/cached"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, Clock, MapPin, Star, X } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
@@ -63,7 +64,12 @@ function Meta({ s, light = false }) {
 
 function GoingButton({ s, busy, onToggle, full = false }) {
   return (
-    <button
+    <motion.button
+      key={s.imGoing ? "on" : "off"}
+      initial={{ scale: s.imGoing ? 0.85 : 1 }}
+      animate={{ scale: 1 }}
+      whileTap={{ scale: 0.92 }}
+      transition={{ type: "spring", stiffness: 520, damping: 16 }}
       onClick={(e) => { e.stopPropagation(); onToggle(s) }}
       disabled={busy}
       className={`shrink-0 rounded-full px-4 py-2.5 text-[13px] font-bold disabled:opacity-50 ${full ? "w-full" : ""} ${
@@ -71,7 +77,7 @@ function GoingButton({ s, busy, onToggle, full = false }) {
       }`}
     >
       {s.imGoing ? <span className="flex items-center justify-center gap-1"><CheckCircle size={15} weight="fill" /> {t("you're going")}</span> : t("i'm going tonight")}
-    </button>
+    </motion.button>
   )
 }
 
@@ -189,10 +195,8 @@ export default function Mood({ token, onOpenRoom }) {
   const [openId, setOpenId] = useState(null)
 
   const load = useCallback(() => {
-    fetch(`/api/mood?t=${token}&city=medellin`)
-      .then((r) => r.json())
-      .then((d) => { setData(d); setMood((m) => m || d.mood || "pregame") })
-      .catch(() => setData({ board: {}, presence: [] }))
+    cachedJson(`/api/mood?t=${token}&city=medellin`, (d) => { setData(d); setMood((m) => m || d.mood || "pregame") })
+      .catch(() => setData((d) => d || { board: {}, presence: [] }))
   }, [token])
   useEffect(() => { load() }, [load])
   // the board is live on a night out: refresh every half minute
@@ -228,7 +232,15 @@ export default function Mood({ token, onOpenRoom }) {
   }
 
   if (!data) {
-    return <div className="flex flex-1 items-center justify-center py-16"><CircleNotch size={24} className="animate-spin text-ink-soft" /></div>
+    return (
+      <div className="px-4 pt-4">
+        <div className="shimmer h-3 w-44 rounded" />
+        <div className="shimmer mt-2 h-9 w-56 rounded-xl" />
+        <div className="mt-4 space-y-5">
+          {[0, 1].map((i) => <div key={i} className="shimmer aspect-[4/3] rounded-[1.75rem]" />)}
+        </div>
+      </div>
+    )
   }
 
   const needle = q.trim().toLowerCase()
@@ -352,7 +364,7 @@ export default function Mood({ token, onOpenRoom }) {
             onClick={() => setOpenId(s.id)}
             className="cursor-pointer"
           >
-            <div className="relative aspect-[4/3] overflow-hidden rounded-[1.75rem] bg-cream-deep">
+            <div className="lift relative aspect-[4/3] overflow-hidden rounded-[1.75rem] bg-cream-deep">
               {s.photos[0] && <img src={s.photos[0]} alt="" loading="lazy" className="h-full w-full object-cover" />}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
               {s.going > 0 && (

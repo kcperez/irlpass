@@ -15,46 +15,46 @@ export default async function handler(req, res) {
   const horizon = addDays(today(), 90)
 
   try {
-    const { data: trips } = await db
-      .from("trips")
-      .select("member_no, starts, ends, flexible, note, local, area")
-      .eq("city", city)
-      .gte("ends", today())
-      .lte("starts", horizon)
-      .order("starts")
-      .limit(300)
-
-    // my own windows, so we can mark who overlaps me and price the unlock
-    const { data: mine } = await db
-      .from("trips")
-      .select("starts, ends")
-      .eq("member_no", me.memberNo)
-      .eq("city", city)
-      .gte("ends", today())
-
-    const nos = [...new Set((trips || []).map((t) => t.member_no))].filter((n) => n !== me.memberNo)
-    const { data: rows } = nos.length
-      ? await db.from("members").select("*").in("member_no", nos)
-      : { data: [] }
-    const byNo = new Map((rows || []).map((r) => [r.member_no, rowToMember(r)]))
-
-    // people already talking to me are never hidden
-    const { data: threads } = await db
-      .from("dm_threads")
-      .select("a_no, b_no")
-      .or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`)
-    const known = new Set((threads || []).map((t) => (t.a_no === me.memberNo ? t.b_no : t.a_no)))
-    const dms = await dmState(me.memberNo)
-    // who's going out tonight: an "i'm out" status, or "i'm going" on a spot.
-    // it's what the people list leads with, and it's gone when it expires.
+    // everything that doesn't depend on anything else, in one parallel round
+    // (this used to be nine round trips back to back)
     const night = tonight()
-    const [{ data: outRows }, { data: goingRows }] = await Promise.all([
+    const [
+      { data: trips },
+      { data: mine },
+      { data: threads },
+      dms,
+      { data: outRows },
+      { data: goingRows },
+      { data: cityRows },
+    ] = await Promise.all([
+      db.from("trips")
+        .select("member_no, starts, ends, flexible, note, local, area")
+        .eq("city", city)
+        .gte("ends", today())
+        .lte("starts", horizon)
+        .order("starts")
+        .limit(300),
+      // my own windows, so we can mark who overlaps me and price the unlock
+      db.from("trips").select("starts, ends").eq("member_no", me.memberNo).eq("city", city).gte("ends", today()),
+      // people already talking to me are never hidden
+      db.from("dm_threads").select("a_no, b_no").or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`),
+      dmState(me.memberNo),
+      // who's going out tonight: an "i'm out" status, or "i'm going" on a spot
       db.from("presence").select("member_no, area").gt("expires_at", new Date().toISOString()),
       db.from("spot_going").select("member_no, spot_id").eq("night", night),
+      // everyone who belongs to this city, dates or not
+      db.from("members").select("*").eq("city", city).eq("banned", false).lt("member_no", "900").limit(200),
     ])
-    const { data: goingSpots } = goingRows?.length
-      ? await db.from("spots").select("id, name, area").in("id", [...new Set(goingRows.map((g) => g.spot_id))])
-      : { data: [] }
+    const known = new Set((threads || []).map((t) => (t.a_no === me.memberNo ? t.b_no : t.a_no)))
+
+    const nos = [...new Set((trips || []).map((t) => t.member_no))].filter((n) => n !== me.memberNo)
+    const [{ data: rows }, { data: goingSpots }] = await Promise.all([
+      nos.length ? db.from("members").select("*").in("member_no", nos) : { data: [] },
+      goingRows?.length
+        ? db.from("spots").select("id, name, area").in("id", [...new Set(goingRows.map((g) => g.spot_id))])
+        : { data: [] },
+    ])
+    const byNo = new Map((rows || []).map((r) => [r.member_no, rowToMember(r)]))
     const spotById = new Map((goingSpots || []).map((x) => [x.id, x]))
     const outTonight = new Map()
     for (const g of goingRows || []) {
@@ -88,13 +88,21 @@ export default async function handler(req, res) {
       prev.area = prev.area || trip.area
     }
 
+    // access depends on my window, not on them: check each of my windows once
+    const reachCache = new Map()
+    const reachFor = (w) => {
+      const k = `${w.starts}:${w.ends}`
+      if (!reachCache.has(k)) reachCache.set(k, canReach(me, city, w.starts, w.ends))
+      return reachCache.get(k)
+    }
+
     const out = []
     for (const trip of mergedTrips.values()) {
       const m = byNo.get(trip.member_no)
       if (!m || m.banned) continue
 
       const mineOverlap = (mine || []).find((x) => overlaps(x.starts, x.ends, trip.starts, trip.ends))
-      const access = mineOverlap ? await canReach(me, city, mineOverlap.starts, mineOverlap.ends) : { ok: false }
+      const access = mineOverlap ? await reachFor(mineOverlap) : { ok: false }
       const open = access.ok || known.has(m.memberNo)
       const blocked = me.gender === "man" && m.allowDmFromMen === false
 
@@ -131,13 +139,6 @@ export default async function handler(req, res) {
     // everyone else who belongs to this city: chat regulars, people between
     // trips, locals who haven't put dates up. coordination needs them visible.
     const listed = new Set(out.map((p) => p.memberNo))
-    const { data: cityRows } = await db
-      .from("members")
-      .select("*")
-      .eq("city", city)
-      .eq("banned", false)
-      .lt("member_no", "900")
-      .limit(200)
 
     const others = []
     for (const r of cityRows || []) {

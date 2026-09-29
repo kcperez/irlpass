@@ -20,8 +20,8 @@ const flag = (cc) =>
 // filed as a county, brussels as "administrative")
 const BIG_TYPES = new Set(["county", "administrative", "state_district", "province", "state"])
 
-async function nominatim(query) {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=jsonv2&addressdetails=1&limit=10&accept-language=en`
+async function nominatim(query, cc = null) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=jsonv2&addressdetails=1&limit=10&accept-language=en${cc ? `&countrycodes=${cc}` : ""}`
   const r = await fetch(url, { headers: { "user-agent": "irlpass.xyz (hello@irlpass.xyz)" } })
   if (!r.ok) throw new Error(`nominatim ${r.status}`)
   return (await r.json()) || []
@@ -51,7 +51,7 @@ export async function searchRealCities(q, limit = 6) {
     seen.add(slug)
     cache.set(slug, true)
     const row = { slug, name, country: p.address?.country || "", emoji: flagFor(p) }
-    if (!meta.has(slug)) meta.set(slug, row)
+    if (!meta.has(slug)) meta.set(slug, { ...row, lat: Number(p.lat), lng: Number(p.lon) })
     out.push(row)
     if (out.length >= limit) break
   }
@@ -68,7 +68,7 @@ export async function isRealCity(slug) {
     // ("bruxelles" -> "Bruxelles - Brussel")
     const hit = rows.find((p) => isPlace(p) && (canonicalCity(placeName(p)) === s || canonicalCity(p.name).includes(s)))
     if (hit && !meta.has(s)) {
-      meta.set(s, { slug: s, name: placeName(hit), country: hit.address?.country || "", emoji: flagFor(hit) })
+      meta.set(s, { slug: s, name: placeName(hit), country: hit.address?.country || "", emoji: flagFor(hit), lat: Number(hit.lat), lng: Number(hit.lon) })
     }
     cache.set(s, !!hit)
     return !!hit
@@ -81,9 +81,22 @@ export async function isRealCity(slug) {
 // once a city is actually used (dates posted, a request logged), keep its name
 // and flag so every room and chip can show it. first write wins.
 export async function saveCity(slug) {
-  if (KNOWN.has(slug)) return
+  const { data: have } = await db.from("cities").select("slug, lat").eq("slug", slug).maybeSingle()
+  if (have?.lat) return
   let row = meta.get(slug)
-  if (!row && (await isRealCity(slug))) row = meta.get(slug)
+  if (!row || !row.lat) {
+    // known cities skip the realness check, but the map still needs their point.
+    // their flag says which country, so cartagena lands in colombia, not spain
+    const knownFlag = CITY_INDEX.find((c) => c.slug === slug)?.emoji
+    const cc = knownFlag ? [...knownFlag].map((ch) => String.fromCharCode(ch.codePointAt(0) - 0x1f1a5)).join("").toLowerCase() : null
+    try {
+      const rows = await nominatim(slug.replace(/-/g, " "), cc)
+      const hit = rows.find((p) => isPlace(p) && (canonicalCity(placeName(p)) === slug || canonicalCity(p.name).includes(slug))) || rows.find(isPlace)
+      if (hit) row = { slug, name: row?.name || placeName(hit), country: hit.address?.country || "", emoji: row?.emoji || flagFor(hit), lat: Number(hit.lat), lng: Number(hit.lon) }
+    } catch { /* offline */ }
+  }
   if (!row) return
-  await db.from("cities").upsert(row, { onConflict: "slug", ignoreDuplicates: true }).then(() => {}, () => {})
+  const known = CITY_INDEX.find((c) => c.slug === slug)
+  if (known) row = { ...row, name: known.name, emoji: known.emoji }
+  await db.from("cities").upsert(row, { onConflict: "slug" }).then(() => {}, () => {})
 }

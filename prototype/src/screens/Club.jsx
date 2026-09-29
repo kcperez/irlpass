@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { cachedJson } from "../lib/cached"
+import { motion, AnimatePresence, MotionConfig } from "framer-motion"
 import {
   CalendarPlus,
   UsersThree,
@@ -18,6 +19,8 @@ import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
 import Mood from "./Mood"
+import PersonSheet from "../components/PersonSheet"
+import World from "../components/World"
 import { cityChip, registerCities } from "../lib/cities"
 
 // mod powers are on only in mod mode; member view tests the regular experience
@@ -692,7 +695,7 @@ function WithMentions({ text }) {
   )
 }
 
-function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen }) {
+function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen, onOpenPerson }) {
   const [needsDates, setNeedsDates] = useState(false)
 
   const [server, setServer] = useState(null)
@@ -899,7 +902,11 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                 {dayLine}
                 <div id={`msg-${m.key}`} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                   {!mine && (last
-                    ? <Avatar member={m.from} photo={m.from.photo || photoMap[m.from.memberNo]} size="h-8 w-8 text-[12px]" />
+                    ? (
+                      <button onClick={(e) => { e.stopPropagation(); onOpenPerson?.(m.from.memberNo) }} className="shrink-0 active:scale-95">
+                        <Avatar member={m.from} photo={m.from.photo || photoMap[m.from.memberNo]} size="h-8 w-8 text-[12px]" />
+                      </button>
+                    )
                     : <span className="w-8 shrink-0" />)}
                   <div className={`min-w-0 max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                     {!mine && first && !m.deleted && (
@@ -1148,7 +1155,7 @@ function DeniedScreen() {
 
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
-function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates }) {
+function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld }) {
   const [roomOpen, setRoomOpen] = useState(false)
   const [rooms, setRooms] = useState([])
   const [roomCity, setRoomCity] = useState(me.city || "medellin")
@@ -1342,6 +1349,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         channel={roomCity}
         title={`${cityChip(roomCity).emoji}  ${cityName} chat`}
         onBack={() => setRoomOpen(false)}
+        onOpenPerson={onOpenPerson}
         onNeedDates={onNeedDates}
         onSeen={(lastId) => markRoomSeen(roomCity, lastId)}
       />
@@ -1357,7 +1365,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         <button
           key={c}
           onClick={() => { setRoomCity(c); setRoomOpen(true) }}
-          className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left active:scale-[0.99]"
+          className="lift mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left"
         >
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-cream text-[26px] leading-none" aria-hidden>
             {cityChip(c).emoji}
@@ -1375,6 +1383,16 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           )}
         </button>
       ))}
+      <button
+        onClick={onOpenWorld}
+        className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-line bg-white/70 px-4 py-3.5 text-left active:scale-[0.99]"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[24px]">🌍</span>
+        <div className="min-w-0">
+          <p className="display text-[17px] font-bold leading-tight">{t("every city's chat")}</p>
+          <p className="text-[12.5px] text-ink-soft">{t("see where irlpass is right now and who's talking")}</p>
+        </div>
+      </button>
       {me.memberNo !== "002" && (
         <button
           onClick={() => setOpenWith({ memberNo: "002", name: "Josh", ig: "@jawshmac" })}
@@ -1601,6 +1619,9 @@ export default function Club({ token }) {
   const [vibesOpen, setVibesOpen] = useState(false)
   const [spotRoom, setSpotRoom] = useState(null) // { channel, title } of a spot's room tonight
   const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
+  const [personNo, setPersonNo] = useState(null) // whose profile is open
+  const [worldOpen, setWorldOpen] = useState(false) // the "where irlpass is" map
+  const [cityRoom, setCityRoom] = useState(null) // another city's chat, opened from the map
   const [peopleKey, setPeopleKey] = useState(0) // bump to reload the people grid after vibes change
 
   const [nameOpen, setNameOpen] = useState(false)
@@ -1671,16 +1692,15 @@ export default function Club({ token }) {
 
   useEffect(() => {
     if (!token) return setState("denied")
-    fetch(`/api/me?t=${token}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((m) => {
+    cachedJson(`/api/me?t=${token}`, (m) => {
         setMe(m)
         setState("ok")
         // remember this device so irlpass.xyz recognizes the member next visit
         localStorage.setItem("irlpass_member_token", token)
         // no geolocation: where you are is where your dates say you are
       })
-      .catch(() => setState("denied"))
+      // a cached profile already on screen stays up if the network blips
+      .catch(() => setState((st) => (st === "ok" ? st : "denied")))
   }, [token])
 
   // returning from a paid-seat checkout: verify + add them, refresh the board, clean the url
@@ -1712,15 +1732,22 @@ export default function Club({ token }) {
     { key: "mood", label: t("mood"), icon: Sparkle },
     { key: "members", label: t("people"), icon: UsersThree },
   ]
-  const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || (tab === "mood" && spotRoom)
+  const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || (tab === "mood" && spotRoom) || cityRoom
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative flex h-[var(--app-h)] flex-col">
       <ModeStrip token={token} me={me} />
       {!inThread && <TopBar me={me} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} />}
-        {tab === "members" && (
+      <motion.div
+        key={`${tab}-${cityRoom?.slug || ""}`}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+      >
+        {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} />}
+        {!cityRoom && tab === "members" && (
           <Around
             key={peopleKey}
             token={token}
@@ -1728,27 +1755,42 @@ export default function Club({ token }) {
             viewCity={viewCity}
             onViewCity={setViewCity}
             onOpenDM={(m) => { setDmWith(m); setDmReturn("members"); setTab("dms") }}
+            onOpenPerson={setPersonNo}
+            onOpenWorld={() => setWorldOpen(true)}
             onUnlock={() => { setTab("trips"); setUnlockRequest(Date.now()) }}
             onNeedDates={(c) => { setTab("trips"); setPostCity(c) }}
           />
         )}
-        {tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} />}
-        {tab === "mood" && spotRoom && (
+        {cityRoom && (
+          <Thread
+            token={token}
+            me={me}
+            channel={cityRoom.slug}
+            title={`${cityRoom.emoji}  ${cityRoom.name} ${t("chat")}`}
+            photoMap={photoMap}
+            onOpenPerson={setPersonNo}
+            onNeedDates={(c) => { setCityRoom(null); setTab("trips"); setPostCity(c) }}
+            onBack={() => setCityRoom(null)}
+          />
+        )}
+        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} />}
+        {!cityRoom && tab === "mood" && spotRoom && (
           <Thread
             token={token}
             me={me}
             channel={spotRoom.channel}
             title={spotRoom.title}
             photoMap={photoMap}
+            onOpenPerson={setPersonNo}
             onBack={() => setSpotRoom(null)}
           />
         )}
-        {tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={(v) => {
+        {!cityRoom && tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={(v) => {
           setDmWith(v)
           // back out of a thread opened from "say hi": return to that screen
           if (v === null && dmReturn) { setTab(dmReturn); setDmReturn(null) }
-        }} photoMap={photoMap} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
-      </div>
+        }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
+      </motion.div>
       <AnimatePresence>
         {profileOpen && (
           <ProfileSheet
@@ -1758,6 +1800,28 @@ export default function Club({ token }) {
             onSafety={(patch) => setMe((m) => ({ ...m, ...patch }))}
             onVibes={() => { setProfileOpen(false); setVibesOpen(true) }}
             onClose={() => setProfileOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {worldOpen && (
+          <World
+            token={token}
+            onClose={() => setWorldOpen(false)}
+            onBrowse={(slug) => { setWorldOpen(false); setViewCity(slug); setTab("members") }}
+            onOpenRoom={(c) => { setWorldOpen(false); setCityRoom(c) }}
+            onPaywall={() => { setWorldOpen(false); setPaywall("city") }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {personNo && (
+          <PersonSheet
+            token={token}
+            memberNo={personNo}
+            onClose={() => setPersonNo(null)}
+            onMessage={(p) => { setPersonNo(null); setDmWith({ memberNo: p.memberNo, name: p.name || p.first, ig: p.ig, photo: p.photo }); setDmReturn(tab); setTab("dms") }}
+            onUnlock={() => { setPersonNo(null); setTab("trips"); setUnlockRequest(Date.now()) }}
           />
         )}
       </AnimatePresence>
@@ -1792,9 +1856,16 @@ export default function Club({ token }) {
       {!inThread && (
         <nav className="sticky bottom-0 z-10 flex border-t-2 border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
           {TABS.map((tb) => (
-            <button key={tb.key} onClick={() => { setTab(tb.key); setSpotRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
-              <span className={`relative flex h-9 w-14 items-center justify-center rounded-full transition-colors ${tab === tb.key ? "bg-lime" : ""}`}>
-                <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={tab === tb.key ? "text-ink" : "text-ink-soft/60"} />
+            <button key={tb.key} onClick={() => { setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
+              <span className="relative flex h-9 w-14 items-center justify-center rounded-full">
+                {tab === tb.key && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                    className="absolute inset-0 rounded-full bg-lime shadow-[0_4px_12px_-4px_rgba(120,90,200,0.55)]"
+                  />
+                )}
+                <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={`relative ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`} />
                 {tb.key === "dms" && unreadTotal > 0 && (
                   <span className="absolute right-2.5 top-1 h-2.5 w-2.5 rounded-full bg-[#c4453d]" />
                 )}
@@ -1805,5 +1876,6 @@ export default function Club({ token }) {
         </nav>
       )}
     </div>
+    </MotionConfig>
   )
 }
