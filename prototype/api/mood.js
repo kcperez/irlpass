@@ -80,6 +80,7 @@ export default async function handler(req, res) {
           photo: open ? m.photo : lockedPhoto(m.photo),
           locked: !open,
           me: no === me.memberNo,
+          outNow: (out || []).some((o) => o.member_no === no),
           shared: (m.interests || []).filter((x) => mineSet.has(String(x).toLowerCase())).slice(0, 3),
         }
       }

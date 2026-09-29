@@ -86,7 +86,14 @@ function WhoGoing({ s }) {
   const match = s.people.find((p) => !p.me && p.shared?.length)
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <div className="flex -space-x-2">{s.people.slice(0, 5).map((p) => <Face key={p.memberNo} p={p} />)}</div>
+      <div className="flex -space-x-2">
+        {s.people.slice(0, 5).map((p) => (
+          <span key={p.memberNo} className="relative">
+            <Face p={p} />
+            {p.outNow && <span className="out-dot absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-cream bg-[#5fd35f]" />}
+          </span>
+        ))}
+      </div>
       <p className="min-w-0 truncate text-[12.5px] font-semibold">
         {s.going} {t("going tonight")}
         {match && <span className="text-ink-soft"> · {match.first} {t("is into")} {joinVibes(match.shared)}</span>}

@@ -58,8 +58,10 @@ export default async function handler(req, res) {
             .eq("thread_id", th.id)
             .neq("from_no", me.memberNo)
             .is("read_at", null)
-          out.push({ with: lite(other), last: last?.body || "", lastFromMe: last?.from_no === me.memberNo, at: th.last_at, unread: unread || 0 })
+          out.push({ with: lite(other), last: last?.body || "", lastFromMe: last?.from_no === me.memberNo, at: th.last_at, unread: unread || 0, pinned: other.memberNo === "002" })
         }
+        // josh's thread (the welcome + support line) sits at the top
+        out.sort((x, y) => !!y.pinned - !!x.pinned)
         return res.status(200).json({ threads: out })
       }
 

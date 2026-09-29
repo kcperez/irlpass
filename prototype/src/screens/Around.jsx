@@ -4,7 +4,6 @@ import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
-import YearView from "./YearView"
 
 // who is actually around: only people with dates posted. no dates, no listing,
 // no dm — there is nothing to meet about yet.
@@ -25,7 +24,7 @@ import { cityChip, CITY_INDEX, rememberCity } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
 import { isMod } from "../lib/mods"
 
-export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld, onUnlock, onNeedDates, viewCity, onViewCity }) {
+export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld, onOpenTonight, onUnlock, onNeedDates, viewCity, onViewCity }) {
   const [data, setData] = useState(null)
   const [week, setWeek] = useState(0) // which 14-day window we're looking at
   const [city, setCity] = useState(viewCity || me.city || "medellin")
@@ -74,6 +73,7 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
   // here now first, then whoever shares the most vibes with you, then soonest
   // going out tonight first, then here now, then shared vibes, then soonest
   const byPresence = (a, b) =>
+    !!b.out?.now - !!a.out?.now ||
     !!b.out - !!a.out ||
     (b.hereNow === true) - (a.hereNow === true) ||
     (b.shared?.length || 0) - (a.shared?.length || 0) ||
@@ -194,28 +194,38 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
         </div>
       )}
 
-      <div className="mt-3 flex gap-1.5">
-        {[
-          { key: "weeks", label: t("next 2 weeks") },
-          { key: "year", label: t("the year") },
-        ].map((v) => (
+      {/* tonight: only when someone's going out. out-now first, with the pulsing dot */}
+      {(() => {
+        const out = [...(data.people || []), ...(data.others || [])]
+          .filter((p) => p.out && p.memberNo !== me.memberNo)
+          .filter((p, i, a) => a.findIndex((x) => x.memberNo === p.memberNo) === i)
+          .sort((a, b) => !!b.out.now - !!a.out.now)
+        if (!out.length) return null
+        const spots = [...new Set(out.map((p) => p.out.spot).filter(Boolean))]
+        const areas = [...new Set(out.filter((p) => !p.out.spot).map((p) => p.out.area).filter(Boolean))]
+        return (
           <button
-            key={v.key}
-            onClick={() => setView(v.key)}
-            className={`rounded-full border-2 px-3.5 py-1.5 text-[12.5px] font-bold ${
-              view === v.key ? "border-ink bg-lime" : "border-line bg-white/60 text-ink-soft"
-            }`}
+            onClick={() => onOpenTonight?.()}
+            className="lift mt-3 flex w-full items-center gap-3 rounded-[1.5rem] bg-ink px-4 py-3 text-left text-cream"
           >
-            {v.label}
+            <div className="flex -space-x-2.5">
+              {out.slice(0, 4).map((p) => (
+                <span key={p.memberNo} className="relative h-9 w-9 shrink-0">
+                  <span className="block h-9 w-9 overflow-hidden rounded-full border-2 border-ink bg-cream-deep">
+                    {p.photo && <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked ? "blur-[2px]" : ""}`} />}
+                  </span>
+                  {p.out.now && <span className="out-dot absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-ink bg-[#5fd35f]" />}
+                </span>
+              ))}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-bold leading-tight">{t("tonight")} · {out.length} {t("going out")}</p>
+              <p className="truncate text-[12px] text-cream/70">{[...spots, ...areas].slice(0, 3).join(" · ")}</p>
+            </div>
+            <span className="shrink-0 text-[12px] font-bold text-lime">{t("see")} →</span>
           </button>
-        ))}
-      </div>
-
-      {view === "year" && (
-        <div className="mt-3">
-          <YearView token={token} city={city} onPosted={load} />
-        </div>
-      )}
+        )
+      })()}
 
       {view === "weeks" && (<>
       {/* one cell per day: the number is people here that day. tap to filter. */}
@@ -330,17 +340,18 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
 
                 {/* one badge, not three: three wrap and clip on a half-width card */}
                 <div className="absolute left-2 top-2 flex gap-1">
-                  {(p.out || (p.hereNow && !p.local)) && (
-                    <span className={`flex max-w-[150px] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-bold ${p.out ? "bg-ink text-cream" : "bg-[#e8f6e8] text-[#2f7a2f]"}`}>
-                      <span className="relative flex h-1.5 w-1.5 shrink-0">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#5fd35f]" />
+                  {p.out && (
+                    <span className="flex max-w-[150px] items-center gap-1 truncate rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-cream">
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-[#5fd35f] ${p.out.now ? "out-dot" : ""}`} />
+                      <span className="truncate">
+                        {p.out.now
+                          ? `${t("out now")}${p.out.area ? ` · ${p.out.area}` : ""}`
+                          : `${t("going out tn")}${p.out.spot ? ` · ${p.out.spot}` : p.out.area ? ` · ${p.out.area}` : ""}`}
                       </span>
-                      <span className="truncate">{p.out ? `${t("going out tn")}${p.out.area ? ` · ${p.out.area}` : ""}` : t("here now")}</span>
                     </span>
                   )}
                   {p.local && !p.out && <span className="rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">{t("local")}</span>}
-                  {isMod(p.memberNo) && !p.hereNow && !p.local && !p.out && (
+                  {isMod(p.memberNo) && !p.local && !p.out && (
                     <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">{t("founder")}</span>
                   )}
                 </div>

@@ -57,11 +57,13 @@ export default async function handler(req, res) {
     const byNo = new Map((rows || []).map((r) => [r.member_no, rowToMember(r)]))
     const spotById = new Map((goingSpots || []).map((x) => [x.id, x]))
     const outTonight = new Map()
+    // two states: "out now" (they set an out status) and "going out tn" (they
+    // tapped going on a spot). out now wins and gets the pulsing dot.
     for (const g of goingRows || []) {
       const sp = spotById.get(g.spot_id)
-      if (sp) outTonight.set(g.member_no, { area: sp.area || "", spot: sp.name })
+      if (sp) outTonight.set(g.member_no, { now: false, area: sp.area || "", spot: sp.name, spotId: sp.id })
     }
-    for (const o of outRows || []) outTonight.set(o.member_no, { ...(outTonight.get(o.member_no) || {}), area: o.area })
+    for (const o of outRows || []) outTonight.set(o.member_no, { ...(outTonight.get(o.member_no) || {}), now: true, area: o.area })
 
     // the strip counts people, not trips: someone with two stays on the same day
     // is one head, so each day holds a set of member numbers

@@ -42,6 +42,7 @@ export default async function handler(req, res) {
           url: `https://irlpass.xyz/?screen=app&t=${m.token}&tab=mood`,
           unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
         }),
+        unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
       })
       if (mail.sent) {
         sent.push(m.member_no)

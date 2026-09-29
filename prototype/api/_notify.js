@@ -16,6 +16,7 @@ export async function notifyMemberNo(memberNo, { subject, line, ctaLabel = "open
 
     await sendEmail({
       to: m.email,
+      unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
       subject,
       html: `
         <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px;color:#1c1b17">hey ${m.name.toLowerCase()}.</h1>

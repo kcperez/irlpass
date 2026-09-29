@@ -1,5 +1,6 @@
 import { db } from "./_db.js"
 import { sendEmail, loginEmail } from "./_email.js"
+import { loginCode } from "./_logincode.js"
 
 // POST { ig } -> is this instagram already a member? if so, email them a link
 // that opens the app and return a masked hint of where it went. returning
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: m.email,
-      ...loginEmail({ name: m.name, url: `https://irlpass.xyz/?screen=app&t=${m.token}`, label: "open irlpass" }),
+      ...loginEmail({ name: m.name, url: `https://irlpass.xyz/?screen=app&t=${m.token}`, label: "open irlpass", code: loginCode(m.email, m.token) }),
     })
     return res.status(200).json({ member: true, hint: mask(m.email) })
   } catch (e) {

@@ -5,6 +5,7 @@ import { sendEmail, acceptanceEmail, loginEmail } from "./_email.js"
 import { db } from "./_db.js"
 import { enrichMember } from "./_instagram.js"
 import { waitUntil } from "@vercel/functions"
+import { sendWelcome } from "./_welcome.js"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const VALID_GENDERS = ["woman", "man", "nonbinary"]
@@ -134,6 +135,8 @@ export default async function handler(req, res) {
     // waitUntil keeps the function alive after the response. a bare promise here
     // got frozen by vercel once we answered, so most signups never got a photo.
     waitUntil(enrichMember(memberNo, record.ig).catch((e) => console.error("enrich error:", e)))
+    // josh's welcome dm is waiting in their chat tab when they land
+    waitUntil(sendWelcome({ member_no: memberNo, name: record.name, city: record.city, home_city: homeCity || null }).catch((e) => console.error("welcome error:", e)))
 
     // welcome email (preserves the existing email + token mechanics)
     try {

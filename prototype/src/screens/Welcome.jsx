@@ -16,16 +16,52 @@ export default function Welcome({ onStart, invitedBy, invite }) {
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
+  const [sendErr, setSendErr] = useState("")
+  const [wait, setWait] = useState(0) // seconds until resend is allowed
+  const [code, setCode] = useState("")
+  const [codeErr, setCodeErr] = useState("")
+  const [codeBusy, setCodeBusy] = useState(false)
+  useEffect(() => {
+    if (!wait) return
+    const id = setTimeout(() => setWait((w) => w - 1), 1000)
+    return () => clearTimeout(id)
+  }, [wait])
+
+  // says "check your email" only when the email actually went out
   const sendLink = async () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return setSendErr(t("that doesn't look like an email"))
     setSending(true)
-    await fetch("/api/email-login", {
+    setSendErr("")
+    const r = await fetch("/api/email-login", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: email.trim() }),
-    }).catch(() => {})
+    }).then(async (x) => ({ ok: x.ok, d: await x.json().catch(() => ({})) })).catch(() => ({ ok: false, d: {} }))
     setSending(false)
+    if (!r.ok) return setSendErr(r.d?.error || t("we couldn't send the email. try again in a minute."))
     setSent(true)
+    setWait(30)
+  }
+
+  // the 6-digit code from the email signs you in right here
+  const useCode = async (value) => {
+    const digits = value.replace(/\D/g, "").slice(0, 6)
+    setCode(digits)
+    setCodeErr("")
+    if (digits.length !== 6) return
+    setCodeBusy(true)
+    const r = await fetch("/api/login-code", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), code: digits }),
+    }).then((x) => x.json()).catch(() => null)
+    setCodeBusy(false)
+    if (r?.token) {
+      try { localStorage.setItem("irlpass_member_token", r.token) } catch { /* private mode */ }
+      window.location.href = `/?screen=app&t=${r.token}`
+    } else {
+      setCodeErr(r?.error || t("that code doesn't match"))
+    }
   }
 
   // real numbers, straight from the database
@@ -195,13 +231,33 @@ export default function Welcome({ onStart, invitedBy, invite }) {
             <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
             <h2 className="display text-[22px] font-bold">{t("welcome back")}</h2>
             <p className="mt-1 text-[13.5px] text-ink-soft">
-              {t("we'll email you a link that opens the app. no password.")}
+              {t("we'll email you a code and a link. no password.")}
             </p>
 
             {sent ? (
-              <div className="mt-4 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-4">
-                <p className="text-[14px] font-bold">{t("check your email")}</p>
-                <p className="mt-0.5 text-[12.5px]">{t("the link signs you in on this device.")}</p>
+              <div className="mt-4">
+                <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3.5">
+                  <p className="text-[14px] font-bold">{t("check your email")}</p>
+                  <p className="mt-0.5 text-[12.5px]">{t("type the 6-digit code here, or tap the link in the email. check spam if it's not there.")}</p>
+                </div>
+                <input
+                  id="login-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) => useCode(e.target.value)}
+                  placeholder="000000"
+                  className="mt-3 w-full rounded-[1.4rem] border-2 border-line bg-white px-4 py-3.5 text-center text-[26px] font-bold tracking-[0.4em] outline-none focus:border-ink placeholder:text-ink-soft/30"
+                />
+                {codeBusy && <p className="mt-2 text-center text-[13px] text-ink-soft">{t("checking…")}</p>}
+                {codeErr && <p className="mt-2 text-center text-[13px] font-semibold text-[#8f2b2b]">{codeErr}</p>}
+                <button
+                  onClick={sendLink}
+                  disabled={wait > 0 || sending}
+                  className="mt-3 w-full rounded-full border-2 border-line bg-white/70 py-3 text-[14px] font-bold disabled:opacity-50"
+                >
+                  {wait > 0 ? `${t("resend in")} ${wait}s` : t("resend the email")}
+                </button>
               </div>
             ) : (
               <>
@@ -216,13 +272,14 @@ export default function Welcome({ onStart, invitedBy, invite }) {
                   placeholder={t("the email you signed up with")}
                   className="mt-4 w-full rounded-[1.4rem] border-2 border-line bg-white/80 px-4 py-3.5 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
                 />
+                {sendErr && <p className="mt-2 text-[13px] font-semibold text-[#8f2b2b]">{sendErr}</p>}
                 <button
                   onClick={sendLink}
                   disabled={sending}
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3.5 text-[15px] font-bold text-cream disabled:opacity-50"
                 >
                   {sending ? <CircleNotch size={16} className="animate-spin" /> : null}
-                  {t("email me a link")}
+                  {t("email me a code")}
                 </button>
                 <button
                   onClick={() => signInWithGoogle()}

@@ -15,6 +15,46 @@ function Stat({ n, label, tone = "" }) {
   )
 }
 
+// josh's welcome dm: every new member gets it in their chat tab. {first name}
+// and {city} fill in. "send to everyone" only reaches people without a thread yet.
+function WelcomeEditor({ token, text }) {
+  const [value, setValue] = useState(text)
+  const [note, setNote] = useState("")
+  const post = (action, body) =>
+    fetch(`/api/ops?t=${token}&action=${action}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body || {}),
+    }).then((r) => r.json()).catch(() => ({ error: "failed" }))
+  return (
+    <div className="mt-4 rounded-[1.25rem] border-2 border-line bg-white/70 p-3">
+      <p className="text-[13px] font-bold">welcome dm from josh</p>
+      <p className="text-[11.5px] text-ink-soft">{"{first name}"} and {"{city}"} fill in for each person</p>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={5}
+        className="mt-2 w-full rounded-lg border border-line bg-white px-2.5 py-2 text-[13px] leading-snug"
+      />
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <button
+          onClick={async () => { const r = await post("welcome-text", { text: value }); setNote(r.ok ? "saved" : r.error || "failed") }}
+          className="rounded-full bg-ink py-2 text-[12.5px] font-bold text-cream"
+        >
+          save text
+        </button>
+        <button
+          onClick={async () => { setNote("sending…"); const r = await post("welcome-backfill"); setNote(r.error ? r.error : `sent to ${r.sent} people`) }}
+          className="rounded-full border-2 border-ink py-2 text-[12.5px] font-bold"
+        >
+          send to everyone new
+        </button>
+      </div>
+      {note && <p className="mt-1.5 text-[12px] font-semibold text-ink-soft">{note}</p>}
+    </div>
+  )
+}
+
 // josh curates the mood boards here: rename, move, hide, add
 function SpotsEditor({ token, spots, onSaved }) {
   const [draft, setDraft] = useState({ mood: "pregame", name: "", area: "", kind: "", recovery: false })
@@ -250,6 +290,8 @@ export default function Ops({ token }) {
       </p>
 
       <SpotsEditor token={token} spots={d.spots || []} onSaved={load} />
+
+      <WelcomeEditor token={token} text={d.welcome || ""} />
 
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">vibes</p>
       <div className="mt-2 grid grid-cols-3 gap-2">

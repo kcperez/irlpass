@@ -42,16 +42,37 @@ const shell = (inner) => `<!DOCTYPE html>
 </body>
 </html>`
 
-export async function sendEmail({ to, subject, html }) {
+// the plain-text twin of an email: gmail trusts mail that has one. links stay
+// readable as "label: url".
+export const toText = (html) =>
+  String(html)
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, label) => `${label.replace(/<[^>]+>/g, "").trim()}: ${href}`)
+    .replace(/<(br|\/p|\/h1|\/h2|\/div|\/tr)[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n+/g, "\n\n")
+    .trim()
+
+// unsub: the member's one-click unsubscribe url. set it on everything except
+// login/transactional mail, so gmail shows its unsubscribe button and trusts us.
+export async function sendEmail({ to, subject, html, unsub }) {
   if (!process.env.RESEND_API_KEY) return { sent: false, reason: "no key" }
   try {
+    const payload = { from: FROM, to, subject, html: shell(html), text: toText(html), reply_to: "hello@irlpass.xyz" }
+    if (unsub) {
+      payload.headers = {
+        "List-Unsubscribe": `<${unsub}>, <mailto:hello@irlpass.xyz?subject=unsubscribe>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      }
+    }
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ from: FROM, to, subject, html: shell(html) }),
+      body: JSON.stringify(payload),
     })
     const d = await r.json()
     if (!r.ok) {
@@ -82,13 +103,15 @@ export const acceptanceEmail = ({ name, memberNo, url }) => ({
     </p>`,
 })
 
-export const loginEmail = ({ name, url, label }) => ({
-  subject: "your irlpass login link",
+export const loginEmail = ({ name, url, label, code }) => ({
+  subject: code ? `${code} is your irlpass code` : "your irlpass login link",
   html: `
-    <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? name.toLowerCase() : "there"}.</h1>
-    <p style="font-size:15px;line-height:1.6;color:#655c53;margin:12px 0 0">
-      tap below to get back in. this link signs you in on this device.
-    </p>
+    <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? String(name).split(" ")[0].toLowerCase() : "there"}.</h1>
+    ${code ? `
+    <p style="font-size:15px;line-height:1.6;color:#655c53;margin:12px 0 0">type this code in the app to sign in:</p>
+    <p style="font:800 34px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;letter-spacing:8px;color:#3a322c;margin:10px 0 0">${code}</p>
+    <p style="font-size:13px;line-height:1.5;color:#837a70;margin:8px 0 0">it works for 15 minutes. or tap the button on the device you want to use.</p>` : `
+    <p style="font-size:15px;line-height:1.6;color:#655c53;margin:12px 0 0">tap below to get back in. this link signs you in on this device.</p>`}
     <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:20px">
       ${label}
     </a>`,

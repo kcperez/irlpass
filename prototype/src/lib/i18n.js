@@ -601,6 +601,17 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "chat active": "chat activo hace",
   "every city's chat": "el chat de cada ciudad",
   "see where irlpass is right now and who's talking": "mira dónde está irlpass ahora y quién habla",
+  "that doesn't look like an email": "eso no parece un email",
+  "we couldn't send the email. try again in a minute.": "no pudimos enviar el email. intenta en un minuto.",
+  "that code doesn't match": "ese código no coincide",
+  "type the 6-digit code here, or tap the link in the email. check spam if it's not there.": "escribe aquí el código de 6 dígitos, o toca el link del email. revisa spam si no aparece.",
+  "resend in": "reenviar en",
+  "resend the email": "reenviar el email",
+  "email me a code": "envíame un código",
+  "we'll email you a code and a link. no password.": "te mandamos un código y un link. sin contraseña.",
+  "going out": "salen",
+  "see": "ver",
+  "out now": "afuera ahora",
 }
 
 export function t(str, vars) {

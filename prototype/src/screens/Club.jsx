@@ -943,7 +943,9 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                         </button>
                       )}
                       <p className={`whitespace-pre-wrap text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
-                        {m.deleted ? t("message deleted") : <WithMentions text={m.text} />}
+                        {m.deleted ? t("message deleted") : m.text.startsWith("📍 ") ? (
+                          <span className="font-semibold"><span className="out-dot mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" />{m.text.slice(2)}</span>
+                        ) : <WithMentions text={m.text} />}
                         {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
                         {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>}
                       </p>
@@ -1757,6 +1759,7 @@ export default function Club({ token }) {
             onOpenDM={(m) => { setDmWith(m); setDmReturn("members"); setTab("dms") }}
             onOpenPerson={setPersonNo}
             onOpenWorld={() => setWorldOpen(true)}
+            onOpenTonight={() => setTab("mood")}
             onUnlock={() => { setTab("trips"); setUnlockRequest(Date.now()) }}
             onNeedDates={(c) => { setTab("trips"); setPostCity(c) }}
           />

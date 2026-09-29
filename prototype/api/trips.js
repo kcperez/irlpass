@@ -264,6 +264,7 @@ async function notifyOverlap(me, trip) {
         url: `https://irlpass.xyz/?screen=app&t=${m.token}&tab=${board}`,
         unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
       }),
+      unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
     })
   }
 }
@@ -285,6 +286,7 @@ async function maybeOpenCity(city) {
     await sendEmail({
       to: m.email,
       ...cityOpenEmail({ name: m.name, city: meta.name, count: nos.length, url: `https://irlpass.xyz/?screen=app&t=${m.token}` }),
+      unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
     })
     await db.from("members").update({ city_opened: city }).eq("member_no", m.member_no)
   }

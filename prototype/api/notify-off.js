@@ -6,6 +6,8 @@ export default async function handler(req, res) {
   if (t && /^[a-f0-9]{32}$/.test(t)) {
     await db.from("members").update({ notify: false }).eq("token", t).then(() => {}, () => {})
   }
+  // gmail's one-click unsubscribe posts here and only needs a 200
+  if (req.method === "POST") return res.status(200).json({ ok: true })
   res.setHeader("content-type", "text/html; charset=utf-8")
   return res.status(200).send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
     <div style="font-family:-apple-system,sans-serif;background:#1c1b17;color:#f4f1ea;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px">

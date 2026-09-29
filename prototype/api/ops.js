@@ -4,6 +4,7 @@ import { actsAsMod } from "./_mods.js"
 import { today } from "./_access.js"
 import { backfillPhotos, backfillNames } from "./_instagram.js"
 import { enrichSpots } from "./_guide.js"
+import { welcomeText, sendWelcome, WELCOME_FROM } from "./_welcome.js"
 
 // long enough for one scraper run over every member missing a photo
 export const config = { maxDuration: 300 }
@@ -14,6 +15,23 @@ export default async function handler(req, res) {
   if (!me || !actsAsMod(me)) return res.status(401).json({ error: "not allowed" })
 
   // POST ?t=&action=backfill-photos -> pull instagram photos for everyone without one
+  // josh's welcome dm: save the text, or send it to everyone who hasn't had it
+  if (req.method === "POST" && req.query?.action === "welcome-text") {
+    const value = String(req.body?.text || "").trim().slice(0, 1000)
+    if (value.length < 10) return res.status(400).json({ error: "write the message first" })
+    await db.from("app_settings").upsert({ key: "welcome_dm", value, updated_at: new Date().toISOString() }, { onConflict: "key" })
+    return res.status(200).json({ ok: true })
+  }
+  if (req.method === "POST" && req.query?.action === "welcome-backfill") {
+    const template = await welcomeText()
+    const { data: people } = await db.from("members").select("member_no, name, city, home_city, banned").lt("member_no", "900").neq("member_no", WELCOME_FROM)
+    let sent = 0
+    for (const m of (people || []).filter((x) => !x.banned)) {
+      if (await sendWelcome(m, template).catch(() => false)) sent++
+    }
+    return res.status(200).json({ sent })
+  }
+
   // GET ?t=&action=email-health -> what resend says about our sending domain:
   // verified or not, and every dns record it expects (spf, dkim, mx) with status
   if (req.query?.action === "email-health") {
@@ -193,6 +211,7 @@ export default async function handler(req, res) {
         completed: all.filter((m) => m.ig_verified).length,
       },
       mood: moodStats,
+      welcome: await welcomeText(),
       spots: spotsAll,
       // vibes: existing members who were shown the prompt vs everyone with 3+
       // picked. new signups pick inside the flow, so they count as finished.
