@@ -14,6 +14,26 @@ export default async function handler(req, res) {
   if (!me || !actsAsMod(me)) return res.status(401).json({ error: "not allowed" })
 
   // POST ?t=&action=backfill-photos -> pull instagram photos for everyone without one
+  // GET ?t=&action=email-health -> what resend says about our sending domain:
+  // verified or not, and every dns record it expects (spf, dkim, mx) with status
+  if (req.query?.action === "email-health") {
+    try {
+      const key = process.env.RESEND_API_KEY
+      if (!key) return res.status(200).json({ error: "no resend key" })
+      const h = { authorization: `Bearer ${key}` }
+      const list = await fetch("https://api.resend.com/domains", { headers: h }).then((r) => r.json())
+      const domains = []
+      for (const d of list?.data || []) {
+        const full = await fetch(`https://api.resend.com/domains/${d.id}`, { headers: h }).then((r) => r.json())
+        domains.push({ name: full.name, status: full.status, region: full.region, records: full.records })
+      }
+      return res.status(200).json({ domains })
+    } catch (e) {
+      console.error("email health error:", e)
+      return res.status(500).json({ error: "could not reach resend" })
+    }
+  }
+
   // POST ?t=&action=backfill-names -> real names from instagram for handle-only members
   if (req.method === "POST" && req.query?.action === "backfill-names") {
     try {
