@@ -181,7 +181,8 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
 export default function Mood({ token, onOpenRoom }) {
   const [data, setData] = useState(null)
   const [mood, setMood] = useState(null)
-  const [filter, setFilter] = useState("all") // chill only: all | recovery
+  const [q, setQ] = useState("") // search the spots, not free-text moods
+  const [until, setUntil] = useState("late") // 9pm | midnight | late (6am)
   const [outOpen, setOutOpen] = useState(false)
   const [area, setArea] = useState("")
   const [busy, setBusy] = useState(null)
@@ -206,7 +207,6 @@ export default function Mood({ token, onOpenRoom }) {
 
   const pickMood = async (key) => {
     setMood(key)
-    setFilter("all")
     await post({ action: "mood", mood: key })
   }
 
@@ -220,7 +220,7 @@ export default function Mood({ token, onOpenRoom }) {
   const goOut = async () => {
     if (!area.trim()) return
     setBusy("out")
-    await post({ action: "out", area })
+    await post({ action: "out", area, until })
     setOutOpen(false)
     setArea("")
     await load()
@@ -231,10 +231,23 @@ export default function Mood({ token, onOpenRoom }) {
     return <div className="flex flex-1 items-center justify-center py-16"><CircleNotch size={24} className="animate-spin text-ink-soft" /></div>
   }
 
-  const spots = (data.board?.[mood] || []).filter((s) => filter === "all" || s.tag === filter)
+  const needle = q.trim().toLowerCase()
+  const matches = (s) =>
+    [s.name, s.area, s.kind, s.category, s.blurb].filter(Boolean).join(" ").toLowerCase().includes(needle)
+  // typing searches every board; otherwise it's tonight's mood
+  const spots = needle
+    ? Object.values(data.board || {}).flat().filter(matches)
+    : data.board?.[mood] || []
+  // something chill reads as two sections: coffee & walks, then recovery
+  const sections = !needle && mood === "chill"
+    ? [
+        { key: "easy", label: t("coffee & a walk"), list: spots.filter((s) => s.tag !== "recovery") },
+        { key: "recovery", label: `🧘 ${t("recovery · gyms, yoga, sauna")}`, list: spots.filter((s) => s.tag === "recovery") },
+      ]
+    : [{ key: "all", label: null, list: spots }]
   const open = spots.find((s) => s.id === openId) || Object.values(data.board || {}).flat().find((s) => s.id === openId)
   const others = (data.presence || []).filter((p) => !p.me)
-  const until = data.myOut ? new Date(data.myOut.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() : null
+  const outEnds = data.myOut ? new Date(data.myOut.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() : null
   const meta = MOODS.find((m) => m.key === mood)
   const dateLine = new Date().toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }).toLowerCase()
 
@@ -255,15 +268,15 @@ export default function Mood({ token, onOpenRoom }) {
             <span>{m.emoji}</span> {t(m.label)}
           </button>
         ))}
-        {mood === "chill" && (
-          <button
-            onClick={() => setFilter((f) => (f === "recovery" ? "all" : "recovery"))}
-            className={`shrink-0 rounded-full border-2 px-3.5 py-2 text-[13px] font-bold ${filter === "recovery" ? "border-ink bg-lime" : "border-line bg-white/70"}`}
-          >
-            🧘 {t("recovery")}
-          </button>
-        )}
       </div>
+
+      {/* search the spots on this board: "rooftop", "sushi", "yoga" */}
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder={t("search spots, like rooftop or sushi")}
+        className="mt-2 w-full rounded-full border-2 border-line bg-white/80 px-4 py-2.5 text-[14px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50 focus:border-ink"
+      />
 
       {/* who's out right now: neighborhood only, gone after a few hours */}
       <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/70 p-3">
@@ -271,7 +284,7 @@ export default function Mood({ token, onOpenRoom }) {
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13.5px] font-bold">
               <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" />
-              {t("you're out in")} {data.myOut.area} · {t("until")} {until}
+              {t("you're out in")} {data.myOut.area} · {t("until")} {outEnds}
             </p>
             <button onClick={async () => { await post({ action: "out", off: true }); load() }} className="shrink-0 rounded-full border-2 border-line px-3 py-1 text-[12px] font-bold text-ink-soft">
               {t("stop")}
@@ -291,7 +304,22 @@ export default function Mood({ token, onOpenRoom }) {
             <button onClick={goOut} disabled={busy === "out"} className="shrink-0 rounded-full bg-ink px-4 text-[13px] font-bold text-cream disabled:opacity-50">{t("go")}</button>
             <button onClick={() => setOutOpen(false)} aria-label={t("close")} className="shrink-0 text-ink-soft"><X size={18} /></button>
           </div>
-        ) : (
+        ) : null}
+        {outOpen && !data.myOut && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {[["9pm", t("til 9pm")], ["midnight", t("til midnight")], ["late", t("all night")]].map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setUntil(k)}
+                className={`rounded-full border-2 px-3 py-1 text-[12px] font-bold ${until === k ? "border-ink bg-lime" : "border-line bg-white text-ink-soft"}`}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="w-full pt-0.5 text-[11.5px] text-ink-soft">{t("visible to medellín members, and posted once in the medellín chat")}</span>
+          </div>
+        )}
+        {!data.myOut && !outOpen && (
           <button onClick={() => setOutOpen(true)} className="flex w-full items-center justify-center gap-2 text-[14px] font-bold">
             <MapPin size={17} weight="fill" /> {t("i'm out tonight, come find me")}
           </button>
@@ -309,8 +337,13 @@ export default function Mood({ token, onOpenRoom }) {
         )}
       </div>
 
+      {sections.map((sec) => (
+      <div key={sec.key}>
+      {sec.label && sec.list.length > 0 && (
+        <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft">{sec.label}</p>
+      )}
       <div className="mt-4 space-y-5">
-        {spots.map((s, i) => (
+        {sec.list.map((s, i) => (
           <motion.article
             key={s.id}
             initial={{ opacity: 0, y: 12 }}
@@ -344,8 +377,12 @@ export default function Mood({ token, onOpenRoom }) {
             </div>
           </motion.article>
         ))}
-        {spots.length === 0 && <p className="py-6 text-center text-[13px] text-ink-soft">{t("no spots here yet")}</p>}
       </div>
+      </div>
+      ))}
+      {spots.length === 0 && (
+        <p className="py-6 text-center text-[13px] text-ink-soft">{needle ? t("no spots match that") : t("no spots here yet")}</p>
+      )}
 
       <AnimatePresence>
         {open && (

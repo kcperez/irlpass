@@ -1,4 +1,4 @@
-import { getUser } from "./_lib.js"
+import { getUser, nameIsHandle } from "./_lib.js"
 import { db } from "./_db.js"
 import { today } from "./_access.js"
 import { refreshIfStale } from "./_instagram.js"
@@ -46,5 +46,6 @@ export default async function handler(req, res) {
     // them off to test as a regular member. the app shows which one clearly.
     isMod: isMod(member.memberNo),
     memberView: !!member.modOff,
+    needsName: nameIsHandle(member.name, member.ig),
   })
 }

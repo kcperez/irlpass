@@ -654,6 +654,36 @@ const msgTime = (at) => {
   return today ? time : `${d.toLocaleDateString([], { weekday: "short" }).toLowerCase()} ${time}`
 }
 
+// the chat box grows with what you type, up to ~5 lines, then scrolls inside.
+// enter sends, shift+enter is a new line.
+function Composer({ id, value, onChange, onSend, placeholder }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`
+  }, [value])
+  return (
+    <textarea
+      ref={ref}
+      id={id}
+      name="message"
+      rows={1}
+      autoComplete="off"
+      data-lpignore="true"
+      data-form-type="other"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); onSend() }
+      }}
+      placeholder={placeholder}
+      className="max-h-32 w-full resize-none overflow-y-auto rounded-[1.3rem] border border-line bg-white/80 px-4 py-2.5 text-[14px] leading-snug outline-none placeholder:text-ink-soft/50 focus:border-lime-deep"
+    />
+  )
+}
+
 // @name in a message renders bold
 function WithMentions({ text }) {
   const parts = String(text).split(/(@[\w.]{2,30})/g)
@@ -905,7 +935,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                               : `${quoted.from.name.toLowerCase()}: ${quoted.text}`}
                         </button>
                       )}
-                      <p className={`text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
+                      <p className={`whitespace-pre-wrap text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
                         {m.deleted ? t("message deleted") : <WithMentions text={m.text} />}
                         {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
                         {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>}
@@ -1044,20 +1074,13 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
             ))}
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <input
+        <div className="flex items-end gap-2">
+          <Composer
             id="room-composer"
-            name="message"
-            type="text"
-            autoComplete="off"
-            autoCorrect="off"
-            data-lpignore="true"
-            data-form-type="other"
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
+            onChange={setText}
+            onSend={send}
             placeholder={editing ? t("edit message…") : t("message…")}
-            className="w-full rounded-full border border-line bg-white/70 px-4 py-2.5 text-[14px] outline-none placeholder:text-ink-soft/50 focus:border-lime-deep"
           />
           <motion.button
             whileTap={{ scale: 0.92 }}
@@ -1265,7 +1288,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
               <div key={m.key} className={`flex max-w-[78%] flex-col ${m.fromMe ? "items-end self-end" : "items-start self-start"}`}>
                 <div
                   onClick={() => !m.fromMe && translateDm(m)}
-                  className={`max-w-full break-words rounded-2xl px-3.5 py-2 text-[13.5px] [overflow-wrap:anywhere] ${m.fromMe ? "bg-lime text-ink" : "bg-white/80 text-ink"}`}
+                  className={`max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[13.5px] [overflow-wrap:anywhere] ${m.fromMe ? "bg-lime text-ink" : "bg-white/80 text-ink"}`}
                 >
                   {m.text}
                   <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>
@@ -1298,21 +1321,8 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             📹 {t("ask for a quick video call first")}
           </button>
         )}
-        <div className="flex items-center gap-2 border-t border-line px-3 py-2.5">
-          <input
-            id="dm-composer"
-            name="message"
-            type="text"
-            autoComplete="off"
-            autoCorrect="off"
-            data-lpignore="true"
-            data-form-type="other"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={t("message…")}
-            className="w-full rounded-full border border-line bg-white/70 px-4 py-2.5 text-[14px] outline-none focus:border-lime-deep"
-          />
+        <div className="flex items-end gap-2 border-t border-line px-3 py-2.5">
+          <Composer id="dm-composer" value={text} onChange={setText} onSend={() => send()} placeholder={t("message…")} />
           <button onClick={() => send()} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
             <PaperPlaneRight size={17} weight="fill" />
           </button>
@@ -1400,6 +1410,52 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         </div>
       )}
     </div>
+  )
+}
+
+/* ---------- a real name, for members whose name is only their handle ---------- */
+function NameSheet({ token, me, onSaved, onClose }) {
+  const [name, setName] = useState("")
+  const [err, setErr] = useState("")
+  const save = async () => {
+    const r = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, name }),
+    }).then((x) => x.json()).catch(() => null)
+    if (r?.ok) onSaved(r.name || name.trim())
+    else setErr(r?.error || t("could not save that"))
+  }
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-40 flex items-end bg-ink/40" onClick={onClose}>
+      <motion.div
+        initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }}
+        transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+      >
+        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+        <h2 className="display text-[26px] font-bold leading-tight">{t("what should people call you?")}</h2>
+        <p className="mt-1 text-[13.5px] text-ink-soft">
+          {t("right now you show up as")} <strong>{me.name}</strong>. {t("people meet a person, not a handle.")}
+        </p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && save()}
+          autoFocus
+          autoComplete="given-name"
+          maxLength={30}
+          placeholder={t("your first name")}
+          className="mt-4 w-full rounded-[1.4rem] border-2 border-line bg-white/80 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink"
+        />
+        {err && <p className="mt-2 text-[13px] font-semibold text-[#8f2b2b]">{err}</p>}
+        <button onClick={save} disabled={name.trim().length < 2} className="mt-3 w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream disabled:opacity-40">
+          {t("save")}
+        </button>
+        <button onClick={onClose} className="mt-1 w-full py-2 text-center text-[13px] text-ink-soft underline">{t("later")}</button>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -1547,16 +1603,28 @@ export default function Club({ token }) {
   const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
   const [peopleKey, setPeopleKey] = useState(0) // bump to reload the people grid after vibes change
 
-  // members from before the vibes step get asked once per visit
+  const [nameOpen, setNameOpen] = useState(false)
   useEffect(() => {
-    if (state !== "ok" || !me) return
+    if (state !== "ok" || !me?.needsName) return
+    let asked = false
+    try { asked = !!sessionStorage.getItem("irlpass_name_asked") } catch { /* private mode */ }
+    if (!asked) setNameOpen(true)
+  }, [state, me?.needsName])
+  const closeName = () => {
+    try { sessionStorage.setItem("irlpass_name_asked", "1") } catch { /* private mode */ }
+    setNameOpen(false)
+  }
+
+  // members from before the vibes step get asked once per visit (after the name)
+  useEffect(() => {
+    if (state !== "ok" || !me || (me.needsName && nameOpen)) return
     let asked = false
     try { asked = !!sessionStorage.getItem("irlpass_vibes_asked") } catch { /* private mode */ }
     if ((me.interests || []).filter((i) => VIBES.some((v) => v.key === i)).length < MIN_VIBES && !asked) {
       const id = setTimeout(() => setVibesOpen(true), 900)
       return () => clearTimeout(id)
     }
-  }, [state, me])
+  }, [state, me, nameOpen])
   const closeVibes = () => {
     try { sessionStorage.setItem("irlpass_vibes_asked", "1") } catch { /* private mode */ }
     setVibesOpen(false)
@@ -1694,7 +1762,17 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {vibesOpen && (
+        {nameOpen && (
+          <NameSheet
+            token={token}
+            me={me}
+            onClose={closeName}
+            onSaved={(name) => { setMe((m) => ({ ...m, name, needsName: false })); closeName() }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {vibesOpen && !nameOpen && (
           <VibesSheet
             token={token}
             me={me}

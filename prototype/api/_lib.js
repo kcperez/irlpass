@@ -99,3 +99,11 @@ export const safeFirstName = (name, ig) => {
   if (looksLikeHandle) return first ? `${first[0].toUpperCase()}.` : "someone"
   return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase()
 }
+
+// is this "name" really just their instagram handle? (the old signup only
+// asked for a handle, so ~40 members ended up named "xabi_zbz")
+export const nameIsHandle = (name, ig) => {
+  const n = String(name || "").trim()
+  const h = String(ig || "").replace(/^@+/, "").toLowerCase()
+  return !n || n.toLowerCase() === h || (!/\s/.test(n) && /[_.\d]/.test(n))
+}

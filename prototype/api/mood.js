@@ -14,7 +14,28 @@ import { actsAsMod } from "./_mods.js"
 // POST { t, action: "spot", ... }  (mods: add / edit / hide a spot)
 
 export const MOODS = ["pregame", "afters", "chill"]
-const OUT_HOURS = 4
+
+// "til 9pm", "til midnight" or "all night": every out status ends by 6am
+// medellín time, so nobody still looks out the next afternoon
+const MDE = -5 * 3600e3
+function outUntil(choice) {
+  const nowLocal = new Date(Date.now() + MDE)
+  const at = (h) => {
+    const d = new Date(nowLocal)
+    d.setUTCHours(h, 0, 0, 0)
+    if (d <= nowLocal) d.setUTCDate(d.getUTCDate() + 1)
+    return new Date(d.getTime() - MDE)
+  }
+  const sixAm = at(6)
+  const pick = { "9pm": at(21), midnight: at(24 % 24), late: sixAm }[choice] || new Date(Date.now() + 4 * 3600e3)
+  return pick > sixAm ? sixAm : pick
+}
+const fmtUntil = (d) => {
+  const h = new Date(d.getTime() + MDE).getUTCHours()
+  if (h === 0) return "midnight"
+  if (h === 6) return "late"
+  return `${h % 12 || 12}${h < 12 ? "am" : "pm"}`
+}
 
 // "tonight" runs until 6am medellín time, so an afters crowd at 2am is still tonight
 export const tonight = () => {
@@ -96,6 +117,13 @@ export default async function handler(req, res) {
         })
       }
 
+      for (const m of MOODS) {
+        board[m] = board[m]
+          .map((x, i) => ({ x, i }))
+          .sort((a, b) => b.x.going - a.x.going || a.i - b.i)
+          .map(({ x }) => x)
+      }
+
       return res.status(200).json({
         night,
         mood: myMood?.mood || null,
@@ -124,6 +152,16 @@ export default async function handler(req, res) {
       if (req.body?.on === false) {
         await db.from("spot_going").delete().eq("spot_id", spotId).eq("member_no", me.memberNo).eq("night", night)
       } else {
+        // one spot per mood per night: going somewhere new for pregame moves you
+        // off the old pregame spot (pregame + afters on the same night is fine)
+        const { data: spot } = await db.from("spots").select("mood").eq("id", spotId).maybeSingle()
+        if (spot) {
+          const { data: sameMood } = await db.from("spots").select("id").eq("mood", spot.mood).neq("id", spotId)
+          const ids = (sameMood || []).map((x) => x.id)
+          if (ids.length) {
+            await db.from("spot_going").delete().eq("member_no", me.memberNo).eq("night", night).in("spot_id", ids)
+          }
+        }
         await db.from("spot_going").upsert({ spot_id: spotId, member_no: me.memberNo, night }, { onConflict: "spot_id,member_no,night" })
       }
       return res.status(200).json({ ok: true })
@@ -137,15 +175,28 @@ export default async function handler(req, res) {
       // neighborhood only: no digits (addresses), short
       const area = String(req.body?.area || "").replace(/[0-9#]/g, "").replace(/\s+/g, " ").trim().slice(0, 40)
       if (!area) return res.status(400).json({ error: "which neighborhood?" })
+      const until = outUntil(req.body?.until)
+      const { data: before } = await db.from("presence").select("expires_at").eq("member_no", me.memberNo).maybeSingle()
+      const newOuting = !before || new Date(before.expires_at) < new Date()
       const row = {
         member_no: me.memberNo,
         city: "medellin",
         area,
-        expires_at: new Date(Date.now() + OUT_HOURS * 3600e3).toISOString(),
+        expires_at: until.toISOString(),
         created_at: new Date().toISOString(),
       }
       await db.from("presence").upsert(row, { onConflict: "member_no" })
-      return res.status(200).json({ ok: true, out: row })
+
+      // one post to the medellín room per outing (edits don't repost). the end
+      // time is in the text, so the message never needs updating when it expires.
+      if (newOuting) {
+        const { data: going } = await db.from("spot_going").select("spot_id").eq("member_no", me.memberNo).eq("night", night)
+        const { data: spots } = going?.length ? await db.from("spots").select("name").in("id", going.map((g) => g.spot_id)) : { data: [] }
+        const first = String(me.name || "someone").split(/\s+/)[0]
+        const text = `📍 ${first} is out in ${area} til ${fmtUntil(until)}${spots?.length ? ` · going to ${spots.map((x) => x.name).join(" + ")}` : ""}. come say hi`
+        await db.from("messages").insert({ channel: "medellin", body: text, from_name: me.name, from_ig: me.ig, from_member_no: me.memberNo })
+      }
+      return res.status(200).json({ ok: true, out: row, posted: newOuting })
     }
 
     // mods curate the board from ops

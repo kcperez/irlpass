@@ -559,6 +559,22 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "what should people call you?": "¿cómo te llamamos?",
   "your first name": "tu nombre",
   "almost in. who are you?": "casi listo. ¿quién eres?",
+  "search spots, like rooftop or sushi": "busca lugares, como rooftop o sushi",
+  "coffee & a walk": "café y caminar",
+  "recovery · gyms, yoga, sauna": "recuperación · gym, yoga, sauna",
+  "til 9pm": "hasta las 9pm",
+  "til midnight": "hasta medianoche",
+  "all night": "toda la noche",
+  "visible to medellín members, and posted once in the medellín chat": "lo ven los miembros de medellín, y se publica una vez en el chat de medellín",
+  "no spots match that": "ningún lugar coincide",
+  "going out tn": "sale esta noche",
+  "you and": "¿tú y",
+  "i'm visiting": "estoy de visita",
+  "you're who travelers get to meet": "eres a quien los viajeros quieren conocer",
+  "pick your dates next": "luego eliges tus fechas",
+  "right now you show up as": "ahora apareces como",
+  "people meet a person, not a handle.": "la gente conoce a una persona, no a un usuario.",
+  "could not save that": "no se pudo guardar",
 }
 
 export function t(str, vars) {

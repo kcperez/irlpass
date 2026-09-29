@@ -231,13 +231,22 @@ async function notifyOverlap(me, trip) {
     .lte("starts", trip.ends)
     .gte("ends", trip.starts)
     .neq("member_no", me.memberNo)
-  const nos = [...new Set((rows || []).filter((r) => overlaps(r.starts, r.ends, trip.starts, trip.ends)).map((r) => r.member_no))].slice(0, 40)
+  const overlapping = (rows || []).filter((r) => overlaps(r.starts, r.ends, trip.starts, trip.ends))
+  const nos = [...new Set(overlapping.map((r) => r.member_no))].slice(0, 40)
   if (!nos.length) return
   const { data: members } = await db
     .from("members")
     .select("member_no, name, email, token, notify")
     .in("member_no", nos)
   const cityName = cityLabel(trip.city)
+  // the city's pulse right now: people on these dates, and who's out tonight
+  const onDates = new Set(overlapping.map((r) => r.member_no)).size + 1
+  const { count: outTonight } = await db
+    .from("presence")
+    .select("member_no", { count: "exact", head: true })
+    .eq("city", trip.city)
+    .gt("expires_at", new Date().toISOString())
+  const board = trip.city === "medellin" ? "mood" : "people"
   for (const m of members || []) {
     if (!m.email || !m.notify) continue
     await sendEmail({
@@ -245,10 +254,15 @@ async function notifyOverlap(me, trip) {
       ...matchEmail({
         name: m.name,
         who: me.name,
+        whoPhoto: me.photo,
+        local: !!trip.local,
         city: cityName,
         starts: trip.starts,
         ends: trip.ends,
-        url: `https://irlpass.xyz/?screen=app&t=${m.token}`,
+        onDates,
+        outTonight: outTonight || 0,
+        url: `https://irlpass.xyz/?screen=app&t=${m.token}&tab=${board}`,
+        unsub: `https://irlpass.xyz/api/notify-off?t=${m.token}`,
       }),
     })
   }

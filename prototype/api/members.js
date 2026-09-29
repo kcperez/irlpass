@@ -1,6 +1,7 @@
 import { getUser, lockedPhoto, rowToMember, safeFirstName } from "./_lib.js"
 import { db } from "./_db.js"
 import { dmState } from "./_dmstate.js"
+import { tonight } from "./mood.js"
 import { isValidCity, canonicalCity } from "./_cities.js"
 import { canReach, today, overlaps } from "./_access.js"
 
@@ -44,6 +45,23 @@ export default async function handler(req, res) {
       .or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`)
     const known = new Set((threads || []).map((t) => (t.a_no === me.memberNo ? t.b_no : t.a_no)))
     const dms = await dmState(me.memberNo)
+    // who's going out tonight: an "i'm out" status, or "i'm going" on a spot.
+    // it's what the people list leads with, and it's gone when it expires.
+    const night = tonight()
+    const [{ data: outRows }, { data: goingRows }] = await Promise.all([
+      db.from("presence").select("member_no, area").gt("expires_at", new Date().toISOString()),
+      db.from("spot_going").select("member_no, spot_id").eq("night", night),
+    ])
+    const { data: goingSpots } = goingRows?.length
+      ? await db.from("spots").select("id, name, area").in("id", [...new Set(goingRows.map((g) => g.spot_id))])
+      : { data: [] }
+    const spotById = new Map((goingSpots || []).map((x) => [x.id, x]))
+    const outTonight = new Map()
+    for (const g of goingRows || []) {
+      const sp = spotById.get(g.spot_id)
+      if (sp) outTonight.set(g.member_no, { area: sp.area || "", spot: sp.name })
+    }
+    for (const o of outRows || []) outTonight.set(o.member_no, { ...(outTonight.get(o.member_no) || {}), area: o.area })
 
     // the strip counts people, not trips: someone with two stays on the same day
     // is one head, so each day holds a set of member numbers
@@ -101,6 +119,7 @@ export default async function handler(req, res) {
         locked: !open,
         canMessage: open && !blocked,
         talked: !!dms.get(m.memberNo)?.talked,
+        out: outTonight.get(m.memberNo) || null,
         // where they're from: the country they gave, and the city they live in
         country: m.country || null,
         home: m.homeCity || null,
@@ -141,6 +160,7 @@ export default async function handler(req, res) {
         ends: anyTrip?.ends || null,
         canMessage: known.has(m.memberNo) && !blocked,
         talked: !!dms.get(m.memberNo)?.talked,
+        out: outTonight.get(m.memberNo) || null,
         // where they're from: the country they gave, and the city they live in
         country: m.country || null,
         home: m.homeCity || null,

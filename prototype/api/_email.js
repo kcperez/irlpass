@@ -33,7 +33,7 @@ const shell = (inner) => `<!DOCTYPE html>
     </td></tr>
     <tr><td style="padding-top:14px;text-align:center">
       <span class="muted" style="color:#837a70;font:400 11px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;letter-spacing:1px;text-transform:uppercase">
-        never travel alone · <a href="https://irlpass.xyz" style="color:#837a70">irlpass.xyz</a>
+        the hostel's on your phone · <a href="https://irlpass.xyz" style="color:#837a70">irlpass.xyz</a>
       </span>
     </td></tr>
   </table>
@@ -95,20 +95,43 @@ export const loginEmail = ({ name, url, label }) => ({
 })
 
 // v2: someone posted dates that overlap yours. the loop that brings people back.
-export const matchEmail = ({ name, who, city, starts, ends, url }) => ({
-  subject: `${who} will be in ${city} on your dates`,
-  html: `
-    <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px">hey ${name ? name.toLowerCase() : "there"}.</h1>
-    <p style="font-size:15px;line-height:1.6;color:#655c53;margin:12px 0 0">
-      ${who} just posted <strong>${starts} to ${ends}</strong> in ${city}, which overlaps your trip.
-    </p>
-    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font-weight:700;font-size:16px;text-align:center;border-radius:999px;padding:15px;margin-top:20px">
-      see who else is there
+// "someone's coming": the overlap email. a face and a first name, human dates,
+// locals called locals, and the city's pulse at send time (the button opens the
+// live board, since out status is gone by the time most people read email).
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+const humanDate = (iso) => {
+  const [, m, d] = String(iso).split("-").map(Number)
+  return `${MONTHS[m - 1]} ${d}`
+}
+const firstOf = (n) => String(n || "").trim().split(/\s+/)[0] || ""
+
+export const matchEmail = ({ name, who, whoPhoto, local, city, starts, ends, onDates, outTonight, url, unsub }) => {
+  const them = firstOf(who) || "someone"
+  const headline = local ? `${them} lives in ${city}` : `${them} will be in ${city} on your dates`
+  return {
+    subject: local ? `${them} lives in ${city}` : `${them} is coming to ${city} on your dates`,
+    html: `
+    <p style="font:400 16px/1.5 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#655c53;margin:0">hey ${firstOf(name).toLowerCase() || "there"},</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px"><tr>
+      ${whoPhoto ? `<td style="padding-right:14px;vertical-align:middle"><img src="${whoPhoto}" alt="" width="64" height="64" style="display:block;width:64px;height:64px;border-radius:32px;object-fit:cover;border:0" /></td>` : ""}
+      <td style="vertical-align:middle">
+        <p style="font:800 24px/1.1 Archivo,'Helvetica Neue',Arial,sans-serif;letter-spacing:-0.6px;color:#3a322c;margin:0">${headline}</p>
+        ${local ? "" : `<p style="font:600 15px/1.4 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#837a70;margin:6px 0 0">${humanDate(starts)} – ${humanDate(ends)}</p>`}
+      </td>
+    </tr></table>
+    <div style="background:#f2ecfc;border-radius:16px;padding:14px 16px;margin-top:20px">
+      <p style="font:700 15px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#3a322c;margin:0">
+        ${onDates} ${onDates === 1 ? "person" : "people"} in ${city} on your dates${outTonight ? ` · ${outTonight} going out tn` : ""}
+      </p>
+    </div>
+    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font:700 17px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;text-align:center;border-radius:999px;padding:17px;margin-top:20px">
+      see who's out
     </a>
-    <p style="font-size:12px;color:#837a70;text-align:center;margin:12px 0 0">
-      <a href="https://irlpass.xyz/api/notify-off?t=" style="color:#837a70">turn off these emails</a>
+    <p style="font:400 11px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#b8afa5;text-align:center;margin:14px 0 0">
+      <a href="${unsub || "https://irlpass.xyz"}" style="color:#b8afa5">turn off these emails</a>
     </p>`,
-})
+  }
+}
 
 // v2 launch email. hook is CC-2 negative framing: people act on "you're
 // invisible" far faster than on "we shipped something".

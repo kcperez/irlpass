@@ -73,7 +73,9 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
   const sparse = (data?.total || 0) < 8
 
   // here now first, then whoever shares the most vibes with you, then soonest
+  // going out tonight first, then here now, then shared vibes, then soonest
   const byPresence = (a, b) =>
+    !!b.out - !!a.out ||
     (b.hereNow === true) - (a.hereNow === true) ||
     (b.shared?.length || 0) - (a.shared?.length || 0) ||
     (a.starts < b.starts ? -1 : 1)
@@ -91,6 +93,7 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
       prev.overlapsMe = prev.overlapsMe || p.overlapsMe
       prev.local = prev.local || p.local
       prev.canMessage = prev.canMessage || p.canMessage
+      prev.out = prev.out || p.out
       if ((p.shared?.length || 0) > (prev.shared?.length || 0)) prev.shared = p.shared
     }
     return [...by.values()]
@@ -311,17 +314,17 @@ export default function Around({ token, me, onOpenDM, onUnlock, onNeedDates, vie
 
                 {/* one badge, not three: three wrap and clip on a half-width card */}
                 <div className="absolute left-2 top-2 flex gap-1">
-                  {p.hereNow && !p.local && (
-                    <span className="flex items-center gap-1 rounded-full bg-[#e8f6e8] px-2 py-0.5 text-[10px] font-bold text-[#2f7a2f]">
-                      <span className="relative flex h-1.5 w-1.5">
+                  {(p.out || (p.hereNow && !p.local)) && (
+                    <span className={`flex max-w-[150px] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-bold ${p.out ? "bg-ink text-cream" : "bg-[#e8f6e8] text-[#2f7a2f]"}`}>
+                      <span className="relative flex h-1.5 w-1.5 shrink-0">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" />
                         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#5fd35f]" />
                       </span>
-                      {t("here now")}
+                      <span className="truncate">{p.out ? `${t("going out tn")}${p.out.area ? ` · ${p.out.area}` : ""}` : t("here now")}</span>
                     </span>
                   )}
-                  {p.local && <span className="rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">{t("local")}</span>}
-                  {isMod(p.memberNo) && !p.hereNow && !p.local && (
+                  {p.local && !p.out && <span className="rounded-full bg-peach px-2 py-0.5 text-[10px] font-bold">{t("local")}</span>}
+                  {isMod(p.memberNo) && !p.hereNow && !p.local && !p.out && (
                     <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">{t("founder")}</span>
                   )}
                 </div>

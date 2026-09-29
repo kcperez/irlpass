@@ -18,6 +18,13 @@ export default async function handler(req, res) {
     patch.test_as_member = req.body.testAsMember
   }
 
+  // a real first name, for members whose name was only their handle
+  if (typeof req.body?.name === "string") {
+    const name = req.body.name.replace(/[^\p{L}\p{M}\s'.-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 30)
+    if (name.length < 2) return res.status(400).json({ error: "type your first name" })
+    patch.name = name
+  }
+
   if (Array.isArray(req.body?.interests)) {
     patch.interests = req.body.interests.slice(0, 16).map((i) => String(i).slice(0, 40))
   }

@@ -84,13 +84,15 @@ const params = typeof window !== "undefined" ? new URLSearchParams(window.locati
 export default function Join({ ig, onBack, onDone }) {
   // invited with a city and dates already: go straight to the payoff
   const invited = !!(params.get("by") && params.get("starts") && params.get("ends"))
-  const [step, setStep] = useState(invited ? 2 : 0)
+  // invited with dates already in: they're visiting, skip to "where do you live"
+  const [step, setStep] = useState(invited ? 3 : 0)
   const [city, setCity] = useState(params.get("city") || "medellin")
   const [customCity, setCustomCity] = useState("")
   const [flexible, setFlexible] = useState(false)
   // exact days are the default. "month" and "local" are the fallbacks for
   // people who don't know yet or live there.
   const [mode, setMode] = useState("exact") // exact | month | local
+  const [stay, setStay] = useState(invited ? "visit" : null) // "live" | "visit": locals are first-class, not an afterthought
   const [month, setMonth] = useState(null)
   const [local, setLocal] = useState(false)
   const [vibes, setVibes] = useState([])
@@ -230,6 +232,41 @@ export default function Join({ ig, onBack, onDone }) {
       ),
     },
     {
+      key: "stay",
+      art: "/art/icon-people.png",
+      title: `${t("you and")} ${cityChip(city, customCity).name}?`,
+      valid: !!stay,
+      body: (
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            ["live", "🏠", t("i live here"), t("you're who travelers get to meet")],
+            ["visit", "✈️", t("i'm visiting"), t("pick your dates next")],
+          ].map(([k, emoji, label, sub]) => (
+            <motion.button
+              key={k}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                setStay(k)
+                if (k === "live") {
+                  // a local is there every day: no dates to pick
+                  setMode("local"); setStarts(todayIso()); setEnds(addDays(todayIso(), 89)); setFlexible(true); setLocal(true)
+                } else if (local) {
+                  setMode("exact"); setStarts(null); setEnds(null); setFlexible(false); setLocal(false)
+                }
+              }}
+              className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[1.6rem] border-2 p-3 text-center ${
+                stay === k ? "border-ink bg-lime" : "border-line bg-white/70"
+              }`}
+            >
+              <span className="text-[40px] leading-none">{emoji}</span>
+              <span className="text-[18px] font-bold leading-tight">{label}</span>
+              <span className="text-[12px] leading-tight text-ink-soft">{sub}</span>
+            </motion.button>
+          ))}
+        </div>
+      ),
+    },
+    ...(stay === "live" ? [] : [{
       key: "when",
       art: "/art/icon-dates.png",
       title: t("when?"),
@@ -292,14 +329,7 @@ export default function Join({ ig, onBack, onDone }) {
                 {t("not sure of the days? just the month")}
               </button>
             )}
-            {mode !== "local" && (
-              <button
-                onClick={() => { setMode("local"); setStarts(todayIso()); setEnds(addDays(todayIso(), 89)); setFlexible(true); setLocal(true); setMonth(null) }}
-                className="rounded-full border-2 border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
-              >
-                🏠 {t("i live here")}
-              </button>
-            )}
+
           </div>
 
           {starts && ends && mode !== "local" && (
@@ -310,7 +340,7 @@ export default function Join({ ig, onBack, onDone }) {
           )}
         </div>
       ),
-    },
+    }]),
     ...(local ? [] : [{
       key: "home",
       art: "/art/icon-globe.png",

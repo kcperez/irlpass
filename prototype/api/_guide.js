@@ -44,8 +44,9 @@ const highlights = (info = {}) =>
 export async function enrichSpots({ ids = null, limit = 5, query = null } = {}) {
   const token = process.env.APIFY_TOKEN
   if (!token) return { error: "no scraper key" }
-  let q = db.from("spots").select("*").eq("active", true).order("id")
-  q = ids ? q.in("id", ids) : q.is("enriched_at", null)
+  // named spots are checked even while hidden (new ones stay hidden until they check out)
+  let q = db.from("spots").select("*").order("id")
+  q = ids ? q.in("id", ids) : q.eq("active", true).is("enriched_at", null)
   const { data: spots } = await q.limit(limit)
   if (!spots?.length) return { done: 0, left: 0 }
 
