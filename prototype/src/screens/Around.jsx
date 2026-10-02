@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { cachedJson } from "../lib/cached"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
+import { useNew, NewDot } from "../lib/newdot"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
 
@@ -25,6 +26,7 @@ import { useCitySearch } from "../lib/useCitySearch"
 import { isMod } from "../lib/mods"
 
 export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld, onOpenTonight, onUnlock, onNeedDates, viewCity, onViewCity }) {
+  const [mapNew, clearMapNew] = useNew("travel-map")
   const [data, setData] = useState(null)
   const [week, setWeek] = useState(0) // which 14-day window we're looking at
   const [city, setCity] = useState(viewCity || me.city || "medellin")
@@ -125,10 +127,11 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
           <span className="text-[13px] font-bold text-ink-soft">{picking ? "×" : "▾"}</span>
         </button>
         <button
-          onClick={onOpenWorld}
-          className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12.5px] font-bold shadow-[0_1px_2px_rgba(58,50,44,0.08),0_6px_16px_-8px_rgba(58,50,44,0.35)] active:scale-95"
+          onClick={() => { clearMapNew(); onOpenWorld?.() }}
+          className="relative flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12.5px] font-bold shadow-[0_1px_2px_rgba(58,50,44,0.08),0_6px_16px_-8px_rgba(58,50,44,0.35)] active:scale-95"
         >
           🌍 {t("every city")}
+          {mapNew && <NewDot className="-right-0.5 -top-0.5" />}
         </button>
       </div>
       <p className="mt-0.5 text-[13px] font-semibold text-ink-soft">

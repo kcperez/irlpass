@@ -21,6 +21,8 @@ import Around from "./Around"
 import Mood from "./Mood"
 import PersonSheet from "../components/PersonSheet"
 import World from "../components/World"
+import WhatsNew, { WHATS_NEW } from "../components/WhatsNew"
+import { isSeen, markSeen, useNew, NewDot } from "../lib/newdot"
 import { cityChip, registerCities } from "../lib/cities"
 
 // mod powers are on only in mod mode; member view tests the regular experience
@@ -247,7 +249,7 @@ function VerifyCard({ token, me, onVerified }) {
   )
 }
 
-function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, onClose }) {
+function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, onClose, profileNew }) {
   const drag = useDragControls()
   const [hasDates, setHasDates] = useState(false)
   useEffect(() => {
@@ -361,7 +363,10 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
           className="mt-5 flex w-full items-center justify-between rounded-[1.3rem] border-2 border-ink bg-white px-4 py-3 text-left active:scale-[0.99]"
         >
           <span>
-            <span className="block text-[14.5px] font-bold">{t("your profile & connections")}</span>
+            <span className="flex items-center gap-1.5 text-[14.5px] font-bold">
+              {t("your profile & connections")}
+              {profileNew && <span className="rounded-full bg-[#8a5cf0] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-white">{t("new")}</span>}
+            </span>
             <span className="block text-[12px] text-ink-soft">{t("stamps, people you've met, what others see")}</span>
           </span>
           <span className="text-[20px]">🛂</span>
@@ -488,7 +493,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
 
 // typed location that resolves itself via google maps ("pueblito paisa" -> pick
 // from real places, pinned to the city the plan is being created in)
-function TopBar({ me, onProfile }) {
+function TopBar({ me, onProfile, dot }) {
   return (
     <header className={`sticky top-0 z-10 flex items-center justify-between border-b border-line/70 bg-cream/95 px-5 pb-3 backdrop-blur ${me?.isMod ? "pt-3" : "pt-[max(1rem,env(safe-area-inset-top))] md:pt-12"}`}>
       <Logo h="h-9" />
@@ -496,7 +501,10 @@ function TopBar({ me, onProfile }) {
         onClick={onProfile}
         className="flex items-center gap-2 rounded-full border border-line bg-cream-deep/70 py-1 pl-1 pr-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-soft active:scale-95"
       >
-        <Avatar member={me} photo={me.photo} size="h-6 w-6 text-[11px]" />
+        <span className="relative">
+          <Avatar member={me} photo={me.photo} size="h-6 w-6 text-[11px]" />
+          {dot && <NewDot className="-right-0.5 -top-0.5" />}
+        </span>
         nº {me.memberNo}
       </button>
     </header>
@@ -1831,6 +1839,19 @@ export default function Club({ token }) {
     setVibesOpen(false)
   }
 
+  // after an update: a one-time "what's new" sheet, and dots on what changed
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false)
+  const [moodNew, clearMoodNew] = useNew("mood-search")
+  const [profileNew, clearProfileNew] = useNew("connections")
+  useEffect(() => {
+    if (state !== "ok" || !me || nameOpen || vibesOpen || isSeen(WHATS_NEW)) return
+    // members who still owe their vibes get that sheet this visit instead
+    if ((me.interests || []).filter((i) => VIBES.some((v) => v.key === i)).length < MIN_VIBES) return
+    const id = setTimeout(() => setWhatsNewOpen(true), 1200)
+    return () => clearTimeout(id)
+  }, [state, me, nameOpen, vibesOpen])
+  const closeWhatsNew = () => { markSeen(WHATS_NEW); setWhatsNewOpen(false) }
+
   // flags + names for every real city in use, so rooms and chips have an identity
   const [, setCitiesReady] = useState(0)
   useEffect(() => {
@@ -1918,7 +1939,7 @@ export default function Club({ token }) {
     <MotionConfig reducedMotion="user">
     <div className="relative flex h-[var(--app-h)] flex-col">
       <ModeStrip token={token} me={me} />
-      {!inThread && <TopBar me={me} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
+      {!inThread && <TopBar me={me} dot={profileNew} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <motion.div
         key={`${tab}-${cityRoom?.slug || ""}`}
         initial={{ opacity: 0, y: 6 }}
@@ -1980,7 +2001,8 @@ export default function Club({ token }) {
             onPhoto={(photo) => { setMe((m) => ({ ...m, photo })); setProfileOpen(false) }}
             onSafety={(patch) => setMe((m) => ({ ...m, ...patch }))}
             onVibes={() => { setProfileOpen(false); setVibesOpen(true) }}
-            onOpenProfile={() => { setProfileOpen(false); setPersonNo(me.memberNo) }}
+            profileNew={profileNew}
+            onOpenProfile={() => { clearProfileNew(); setProfileOpen(false); setPersonNo(me.memberNo) }}
             onClose={() => setProfileOpen(false)}
           />
         )}
@@ -2034,12 +2056,26 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       <AnimatePresence>
+        {whatsNewOpen && (
+          <WhatsNew
+            onClose={closeWhatsNew}
+            onGo={(key) => {
+              closeWhatsNew()
+              if (key === "profile") { clearProfileNew(); setPersonNo(me.memberNo) }
+              else if (key === "world") setWorldOpen(true)
+              else if (key === "mood") { clearMoodNew(); setTab("mood") }
+              else if (key === "dms") setTab("dms")
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {paywall && <PaywallSheet token={token} city={me.city} reason={paywall} onClose={() => setPaywall(null)} />}
       </AnimatePresence>
       {!inThread && (
         <nav className="sticky bottom-0 z-10 flex border-t-2 border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
           {TABS.map((tb) => (
-            <button key={tb.key} onClick={() => { setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
+            <button key={tb.key} onClick={() => { if (tb.key === "mood") clearMoodNew(); setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
               <span className="relative flex h-9 w-14 items-center justify-center rounded-full">
                 {tab === tb.key && (
                   <motion.span
@@ -2049,6 +2085,7 @@ export default function Club({ token }) {
                   />
                 )}
                 <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={`relative ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`} />
+                {tb.key === "mood" && moodNew && tab !== "mood" && <NewDot className="right-2.5 top-1" />}
                 {tb.key === "dms" && unreadTotal > 0 && (
                   <span className="absolute right-2.5 top-1 h-2.5 w-2.5 rounded-full bg-[#c4453d]" />
                 )}
