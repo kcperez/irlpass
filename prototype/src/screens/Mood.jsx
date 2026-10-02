@@ -11,7 +11,7 @@ import { joinVibes } from "../lib/vibes"
 const MOODS = [
   { key: "pregame", emoji: "🍸", label: "pregame", sub: "rooftops, bars, dinner", title: "before the night" },
   { key: "afters", emoji: "🪩", label: "afters", sub: "clubs, late", title: "after midnight" },
-  { key: "chill", emoji: "☕", label: "something chill", sub: "coffee, gym, a walk", title: "slow day" },
+  { key: "chill", emoji: "☕", label: "chill", sub: "coffee, gym, a walk", title: "slow day" },
 ]
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -291,6 +291,15 @@ export default function Mood({ token, onOpenRoom }) {
 
       {/* search the spots on this board: "rooftop", "sushi", "yoga" */}
       <input
+        type="search"
+        name="spot-search"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
+        data-form-type="other"
+        enterKeyHint="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={t("search spots, like rooftop or sushi")}
@@ -312,6 +321,11 @@ export default function Mood({ token, onOpenRoom }) {
         ) : outOpen ? (
           <div className="flex gap-2">
             <input
+              name="out-area"
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
               value={area}
               onChange={(e) => setArea(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && goOut()}
@@ -340,7 +354,7 @@ export default function Mood({ token, onOpenRoom }) {
         )}
         {!data.myOut && !outOpen && (
           <button onClick={() => setOutOpen(true)} className="flex w-full items-center justify-center gap-2 text-[14px] font-bold">
-            <MapPin size={17} weight="fill" /> {t("i'm out tonight, come find me")}
+            <MapPin size={17} weight="fill" /> {t("i'm out now, come find me")}
           </button>
         )}
         {others.length > 0 && (

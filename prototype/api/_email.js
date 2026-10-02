@@ -227,7 +227,7 @@ export const edcEmail = ({ name, memberNo, url, unsub }) => ({
       and a lot of irlpass will be in town for it.
     </p>
     <p style="font:400 16px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#655c53;margin:12px 0 0">
-      there's a new mood tab. pick pregame, afters or something chill, tap "i'm going" on a spot,
+      there's a new mood tab. pick pregame, afters or chill, tap "i'm going" on a spot,
       and see who else from irlpass is headed there that night.
     </p>
 
@@ -235,7 +235,7 @@ export const edcEmail = ({ name, memberNo, url, unsub }) => ({
       <p style="font:700 16px/1.7 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#3a322c;margin:0">
         🍸 pregame · rooftops, bars, dinner<br>
         🪩 afters · the clubs, late<br>
-        ☕ something chill · coffee, a gym, a walk the day after
+        ☕ chill · coffee, a gym, a walk the day after
       </p>
     </div>
 

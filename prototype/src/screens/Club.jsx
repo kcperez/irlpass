@@ -654,7 +654,36 @@ const msgTime = (at) => {
   if (Number.isNaN(d.getTime())) return ""
   const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()
   const today = new Date().toDateString() === d.toDateString()
-  return today ? time : `${d.toLocaleDateString([], { weekday: "short" }).toLowerCase()} ${time}`
+  if (today) return time
+  // past the last 6 days a weekday alone reads as this week, so show the date
+  const recent = Date.now() - d.getTime() < 6 * 864e5
+  const day = recent
+    ? d.toLocaleDateString([], { weekday: "short" })
+    : d.toLocaleDateString([], { month: "short", day: "numeric" })
+  return `${day.toLowerCase()} ${time}`
+}
+
+// tap or long-press a bubble to open its action bar. a long press doesn't also
+// fire the tap, and the bubble css turns off the ios copy/lookup callout.
+function useLongPress(onOpen, ms = 420) {
+  const timer = useRef(null)
+  const fired = useRef(false)
+  return (m) => ({
+    onPointerDown: () => {
+      fired.current = false
+      clearTimeout(timer.current)
+      timer.current = setTimeout(() => { fired.current = true; navigator.vibrate?.(10); onOpen(m) }, ms)
+    },
+    onPointerUp: () => clearTimeout(timer.current),
+    onPointerLeave: () => clearTimeout(timer.current),
+    onPointerCancel: () => clearTimeout(timer.current),
+    onContextMenu: (e) => e.preventDefault(),
+    onClick: (e) => {
+      e.stopPropagation()
+      if (fired.current) { fired.current = false; return }
+      onOpen(m)
+    },
+  })
 }
 
 // the chat box grows with what you type, up to ~5 lines, then scrolls inside.
@@ -791,6 +820,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
     await api({ action: "react", id: m.key, emoji })
   }
 
+  const pressFor = useLongPress((m) => !m.deleted && setFocused((k) => (k === m.key ? null : m.key)))
+
   const translate = async (m) => {
     setFocused(null)
     if (translated[m.key] && translated[m.key] !== "error") {
@@ -804,7 +835,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ t: token, text: m.text, to: LANG }),
     }).then((x) => x.json()).catch(() => null)
-    setTranslated((x) => ({ ...x, [m.key]: r?.text || "error" }))
+    const same = r?.from === LANG || (r?.text || "").trim().toLowerCase() === m.text.trim().toLowerCase()
+    setTranslated((x) => ({ ...x, [m.key]: same ? "same" : r?.text || "error" }))
   }
 
   // @mention suggestions: people who've spoken in this room, matching what's typed after @
@@ -916,8 +948,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       </p>
                     )}
                     <div
-                      onClick={(e) => { e.stopPropagation(); if (!m.deleted) setFocused(focused === m.key ? null : m.key) }}
-                      className={`min-w-0 max-w-full break-words px-3.5 py-2 [overflow-wrap:anywhere] ${
+                      {...pressFor(m)}
+                      className={`bubble min-w-0 max-w-full break-words px-3.5 py-2 [overflow-wrap:anywhere] ${
                         m.deleted
                           ? "rounded-[1.2rem] border border-dashed border-line bg-transparent"
                           : mine
@@ -949,7 +981,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                         {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
                         {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>}
                       </p>
-                      {translated[m.key] && !m.deleted && (
+                      {translated[m.key] && translated[m.key] !== "same" && !m.deleted && (
                         <p className="mt-1 border-t border-ink/10 pt-1 text-[13.5px] italic leading-snug">
                           {translated[m.key] === "loading"
                             ? t("translating…")
@@ -1251,17 +1283,56 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ t: token, text: m.text, to: LANG }),
     }).then((x) => x.json()).catch(() => null)
-    setDmTranslated((x) => ({ ...x, [m.key]: r?.text || "error" }))
+    const same = r?.from === LANG || (r?.text || "").trim().toLowerCase() === m.text.trim().toLowerCase()
+    setDmTranslated((x) => ({ ...x, [m.key]: same ? "same" : r?.text || "error" }))
+  }
+
+  // the same action bar as the group chat: react, reply, translate, edit, delete.
+  // tap a bubble or long-press it (long-press is what people try first on a phone)
+  const [dmFocused, setDmFocused] = useState(null)
+  const [dmReply, setDmReply] = useState(null)
+  const [dmEditing, setDmEditing] = useState(null)
+  const pressFor = useLongPress((m) => !m.deleted && setDmFocused((k) => (k === m.key ? null : m.key)))
+
+  const dmAct = async (m, action, extra = {}) => {
+    setDmFocused(null)
+    setConvo((c) => c && {
+      ...c,
+      messages: c.messages.map((x) => {
+        if (x.key !== m.key) return x
+        if (action === "delete") return { ...x, deleted: true, text: "" }
+        if (action === "edit") return { ...x, text: extra.text, edited: true }
+        const r = { ...x.reactions }
+        const who = new Set(r[extra.emoji] || [])
+        who.has(me.memberNo) ? who.delete(me.memberNo) : who.add(me.memberNo)
+        if (who.size) r[extra.emoji] = [...who]
+        else delete r[extra.emoji]
+        return { ...x, reactions: r }
+      }),
+    })
+    await fetch("/api/dm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, action, id: m.key, ...extra }),
+    }).catch(() => {})
   }
 
   const send = async (override) => {
     const body = (typeof override === "string" ? override : text).trim()
     if (!body || !openWith) return
+    if (dmEditing && typeof override !== "string") {
+      const target = dmEditing
+      setDmEditing(null)
+      setText("")
+      return dmAct(target, "edit", { text: body })
+    }
+    const reply = typeof override === "string" ? null : dmReply
+    setDmReply(null)
     setBusy(true)
     const r = await fetch("/api/dm", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, to: openWith.memberNo, text: body }),
+      body: JSON.stringify({ t: token, to: openWith.memberNo, text: body, replyTo: reply?.key ?? null }),
     }).then((x) => x.json()).catch(() => null)
     setBusy(false)
     if (r?.gate === "dm" || r?.gate === "unlock") return onPaywall(r.gate)
@@ -1293,31 +1364,101 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           ) : convo.messages.length === 0 ? (
             <p className="mt-6 text-center font-mono text-[11px] text-ink-soft">{t("say hi. you're in the same city on the same days.")}</p>
           ) : (
-            convo.messages.map((m) => (
-              <div key={m.key} className={`flex max-w-[78%] flex-col ${m.fromMe ? "items-end self-end" : "items-start self-start"}`}>
-                <div
-                  onClick={() => !m.fromMe && translateDm(m)}
-                  className={`max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[13.5px] [overflow-wrap:anywhere] ${m.fromMe ? "bg-lime text-ink" : "bg-white/80 text-ink"}`}
-                >
-                  {m.text}
-                  <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>
-                  {dmTranslated[m.key] && (
-                    <p className="mt-1 border-t border-ink/10 pt-1 italic">
-                      {dmTranslated[m.key] === "loading"
-                        ? t("translating…")
-                        : dmTranslated[m.key] === "error"
-                          ? t("couldn't translate that right now")
-                          : dmTranslated[m.key]}
-                    </p>
+            convo.messages.map((m, i) => {
+              const prev = convo.messages[i - 1]
+              const quoted = m.replyTo ? convo.messages.find((x) => x.key === m.replyTo) : null
+              const reactions = Object.entries(m.reactions || {})
+              const tr = dmTranslated[m.key]
+              return (
+                <div key={m.key} className="flex flex-col">
+                  {(!prev || dayKey(prev.at) !== dayKey(m.at)) && (
+                    <div className="flex items-center gap-3 py-2">
+                      <span className="h-px flex-1 bg-line" />
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{chatDay(m.at)}</span>
+                      <span className="h-px flex-1 bg-line" />
+                    </div>
                   )}
+                  <div id={`dm-${m.key}`} className={`flex max-w-[78%] flex-col ${m.fromMe ? "items-end self-end" : "items-start self-start"}`}>
+                    <div
+                      {...pressFor(m)}
+                      className={`bubble max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[13.5px] [overflow-wrap:anywhere] ${
+                        m.deleted ? "border border-dashed border-line bg-transparent italic text-ink-soft/60" : m.fromMe ? "bg-lime text-ink" : "bg-white text-ink shadow-[0_1px_2px_rgba(58,50,44,0.08)]"
+                      }`}
+                    >
+                      {quoted && !m.deleted && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); document.getElementById(`dm-${quoted.key}`)?.scrollIntoView({ behavior: "smooth", block: "center" }) }}
+                          className={`mb-1 w-full border-l-2 pl-2 text-left text-[11.5px] leading-snug line-clamp-2 ${m.fromMe ? "border-ink/30 text-ink/60" : "border-lime-deep text-ink-soft"}`}
+                        >
+                          {quoted.deleted ? t("deleted message") : `${quoted.fromMe ? t("you") : (other.name || "").split(" ")[0].toLowerCase()}: ${quoted.text}`}
+                        </button>
+                      )}
+                      {m.deleted ? t("message deleted") : m.text}
+                      {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
+                      <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>
+                      {tr && tr !== "same" && !m.deleted && (
+                        <p className="mt-1 border-t border-ink/10 pt-1 italic">
+                          {tr === "loading" ? t("translating…") : tr === "error" ? t("couldn't translate that right now") : tr}
+                        </p>
+                      )}
+                    </div>
+                    {!m.fromMe && !m.deleted && !tr && looksForeign(m.text) && (
+                      <button onClick={() => translateDm(m)} className="mt-0.5 px-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                        {t("translate")}
+                      </button>
+                    )}
+                    {reactions.length > 0 && (
+                      <div className={`mt-1 flex gap-1 ${m.fromMe ? "flex-row-reverse" : ""}`}>
+                        {reactions.map(([em, who]) => (
+                          <button
+                            key={em}
+                            onClick={() => dmAct(m, "react", { emoji: em })}
+                            className={`rounded-full border px-1.5 py-0.5 text-[11px] ${who.includes(me.memberNo) ? "border-lime-deep bg-lime/40" : "border-line bg-white/70"}`}
+                          >
+                            {em} {who.length > 1 ? who.length : ""}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <AnimatePresence>
+                      {dmFocused === m.key && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 6, scale: 0.9 }}
+                          transition={{ type: "spring", stiffness: 380, damping: 24 }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-1.5 flex items-center gap-1 rounded-full border border-line bg-white px-2 py-1.5 shadow-[0_10px_24px_-12px_rgba(28,27,23,0.4)]"
+                        >
+                          {REACT_SET.map((em) => (
+                            <button key={em} onClick={() => dmAct(m, "react", { emoji: em })} className="px-1 text-[16px] active:scale-125">{em}</button>
+                          ))}
+                          <span className="mx-0.5 h-4 w-px bg-line" />
+                          <button onClick={() => { setDmReply(m); setDmEditing(null); setDmFocused(null); document.getElementById("dm-composer")?.focus() }} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                            {t("reply")}
+                          </button>
+                          {!m.fromMe && (
+                            <button onClick={() => { setDmFocused(null); translateDm(m) }} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                              {tr && tr !== "error" ? t("original") : t("translate")}
+                            </button>
+                          )}
+                          {m.fromMe && (
+                            <>
+                              <button onClick={() => { setDmEditing(m); setDmReply(null); setText(m.text); setDmFocused(null); document.getElementById("dm-composer")?.focus() }} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                                {t("edit")}
+                              </button>
+                              <button onClick={() => dmAct(m, "delete")} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b3461f]">
+                                {t("delete")}
+                              </button>
+                            </>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-                {!m.fromMe && !dmTranslated[m.key] && looksForeign(m.text) && (
-                  <button onClick={() => translateDm(m)} className="mt-0.5 px-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
-                    {t("translate")}
-                  </button>
-                )}
-              </div>
-            ))
+              )
+            })
           )}
           <div ref={endRef} />
         </div>
@@ -1330,6 +1471,18 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             📹 {t("ask for a quick video call first")}
           </button>
         )}
+        <AnimatePresence>
+          {(dmReply || dmEditing) && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden px-3">
+              <div className="mb-1 flex items-center justify-between rounded-xl border border-line bg-cream-deep/70 px-3 py-1.5">
+                <p className="truncate font-mono text-[10.5px] text-ink-soft">
+                  {dmEditing ? t("editing your message") : `${t("replying to")} ${dmReply.fromMe ? t("you") : (other.name || "").split(" ")[0].toLowerCase()}: ${dmReply.text.slice(0, 50)}`}
+                </p>
+                <button onClick={() => { setDmReply(null); setDmEditing(null); setText("") }} className="ml-2 font-mono text-[10px] uppercase text-ink-soft">{t("cancel")}</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="flex items-end gap-2 border-t border-line px-3 py-2.5">
           <Composer id="dm-composer" value={text} onChange={setText} onSend={() => send()} placeholder={t("message…")} />
           <button onClick={() => send()} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">

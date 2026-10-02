@@ -70,17 +70,58 @@ export default async function handler(req, res) {
       const [a, b] = pair(me.memberNo, withNo)
       const { data: th } = await db.from("dm_threads").select("id").eq("a_no", a).eq("b_no", b).maybeSingle()
       if (!th) return res.status(200).json({ with: lite(other), messages: [] })
-      const { data: msgs } = await db.from("dm_messages").select("*").eq("thread_id", th.id).order("id", { ascending: true }).limit(200)
+      const { data: msgs } = await db.from("dm_messages").select("*").eq("thread_id", th.id).order("id", { ascending: false }).limit(200)
+      msgs?.reverse()
       // mark their messages to me as read
       await db.from("dm_messages").update({ read_at: new Date().toISOString() }).eq("thread_id", th.id).neq("from_no", me.memberNo).is("read_at", null)
       return res.status(200).json({
         with: lite(other),
-        messages: (msgs || []).map((m) => ({ key: m.id, text: m.body, at: m.created_at, fromMe: m.from_no === me.memberNo })),
+        messages: (msgs || []).map((m) => ({
+          key: m.id,
+          text: m.deleted ? "" : m.body,
+          at: m.created_at,
+          fromMe: m.from_no === me.memberNo,
+          replyTo: m.reply_to || null,
+          reactions: m.reactions || {},
+          edited: !!m.edited,
+          deleted: !!m.deleted,
+        })),
       })
     }
 
     if (req.method === "POST") {
-      const { to, text } = req.body || {}
+      const { to, text, action } = req.body || {}
+
+      // react / edit / delete one message in a thread you're in
+      if (action === "react" || action === "edit" || action === "delete") {
+        const id = parseInt(req.body?.id)
+        if (!id) return res.status(400).json({ error: "id required" })
+        const { data: row } = await db.from("dm_messages").select("*").eq("id", id).maybeSingle()
+        if (!row) return res.status(404).json({ error: "not found" })
+        const { data: th } = await db.from("dm_threads").select("a_no, b_no").eq("id", row.thread_id).maybeSingle()
+        if (!th || (th.a_no !== me.memberNo && th.b_no !== me.memberNo)) return res.status(403).json({ error: "no access" })
+        let patch
+        if (action === "react") {
+          const em = String(req.body?.emoji || "").slice(0, 8)
+          if (!em) return res.status(400).json({ error: "emoji required" })
+          const reactions = { ...(row.reactions || {}) }
+          const who = new Set(reactions[em] || [])
+          who.has(me.memberNo) ? who.delete(me.memberNo) : who.add(me.memberNo)
+          if (who.size) reactions[em] = [...who]
+          else delete reactions[em]
+          patch = { reactions }
+        } else {
+          if (row.from_no !== me.memberNo) return res.status(403).json({ error: "not yours" })
+          patch = action === "edit"
+            ? { body: String(text || "").trim().slice(0, 1000), edited: true }
+            : { deleted: true }
+          if (action === "edit" && !patch.body) return res.status(400).json({ error: "empty" })
+        }
+        const { error } = await db.from("dm_messages").update(patch).eq("id", id)
+        if (error) throw error
+        return res.status(200).json({ ok: true })
+      }
+
       if (!to || !String(to).trim()) return res.status(400).json({ error: "recipient required" })
       if (!text || !String(text).trim()) return res.status(400).json({ error: "empty" })
       if (String(to) === me.memberNo) return res.status(400).json({ error: "can't dm yourself" })
@@ -125,7 +166,12 @@ export default async function handler(req, res) {
       } else {
         await db.from("dm_threads").update({ last_at: now }).eq("id", th.id)
       }
-      const { error: me2 } = await db.from("dm_messages").insert({ thread_id: th.id, from_no: me.memberNo, body: String(text).trim().slice(0, 1000) })
+      const { error: me2 } = await db.from("dm_messages").insert({
+        thread_id: th.id,
+        from_no: me.memberNo,
+        body: String(text).trim().slice(0, 1000),
+        reply_to: Number.isInteger(req.body?.replyTo) ? req.body.replyTo : null,
+      })
       if (me2) throw me2
       notifyMemberNo(String(to), {
         subject: `${me.name.toLowerCase()} sent you a message`,
