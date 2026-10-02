@@ -29,6 +29,7 @@ export default async function handler(req, res) {
           .from("trips")
           .select("member_no, starts, ends")
           .eq("city", city)
+          .eq("hidden", false)
           .lte("starts", to)
           .gte("ends", from)
         // head count per day, so the calendar can show where the week is busy
@@ -128,6 +129,12 @@ export default async function handler(req, res) {
       const { data: prev } = await db.from("trips").select("*").eq("id", id).eq("member_no", me.memberNo).maybeSingle()
       if (!prev) return res.status(404).json({ error: "that trip is gone" })
 
+      // hide a trip from everyone else (it stays on your own list)
+      if (typeof req.body?.hidden === "boolean" && Object.keys(req.body).every((k) => ["t", "id", "hidden"].includes(k))) {
+        const { data: trip } = await db.from("trips").update({ hidden: req.body.hidden }).eq("id", id).eq("member_no", me.memberNo).select("*").single()
+        return res.status(200).json({ trip: shape(trip) })
+      }
+
       // "yes, these are right": a guessed trip becomes a real one, nothing else changes
       if (req.body?.confirm === true) {
         const { data: trip } = await db.from("trips").update({ guess: false }).eq("id", id).eq("member_no", me.memberNo).select("*").single()
@@ -199,6 +206,7 @@ const shape = (t) => ({
   note: t.note || "",
   area: t.area || "",
   guess: !!t.guess,
+  hidden: !!t.hidden,
 })
 
 // a neighborhood, not an address: short, and no digits (house numbers)
@@ -224,10 +232,12 @@ function eachDay(from, to) {
 // email the members whose dates overlap this new trip. this is the loop that
 // brings people back: someone lands on your dates, you hear about it.
 async function notifyOverlap(me, trip) {
+  if (trip.hidden) return
   const { data: rows } = await db
     .from("trips")
     .select("member_no, starts, ends")
     .eq("city", trip.city)
+    .eq("hidden", false)
     .lte("starts", trip.ends)
     .gte("ends", trip.starts)
     .neq("member_no", me.memberNo)

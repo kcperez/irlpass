@@ -23,6 +23,7 @@ export default async function handler(req, res) {
       .from("trips")
       .select("*")
       .eq("city", city)
+      .eq("hidden", false)
       .lte("starts", ends)
       .gte("ends", starts)
       .gte("ends", today())

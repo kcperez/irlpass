@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, Clock, MapPin, Star, X } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
+import { countryOf } from "../lib/countries"
 
 // the guide: tonight in medellín, the way a good city guide reads. pick a
 // mood, browse hand-picked spots with real photos and a line on why you go,
@@ -84,6 +85,8 @@ function GoingButton({ s, busy, onToggle, full = false }) {
 function WhoGoing({ s }) {
   if (!s.going) return <p className="text-[12.5px] font-semibold text-ink-soft">{t("nobody from irlpass yet. be the first.")}</p>
   const match = s.people.find((p) => !p.me && p.shared?.length)
+  // where tonight's crowd is from, the way airbnb shows who's on an experience
+  const flags = [...new Set(s.people.map((p) => countryOf(p.country)?.flag).filter(Boolean))].slice(0, 6)
   return (
     <div className="flex min-w-0 items-center gap-2">
       <div className="flex -space-x-2">
@@ -94,10 +97,15 @@ function WhoGoing({ s }) {
           </span>
         ))}
       </div>
-      <p className="min-w-0 truncate text-[12.5px] font-semibold">
-        {s.going} {t("going tonight")}
-        {match && <span className="text-ink-soft"> · {match.first} {t("is into")} {joinVibes(match.shared)}</span>}
-      </p>
+      <div className="min-w-0">
+        <p className="truncate text-[12.5px] font-semibold">
+          {s.going} {t("going tonight")}
+          {match && <span className="text-ink-soft"> · {match.first} {t("is into")} {joinVibes(match.shared)}</span>}
+        </p>
+        {flags.length > 0 && (
+          <p className="truncate text-[11.5px] text-ink-soft">{t("from")} {flags.join(" ")}</p>
+        )}
+      </div>
     </div>
   )
 }
@@ -200,6 +208,26 @@ export default function Mood({ token, onOpenRoom }) {
   const [area, setArea] = useState("")
   const [busy, setBusy] = useState(null)
   const [openId, setOpenId] = useState(null)
+  const [places, setPlaces] = useState([]) // anywhere in town that matches the search
+
+  useEffect(() => {
+    const text = q.trim()
+    if (text.length < 2) { setPlaces([]); return }
+    const id = setTimeout(() => {
+      fetch(`/api/mood?t=${token}&search=${encodeURIComponent(text)}`)
+        .then((r) => r.json())
+        .then((d) => setPlaces(d.places || []))
+        .catch(() => setPlaces([]))
+    }, 300)
+    return () => clearTimeout(id)
+  }, [q, token])
+
+  const addPlace = async (place) => {
+    setBusy(place.osmId)
+    await post({ action: "add", place, mood: place.mood })
+    await load()
+    setBusy(null)
+  }
 
   const load = useCallback(() => {
     cachedJson(`/api/mood?t=${token}&city=medellin`, (d) => { setData(d); setMood((m) => m || d.mood || "pregame") })
@@ -264,6 +292,10 @@ export default function Mood({ token, onOpenRoom }) {
         { key: "recovery", label: `🧘 ${t("recovery · gyms, yoga, sauna")}`, list: spots.filter((s) => s.tag === "recovery") },
       ]
     : [{ key: "all", label: null, list: spots }]
+  const boardIds = new Set(Object.values(data.board || {}).flat().map((s) => s.id))
+  const norm = (x) => String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
+  const boardNames = new Set(Object.values(data.board || {}).flat().map((s) => norm(s.name)))
+  const extra = places.filter((p) => !(p.spotId && boardIds.has(p.spotId)) && !boardNames.has(norm(p.name))).slice(0, 5)
   const open = spots.find((s) => s.id === openId) || Object.values(data.board || {}).flat().find((s) => s.id === openId)
   const others = (data.presence || []).filter((p) => !p.me)
   const outEnds = data.myOut ? new Date(data.myOut.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() : null
@@ -386,7 +418,13 @@ export default function Mood({ token, onOpenRoom }) {
             className="cursor-pointer"
           >
             <div className="lift relative aspect-[4/3] overflow-hidden rounded-[1.75rem] bg-cream-deep">
-              {s.photos[0] && <img src={s.photos[0]} alt="" loading="lazy" className="h-full w-full object-cover" />}
+              {s.photos[0] ? (
+                <img src={s.photos[0]} alt="" loading="lazy" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#d9cdf3] via-cream-deep to-[#f4d9c4] text-[64px]">
+                  {MOODS.find((m) => m.key === s.mood)?.emoji || "📍"}
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
               {s.going > 0 && (
                 <span className="absolute left-3 top-3 rounded-full bg-cream/95 px-2.5 py-1 text-[11.5px] font-bold">
@@ -413,8 +451,39 @@ export default function Mood({ token, onOpenRoom }) {
       </div>
       </div>
       ))}
-      {spots.length === 0 && (
+      {spots.length === 0 && !extra.length && (
         <p className="py-6 text-center text-[13px] text-ink-soft">{needle ? t("no spots match that") : t("no spots here yet")}</p>
+      )}
+
+      {/* not on the guide? any bar, club or cafe in town, straight from the map */}
+      {needle && extra.length > 0 && (
+        <section className="mt-6">
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft">{t("anywhere else in medellín")}</p>
+          <div className="mt-2 space-y-2">
+            {extra.map((p) => (
+              <motion.div
+                key={p.osmId}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 rounded-[1.3rem] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(58,50,44,0.06),0_8px_20px_-12px_rgba(58,50,44,0.3)]"
+              >
+                <span className="text-[24px] leading-none">{MOODS.find((m) => m.key === p.mood)?.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-bold leading-tight">{p.name}</p>
+                  <p className="truncate text-[12px] text-ink-soft">{[p.kind.replace(/_/g, " "), p.area.toLowerCase()].filter(Boolean).join(" · ")}</p>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => addPlace(p)}
+                  disabled={busy === p.osmId}
+                  className="shrink-0 rounded-full bg-ink px-3.5 py-2 text-[12.5px] font-bold text-cream disabled:opacity-50"
+                >
+                  {busy === p.osmId ? <CircleNotch size={14} className="animate-spin" /> : t("i'm going tonight")}
+                </motion.button>
+              </motion.div>
+            ))}
+          </div>
+          <p className="mt-2 text-center text-[11.5px] text-ink-soft">{t("it shows up on the guide for everyone while someone's going")}</p>
+        </section>
       )}
 
       <AnimatePresence>

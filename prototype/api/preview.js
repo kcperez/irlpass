@@ -20,6 +20,7 @@ export default async function handler(req, res) {
       .from("trips")
       .select("member_no, starts, ends, local")
       .eq("city", city)
+      .eq("hidden", false)
       .lte("starts", ends)
       .gte("ends", starts)
       .gte("ends", today())

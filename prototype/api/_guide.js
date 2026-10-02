@@ -41,7 +41,17 @@ const highlights = (info = {}) =>
     .slice(0, 12)
 
 // query: a better search for one spot when its name alone finds the wrong place
-export async function enrichSpots({ ids = null, limit = 5, query = null } = {}) {
+// near: { lat, lng, name } for a spot a member added. google's top hit only
+// counts when it's within 1km and shares a word with the name, so a wrong
+// match leaves a plain card instead of someone else's photos.
+const words = (x) => new Set(String(x || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2))
+const km = (a, b) => {
+  const r = Math.PI / 180
+  const x = (b.lng - a.lng) * r * Math.cos(((a.lat + b.lat) / 2) * r)
+  const y = (b.lat - a.lat) * r
+  return Math.sqrt(x * x + y * y) * 6371
+}
+export async function enrichSpots({ ids = null, limit = 5, query = null, near = null } = {}) {
   const token = process.env.APIFY_TOKEN
   if (!token) return { error: "no scraper key" }
   // named spots are checked even while hidden (new ones stay hidden until they check out)
@@ -69,6 +79,15 @@ export async function enrichSpots({ ids = null, limit = 5, query = null } = {}) 
     if (!r.ok) { out.push({ id: s.id, name: s.name, error: `scraper ${r.status}` }); continue }
     const p = (await r.json())?.[0]
     if (!p) { out.push({ id: s.id, name: s.name, error: "not found" }); continue }
+    if (near) {
+      const shared = [...words(near.name)].some((w) => words(p.title).has(w))
+      const close = p.location?.lat && km(near, p.location) < 1
+      if (!shared || !close) {
+        await db.from("spots").update({ enriched_at: new Date().toISOString() }).eq("id", s.id)
+        out.push({ id: s.id, name: s.name, error: `no match (${p.title})` })
+        continue
+      }
+    }
 
     const urls = [p.imageUrl, ...(p.imageUrls || [])].filter(Boolean)
     const photos = []

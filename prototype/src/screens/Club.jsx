@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import { cachedJson } from "../lib/cached"
-import { motion, AnimatePresence, MotionConfig } from "framer-motion"
+import { motion, AnimatePresence, MotionConfig, useDragControls } from "framer-motion"
 import {
   CalendarPlus,
   UsersThree,
@@ -247,7 +247,8 @@ function VerifyCard({ token, me, onVerified }) {
   )
 }
 
-function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onClose }) {
+function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, onClose }) {
+  const drag = useDragControls()
   const [hasDates, setHasDates] = useState(false)
   useEffect(() => {
     fetch(`/api/trips?t=${token}`)
@@ -311,12 +312,26 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onClose }) {
       <motion.div
         initial={{ y: 80 }}
         animate={{ y: 0 }}
-        exit={{ y: 120 }}
+        exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 260, damping: 26 }}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92%] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-cream px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
+        // drag down to close: grabbed from the top of the sheet (or anywhere
+        // while it's scrolled to the top), so it never fights the scroll
+        drag="y"
+        dragControls={drag}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.7 }}
+        onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 600) onClose() }}
+        onPointerDown={(e) => {
+          const box = e.currentTarget.getBoundingClientRect()
+          if (e.clientY - box.top < 110 || e.currentTarget.scrollTop <= 0) drag.start(e)
+        }}
+        className="max-h-[92%] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-cream px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3"
       >
-        <div className="mx-auto h-1 w-10 rounded-full bg-line" />
+        <div className="-mx-6 flex cursor-grab touch-none justify-center pb-2 pt-1 active:cursor-grabbing">
+          <div className="h-1.5 w-11 rounded-full bg-line" />
+        </div>
         <div className="mt-5 flex items-center gap-4">
           <Avatar member={me} photo={me.photo} size="h-16 w-16 text-[26px]" />
           <div>
@@ -341,7 +356,17 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onClose }) {
             </p>
           </div>
         </div>
-        <label className={`mt-5 flex w-full cursor-pointer items-center justify-center rounded-full bg-lime px-6 py-3.5 text-[14.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] ${busy ? "opacity-60" : ""}`}>
+        <button
+          onClick={onOpenProfile}
+          className="mt-5 flex w-full items-center justify-between rounded-[1.3rem] border-2 border-ink bg-white px-4 py-3 text-left active:scale-[0.99]"
+        >
+          <span>
+            <span className="block text-[14.5px] font-bold">{t("your profile & connections")}</span>
+            <span className="block text-[12px] text-ink-soft">{t("stamps, people you've met, what others see")}</span>
+          </span>
+          <span className="text-[20px]">🛂</span>
+        </button>
+        <label className={`mt-3 flex w-full cursor-pointer items-center justify-center rounded-full bg-lime px-6 py-3.5 text-[14.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] ${busy ? "opacity-60" : ""}`}>
           {busy ? t("uploading…") : me.photo ? t("change your photo") : t("add your photo")}
           <input type="file" accept="image/*" className="hidden" onChange={pick} disabled={busy} />
         </label>
@@ -1955,6 +1980,7 @@ export default function Club({ token }) {
             onPhoto={(photo) => { setMe((m) => ({ ...m, photo })); setProfileOpen(false) }}
             onSafety={(patch) => setMe((m) => ({ ...m, ...patch }))}
             onVibes={() => { setProfileOpen(false); setVibesOpen(true) }}
+            onOpenProfile={() => { setProfileOpen(false); setPersonNo(me.memberNo) }}
             onClose={() => setProfileOpen(false)}
           />
         )}
@@ -1967,6 +1993,7 @@ export default function Club({ token }) {
             onBrowse={(slug) => { setWorldOpen(false); setViewCity(slug); setTab("members") }}
             onOpenRoom={(c) => { setWorldOpen(false); setCityRoom(c) }}
             onPaywall={() => { setWorldOpen(false); setPaywall("city") }}
+            onOpenPerson={(no) => { setWorldOpen(false); setPersonNo(no) }}
           />
         )}
       </AnimatePresence>

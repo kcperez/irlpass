@@ -2,6 +2,8 @@ import { getUser, lockedPhoto, safeFirstName, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
 import { canReach } from "./_access.js"
 import { actsAsMod } from "./_mods.js"
+import { waitUntil } from "@vercel/functions"
+import { enrichSpots } from "./_guide.js"
 
 // the mood tab (josh's EDC sprint): pick tonight's mood, see the hand-picked
 // spots for it, tap "i'm going tonight", see who else is going, and drop an
@@ -12,6 +14,8 @@ import { actsAsMod } from "./_mods.js"
 // POST { t, action: "going", spotId, on }
 // POST { t, action: "out", area } | { t, action: "out", off: true }
 // POST { t, action: "spot", ... }  (mods: add / edit / hide a spot)
+// GET  ?t=&search=             -> any venue in town (openstreetmap), for when it's not on the board
+// POST { t, action: "add", place, mood } -> add that venue and mark yourself going
 
 export const MOODS = ["pregame", "afters", "chill"]
 
@@ -49,6 +53,10 @@ export default async function handler(req, res) {
   const night = tonight()
 
   try {
+    if (req.method === "GET" && req.query?.search) {
+      return res.status(200).json({ places: await searchPlaces(String(req.query.search)) })
+    }
+
     if (req.method === "GET") {
       const city = String(req.query?.city || "medellin")
       const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }] = await Promise.all([
@@ -81,6 +89,7 @@ export default async function handler(req, res) {
           locked: !open,
           me: no === me.memberNo,
           outNow: (out || []).some((o) => o.member_no === no),
+          country: m.country || null,
           shared: (m.interests || []).filter((x) => mineSet.has(String(x).toLowerCase())).slice(0, 3),
         }
       }
@@ -91,6 +100,8 @@ export default async function handler(req, res) {
       const board = Object.fromEntries(MOODS.map((mood) => [mood, []]))
       for (const s of spots || []) {
         if (!board[s.mood]) continue
+        // a spot someone added from search shows while somebody's going to it
+        if (s.added_by && !goingBySpot[s.id] && !actsAsMod(me)) continue
         const people = (goingBySpot[s.id] || []).map(face).filter(Boolean)
           .sort((a, b) => b.me - a.me || b.shared.length - a.shared.length)
         board[s.mood].push({
@@ -114,6 +125,8 @@ export default async function handler(req, res) {
           going: people.length,
           people: people.slice(0, 8),
           imGoing: people.some((p) => p.me),
+          added: !!s.added_by,
+          mood: s.mood,
           room: `spot-${s.id}-${night.replace(/-/g, "")}`,
         })
       }
@@ -147,7 +160,41 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, mood })
     }
 
-    if (action === "going") {
+    if (action === "add") {
+      const place = req.body?.place || {}
+      const osmId = String(place.osmId || "").slice(0, 40)
+      const name = String(place.name || "").trim().slice(0, 60)
+      const mood = MOODS.includes(req.body?.mood) ? req.body.mood : moodFor(place.kind)
+      if (!osmId || !name) return res.status(400).json({ error: "which place?" })
+      let { data: spot } = Number(place.spotId)
+        ? await db.from("spots").select("id, mood").eq("id", Number(place.spotId)).maybeSingle()
+        : await db.from("spots").select("id, mood").eq("osm_id", osmId).maybeSingle()
+      if (!spot) {
+        const { data: made, error } = await db.from("spots").insert({
+          city: "medellin",
+          mood,
+          name,
+          area: String(place.area || "").toLowerCase().slice(0, 40) || null,
+          kind: String(place.kind || "").replace(/_/g, " ").slice(0, 30) || null,
+          sort: 900,
+          added_by: me.memberNo,
+          osm_id: osmId,
+        }).select("id, mood").single()
+        if (error) throw error
+        spot = made
+        // photos, rating and hours come from google in the background
+        if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+          waitUntil(enrichSpots({
+            ids: [spot.id],
+            query: `${name}, ${place.street || place.area || ""}, Medellín, Colombia`,
+            near: { lat: place.lat, lng: place.lng, name },
+          }).catch((e) => console.error("enrich added spot:", e)))
+        }
+      }
+      req.body.spotId = spot.id
+    }
+
+    if (action === "going" || action === "add") {
       const spotId = Number(req.body?.spotId)
       if (!spotId) return res.status(400).json({ error: "which spot?" })
       if (req.body?.on === false) {
@@ -231,4 +278,52 @@ export default async function handler(req, res) {
     console.error("mood error:", e)
     return res.status(500).json({ error: "something went wrong" })
   }
+}
+
+// openstreetmap (photon) inside medellín's metro area. venues only, and each
+// one gets the mood it most likely belongs on.
+const KINDS = new Set(["bar", "pub", "nightclub", "restaurant", "cafe", "biergarten", "fitness_centre", "sports_centre", "park", "spa", "ice_cream", "fast_food", "food_court", "events_venue", "music_venue", "hotel", "garden", "yoga", "bakery", "juice"])
+function moodFor(kind) {
+  if (["nightclub", "music_venue", "events_venue"].includes(kind)) return "afters"
+  if (["bar", "pub", "biergarten", "restaurant", "hotel"].includes(kind)) return "pregame"
+  return "chill"
+}
+async function searchPlaces(q) {
+  const text = q.trim().slice(0, 60)
+  if (text.length < 2) return []
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&lat=6.21&lon=-75.57&limit=12&bbox=-75.70,6.10,-75.45,6.40`
+  const r = await fetch(url, { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }).catch(() => null)
+  if (!r?.ok) return []
+  const d = await r.json().catch(() => ({}))
+  const seen = new Set()
+  const out = []
+  for (const f of d.features || []) {
+    const p = f.properties || {}
+    if (!p.name || !KINDS.has(p.osm_value)) continue
+    const key = `${p.name.toLowerCase()}|${p.district || p.suburb || ""}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    const [lng, lat] = f.geometry?.coordinates || []
+    out.push({
+      osmId: `${p.osm_type || "N"}${p.osm_id}`,
+      name: p.name,
+      kind: p.osm_value,
+      area: p.district || p.suburb || p.locality || "",
+      street: p.street || "",
+      lat,
+      lng,
+      mood: moodFor(p.osm_value),
+    })
+  }
+  if (!out.length) return out
+  // already on the guide? match by osm id, or by name without accents
+  // ("salon amador" on the map is our "Salón Amador")
+  const norm = (x) => String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
+  const [{ data: have }, { data: curated }] = await Promise.all([
+    db.from("spots").select("id, osm_id").in("osm_id", out.map((x) => x.osmId)),
+    db.from("spots").select("id, name").eq("city", "medellin").eq("active", true),
+  ])
+  const byOsm = new Map((have || []).map((h) => [h.osm_id, h.id]))
+  const byName = new Map((curated || []).map((c) => [norm(c.name), c.id]))
+  return out.slice(0, 6).map((x) => ({ ...x, spotId: byOsm.get(x.osmId) || byName.get(norm(x.name)) || null }))
 }

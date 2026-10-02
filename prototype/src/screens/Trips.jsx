@@ -3,8 +3,7 @@ import { cachedJson } from "../lib/cached"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   CalendarPlus, CheckCircle, CircleNotch, LockSimple,
-  PencilSimple, Plus, Trash, X,
-} from "@phosphor-icons/react"
+  PencilSimple, Plus, Trash, X, EyeSlash } from "@phosphor-icons/react"
 import { CITY_INDEX, cityChip, rememberCity } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
 import { t } from "../lib/i18n"
@@ -580,7 +579,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                   }`}
                 >
                   <span className="block text-[14px] font-semibold">{cityName(t.city)}</span>
-                  <span className="block text-[12px] text-ink-soft">{fmtRange(t.starts, t.ends)}</span>
+                  <span className="block text-[12px] text-ink-soft">{fmtRange(t.starts, t.ends)}{t.hidden ? " · 🙈" : ""}</span>
                 </button>
               ))}
             </div>
@@ -601,6 +600,21 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                 >
                   <PencilSimple size={13} weight="bold" /> {t("edit")}
                 </button>
+                {/* hide: the trip stays yours, nobody else sees it (lists, maps, emails) */}
+                <button
+                  onClick={async () => {
+                    await fetch("/api/trips", {
+                      method: "PATCH",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ t: token, id: trip.id, hidden: !trip.hidden }),
+                    }).catch(() => {})
+                    load()
+                  }}
+                  aria-label={trip.hidden ? t("show this trip") : t("hide this trip")}
+                  className={`flex items-center gap-1.5 rounded-full border-2 px-2.5 py-1.5 text-[12px] font-bold ${trip.hidden ? "border-ink bg-ink text-cream" : "border-line text-ink-soft"}`}
+                >
+                  <EyeSlash size={13} weight="bold" />{trip.hidden ? ` ${t("hidden")}` : ""}
+                </button>
                 <button
                   onClick={() => { if (confirm(t("remove these dates?"))) removeTrip(trip.id) }}
                   aria-label={t("remove")}
@@ -610,6 +624,12 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                 </button>
               </div>
             </div>
+
+            {trip.hidden && (
+              <p className="mb-3 rounded-[1.2rem] bg-cream-deep px-4 py-2.5 text-[12.5px] font-semibold text-ink-soft">
+                🙈 {t("only you can see this trip. nobody gets matched to it until you show it again.")}
+              </p>
+            )}
 
             {/* this trip came from an old quick-pick button: ask once if it's real */}
             {trip.guess && (

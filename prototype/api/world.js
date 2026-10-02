@@ -1,6 +1,8 @@
 import { getUser, lockedPhoto } from "./_lib.js"
 import { db } from "./_db.js"
 import { today } from "./_access.js"
+import { connectionsFor } from "./_connections.js"
+import { rowToMember, safeFirstName } from "./_lib.js"
 
 // "where irlpass is": every city with people in it, on a map. the counts and
 // blurred faces are the pull to go somewhere, or to join its chat. browsing is
@@ -19,9 +21,11 @@ export default async function handler(req, res) {
     const now = today()
     const soon = addDays(now, 60)
     const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString()
+    // started now so it runs alongside the city queries
+    const connsP = connectionsFor(me.memberNo).catch(() => new Map())
     const [{ data: cities }, { data: trips }, { data: homes }, { data: msgs }, { data: out }, { data: myTrips }] = await Promise.all([
       db.from("cities").select("slug, name, emoji, lat, lng").not("lat", "is", null),
-      db.from("trips").select("city, member_no, starts, ends, local").gte("ends", now).lte("starts", soon).lt("member_no", "900"),
+      db.from("trips").select("city, member_no, starts, ends, local").eq("hidden", false).gte("ends", now).lte("starts", soon).lt("member_no", "900"),
       db.from("members").select("home_city, member_no, photo_url").not("home_city", "is", null).eq("banned", false).lt("member_no", "900"),
       db.from("messages").select("channel, created_at").gte("created_at", weekAgo).not("channel", "like", "spot-%"),
       db.from("presence").select("city").gt("expires_at", new Date().toISOString()),
@@ -67,8 +71,48 @@ export default async function handler(req, res) {
       })
     }
     out2.sort((a, b) => b.people - a.people || b.chatWeek - a.chatWeek)
+
+    // the travel map: where your connections are headed next (airbnb's
+    // "carmen in lima · december"), with their face on the city's pin
+    const conns = await connsP
+    let friends = []
+    if (conns.size) {
+      const nos = [...conns.keys()]
+      const [{ data: rows }, { data: theirTrips }] = await Promise.all([
+        db.from("members").select("*").in("member_no", nos),
+        db.from("trips").select("member_no, city, starts, ends, local").in("member_no", nos).eq("hidden", false).gte("ends", now).order("starts"),
+      ])
+      const byNo = new Map((rows || []).map((r) => [r.member_no, rowToMember(r)]).filter(([, m]) => m))
+      const coords = new Map((cities || []).map((c) => [c.slug, c]))
+      friends = (theirTrips || [])
+        .filter((t) => !t.local && coords.has(t.city) && byNo.has(t.member_no))
+        .map((t) => {
+          const m = byNo.get(t.member_no)
+          const c = coords.get(t.city)
+          const open = conns.get(t.member_no).talked
+          return {
+            memberNo: t.member_no,
+            first: open ? String(m.name || "").split(/\s+/)[0] : safeFirstName(m.name, m.ig),
+            photo: open ? m.photo : lockedPhoto(m.photo),
+            locked: !open,
+            city: t.city,
+            cityName: c.name,
+            emoji: c.emoji || "📍",
+            lat: c.lat,
+            lng: c.lng,
+            starts: t.starts,
+            ends: t.ends,
+            now: t.starts <= now,
+            nights: conns.get(t.member_no).nights,
+          }
+        })
+        .slice(0, 30)
+    }
+    const friendsIn = {}
+    for (const f of friends) (friendsIn[f.city] = friendsIn[f.city] || []).push(f.photo)
+    for (const c of out2) c.friendFaces = [...new Set(friendsIn[c.slug] || [])].slice(0, 2)
     res.setHeader("cache-control", "private, max-age=60")
-    return res.status(200).json({ cities: out2, pass: !!me.paid || !!me.foundingFree })
+    return res.status(200).json({ cities: out2, friends, connections: conns.size, pass: !!me.paid || !!me.foundingFree })
   } catch (e) {
     console.error("world error:", e)
     return res.status(500).json({ error: "could not load the map" })

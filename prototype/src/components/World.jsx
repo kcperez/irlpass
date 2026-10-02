@@ -3,6 +3,7 @@ import { motion } from "framer-motion"
 import { ChatsCircle, CircleNotch, UsersThree, X } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { registerCities } from "../lib/cities"
+import { cachedJson } from "../lib/cached"
 
 // "where irlpass is": every city with people in it. counts and blurred faces
 // give people a reason to go somewhere, or at least to peek at its chat.
@@ -14,20 +15,21 @@ const ago = (iso) => {
   return h < 48 ? `${h}h ${t("ago")}` : `${Math.round(h / 24)}d ${t("ago")}`
 }
 
-export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall }) {
+const fmtDay = (iso) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
+
+export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall, onOpenPerson }) {
   const [data, setData] = useState(null)
   const [sel, setSel] = useState(null)
   const mapEl = useRef(null)
   const mapRef = useRef(null)
 
   useEffect(() => {
-    fetch(`/api/world?t=${token}`)
-      .then((r) => r.json())
-      .then((d) => {
-        registerCities(Object.fromEntries((d.cities || []).map((c) => [c.slug, { name: c.name, emoji: c.emoji }])))
-        setData(d)
-      })
-      .catch(() => setData({ cities: [] }))
+    // last answer instantly, then the fresh one (the map keeps its first pins)
+    cachedJson(`/api/world?t=${token}`, (d) => {
+      registerCities(Object.fromEntries((d.cities || []).map((c) => [c.slug, { name: c.name, emoji: c.emoji }])))
+      setData((prev) => (prev ? { ...d, cities: d.cities?.length ? d.cities : prev.cities } : d))
+    }).catch(() => setData((d) => d || { cities: [] }))
   }, [token])
 
   // the map library is heavy, so it only loads when someone opens the map
@@ -45,16 +47,29 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall 
         dragRotate: false,
       })
       mapRef.current = map
-      for (const c of data.cities) {
+      // start framed on wherever people are, instead of the whole globe
+      const pts = data.cities.map((c) => [c.lng, c.lat])
+      if (pts.length > 1) {
+        const lngs = pts.map((p) => p[0]), lats = pts.map((p) => p[1])
+        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 36, maxZoom: 4, duration: 0 })
+      }
+      const esc = (x) => String(x).replace(/[&<>"']/g, "")
+      // big cities and your people's cities get full pins, the rest stay small
+      const busy = new Set(data.cities.slice(0, 8).map((c) => c.slug))
+      for (const c of [...data.cities].reverse()) {
         const el = document.createElement("button")
-        el.className = "irl-pin"
-        el.innerHTML = `<span>${c.emoji}</span><b>${c.people || "·"}</b>`
+        const faces = c.friendFaces || []
+        el.className = `irl-pin${faces.length ? " face" : busy.has(c.slug) ? "" : " small"}`
+        el.innerHTML = faces.length
+          ? `${faces.map((f) => `<img src="${esc(f)}" alt="">`).join("")}<b>${esc(c.name)}</b>`
+          : `<span>${c.emoji}</span><b>${c.people || "·"}</b>`
         el.onclick = (e) => { e.stopPropagation(); setSel(c.slug); map.flyTo({ center: [c.lng, c.lat], zoom: 4.5, speed: 1.4 }) }
         new maplibregl.Marker({ element: el }).setLngLat([c.lng, c.lat]).addTo(map)
       }
     })
     return () => { cancelled = true; mapRef.current?.remove(); mapRef.current = null }
-  }, [data])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!data?.cities?.length])
 
   const city = data?.cities?.find((c) => c.slug === sel)
   const canWrite = city && (city.mine || data?.pass)
@@ -76,7 +91,9 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall 
         </div>
 
         <div className="relative mx-4 h-[38%] min-h-[210px] overflow-hidden rounded-[1.6rem] bg-cream-deep shadow-[inset_0_0_0_2px_rgba(58,50,44,0.06)]">
-          <div ref={mapEl} className="absolute inset-0" />
+          {/* inline position: maplibre's own .maplibregl-map class sets position:relative,
+              which beat "absolute inset-0" and collapsed the map to 0px tall (josh's blank box) */}
+          <div ref={mapEl} style={{ position: "absolute", inset: 0 }} />
           {!data && <div className="absolute inset-0 flex items-center justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>}
         </div>
 
@@ -124,6 +141,38 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall 
             </motion.div>
           ) : (
             <div className="space-y-2">
+              {/* the travel map: where the people you've met are headed */}
+              {data?.friends?.length > 0 ? (
+                <section className="mb-3 rounded-[1.6rem] bg-ink p-4 text-cream">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-cream/60">{t("travel map")}</p>
+                  <p className="display mt-0.5 text-[19px] font-bold leading-tight">
+                    {data.friends.length} {data.friends.length === 1 ? t("trip coming up from your people") : t("trips coming up from your people")}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {data.friends.slice(0, 6).map((f, i) => (
+                      <motion.button
+                        key={`${f.memberNo}-${f.city}-${f.starts}`}
+                        initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                        onClick={() => { mapRef.current?.flyTo({ center: [f.lng, f.lat], zoom: 4.5, speed: 1.4 }); onOpenPerson?.(f.memberNo) }}
+                        className="flex w-full items-center gap-3 rounded-[1.1rem] bg-cream/10 px-3 py-2 text-left active:scale-[0.99]"
+                      >
+                        <img src={f.photo} alt="" onError={(e) => { e.currentTarget.style.visibility = "hidden" }} className={`h-10 w-10 shrink-0 rounded-full border-2 border-cream object-cover ${f.locked ? "blur-[1.5px]" : ""}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14.5px] font-bold">{f.first} {t("in")} {f.cityName} {f.emoji}</p>
+                          <p className="truncate text-[12px] text-cream/70">
+                            {f.now ? t("there now") : `${fmtDay(f.starts)} – ${fmtDay(f.ends)}`}
+                            {f.nights > 0 ? ` · ${f.nights} ${f.nights === 1 ? t("night out together") : t("nights out together")}` : ""}
+                          </p>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </section>
+              ) : data && (
+                <p className="mb-2 rounded-[1.3rem] border-2 border-dashed border-line px-4 py-3 text-[12.5px] text-ink-soft">
+                  {t("people you talk to or go out with show up here, with where they're headed next.")}
+                </p>
+              )}
               {(data?.cities || []).map((c, i) => (
                 <motion.button
                   key={c.slug}

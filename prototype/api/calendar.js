@@ -18,6 +18,7 @@ export default async function handler(req, res) {
       .from("trips")
       .select("member_no, starts, ends, local")
       .eq("city", city)
+      .eq("hidden", false)
       .lte("starts", to)
       .gte("ends", from)
       .limit(500)

@@ -112,6 +112,12 @@ textarea {
 }
 .irl-pin:active { transform: scale(0.92); }
 .irl-pin span { font-size: 15px; line-height: 1; }
+/* a city where one of your connections is headed: their face on the pin */
+.irl-pin.face { padding: 2px 8px 2px 2px; background: #3a322c; color: #fffdfa; z-index: 2; }
+.irl-pin.face img { width: 26px; height: 26px; border-radius: 999px; object-fit: cover; border: 2px solid #fffdfa; }
+.irl-pin.face img + img { margin-left: -10px; }
+.irl-pin.small { padding: 2px 6px 2px 4px; border-width: 1.5px; font-size: 10.5px; }
+.irl-pin.small span { font-size: 12px; }
 
 /* soft, layered depth for cards, with a small press. transform-only, so cheap */
 .lift {
