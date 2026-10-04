@@ -86,7 +86,7 @@ function PersonRow({ p, onMessage, onOpen, cityLabel }) {
           onClick={() => onMessage(p)}
           className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
         >
-          {p.unread > 0 ? `${p.unread} ${t("new")}` : p.talked ? t("open chat") : t("say hi")}
+          {p.unread > 0 ? `${p.unread} ${t("new")}` : t("join their trip")}
         </button>
       ) : (
         <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">women only</span>

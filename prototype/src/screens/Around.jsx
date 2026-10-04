@@ -341,10 +341,11 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
                   </div>
                 )}
 
-                {/* one badge, not three: three wrap and clip on a half-width card */}
-                <div className="absolute left-2 top-2 flex gap-1">
+                {/* the out-tonight pill gets the whole top row so it never clips;
+                    "same days" is gone (every card here is the same days) */}
+                <div className="absolute inset-x-2 top-2 flex flex-col items-start gap-1">
                   {p.out && (
-                    <span className="flex max-w-[150px] items-center gap-1 truncate rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-cream">
+                    <span className="flex max-w-full items-center gap-1 truncate rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-cream">
                       <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-[#5fd35f] ${p.out.now ? "out-dot" : ""}`} />
                       <span className="truncate">
                         {p.out.now
@@ -358,12 +359,6 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
                     <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">{t("founder")}</span>
                   )}
                 </div>
-
-                {p.overlapsMe && (
-                  <span className="absolute right-2 top-2 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">
-                    {t("same days")}
-                  </span>
-                )}
 
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2.5 pb-2 pt-8 text-cream">
                   <p className="flex items-center gap-1 text-[14.5px] font-bold leading-tight">
@@ -398,7 +393,7 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
                     onClick={() => onOpenDM(p)}
                     className={`w-full rounded-full py-2 text-[12.5px] font-bold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
                   >
-                    {p.unread > 0 ? `${p.unread} ${t("new")} · ${t("open chat")}` : p.talked ? t("open chat") : t("say hi")}
+                    {p.unread > 0 ? `${p.unread} ${t("new")} · ${t("make a plan")}` : t("make a plan")}
                   </button>
                 ) : p.womenOnly ? (
                   <span className="flex justify-center py-2 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">

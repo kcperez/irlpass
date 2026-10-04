@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, createContext, useContext } from "react"
 import { cachedJson } from "../lib/cached"
 import { motion, AnimatePresence, MotionConfig, useDragControls } from "framer-motion"
 import {
@@ -750,10 +750,89 @@ function Composer({ id, value, onChange, onSend, placeholder }) {
 }
 
 // @name in a message renders bold
+// tap a @spot in any chat and land on its board (set by Club)
+export const SpotLink = createContext(() => {})
+
+// chat text: links you can tap, @people in bold, @[spot](s12) as a spot chip.
+// a spot tag is a door into the room: it opens that spot's board.
+const RICH = /(https?:\/\/[^\s]+|(?:www\.)?irlpass\.xyz\/?[^\s]*|@\[[^\]]{1,60}\]\(s\d+\)|@[\w.]{2,30})/g
 function WithMentions({ text }) {
-  const parts = String(text).split(/(@[\w.]{2,30})/g)
-  return parts.map((part, i) =>
-    part.startsWith("@") ? <span key={i} className="font-bold">{part}</span> : part
+  const openSpot = useContext(SpotLink)
+  return String(text).split(RICH).map((part, i) => {
+    if (!part) return null
+    const spot = part.match(/^@\[([^\]]+)\]\(s(\d+)\)$/)
+    if (spot) {
+      return (
+        <button
+          key={i}
+          onClick={(e) => { e.stopPropagation(); openSpot(Number(spot[2])) }}
+          className="mx-0.5 inline-flex items-center gap-0.5 rounded-full bg-ink px-2 py-[1px] align-baseline text-[13px] font-bold text-cream"
+        >
+          📍 {spot[1]}
+        </button>
+      )
+    }
+    if (/^(https?:\/\/|(www\.)?irlpass\.xyz)/.test(part)) {
+      const trail = part.match(/[).,!?]+$/)?.[0] || ""
+      const url = part.slice(0, part.length - trail.length)
+      const href = /^https?:/.test(url) ? url : `https://${url}`
+      const ours = /^https?:\/\/(www\.)?irlpass\.xyz/.test(href)
+      return (
+        <span key={i}>
+          <a
+            href={href}
+            target={ours ? "_self" : "_blank"}
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="break-all font-semibold underline underline-offset-2"
+          >
+            {url.replace(/^https?:\/\//, "")}
+          </a>
+          {trail}
+        </span>
+      )
+    }
+    if (part.startsWith("@")) return <span key={i} className="font-bold">{part}</span>
+    return part
+  })
+}
+
+// type @ and the guide's spots pop up, like tagging a person. the tag becomes
+// @[name](s12) in the message, which renders as a tappable spot chip.
+let spotCache = null
+function SpotSuggest({ token, text, setText }) {
+  const [spots, setSpots] = useState(spotCache || [])
+  const q = (text.match(/@([^\s@\[]*)$/) || [])[1]
+  useEffect(() => {
+    if (q === undefined || spotCache) return
+    fetch(`/api/mood?t=${token}&city=medellin`)
+      .then((r) => r.json())
+      .then((d) => {
+        const all = Object.values(d.board || {}).flat()
+        spotCache = [...new Map(all.map((x) => [x.id, { id: x.id, name: x.name, area: x.area, going: x.going }])).values()]
+        setSpots(spotCache)
+      })
+      .catch(() => {})
+  }, [q, token])
+  if (q === undefined) return null
+  const norm = (x) => String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  const hits = spots
+    .filter((x) => !q || norm(x.name).includes(norm(q)))
+    .sort((a, b) => b.going - a.going)
+    .slice(0, 6)
+  if (!hits.length) return null
+  return (
+    <div className="mb-2 flex gap-1.5 overflow-x-auto">
+      {hits.map((x) => (
+        <button
+          key={x.id}
+          onClick={() => setText((v) => v.replace(/@([^\s@\[]*)$/, `@[${x.name.replace(/[\[\]()]/g, "")}](s${x.id}) `))}
+          className="shrink-0 rounded-full bg-ink px-3 py-1 text-[12.5px] font-bold text-cream"
+        >
+          📍 {x.name}{x.going ? ` · ${x.going}` : ""}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -956,7 +1035,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                 return (
                   <div key={m.key} className="flex justify-center">
                     <p className="max-w-[85%] rounded-full bg-cream-deep/80 px-4 py-1.5 text-center font-mono text-[10.5px] leading-relaxed text-ink-soft">
-                      {m.text}
+                      <WithMentions text={m.text} />
                     </p>
                   </div>
                 )
@@ -1009,7 +1088,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       )}
                       <p className={`whitespace-pre-wrap text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
                         {m.deleted ? t("message deleted") : m.text.startsWith("📍 ") ? (
-                          <span className="font-semibold"><span className="out-dot mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" />{m.text.slice(2)}</span>
+                          <span className="font-semibold"><span className="out-dot mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" /><WithMentions text={m.text.slice(2)} /></span>
                         ) : <WithMentions text={m.text} />}
                         {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
                         {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>}
@@ -1135,6 +1214,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
             </motion.div>
           )}
         </AnimatePresence>
+        <SpotSuggest token={token} text={text} setText={setText} />
         {mentionPool.length > 0 && (
           <div className="mb-2 flex gap-1.5 overflow-x-auto">
             {mentionPool.map((f) => (
@@ -1290,9 +1370,18 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
   const [busy, setBusy] = useState(false)
   const endRef = useRef(null)
 
+  // last inbox instantly, then fresh; on festival signal a failed load retries
+  // instead of hanging on a spinner
   const loadInbox = useCallback(() => {
-    fetch(`/api/dm?t=${token}`).then((r) => r.json()).then((d) => setThreads(d.threads || [])).catch(() => setThreads([]))
+    let tries = 0
+    const go = () =>
+      cachedJson(`/api/dm?t=${token}`, (d) => setThreads(d.threads || [])).catch(() => {
+        if (++tries < 4) setTimeout(go, 1500 * tries)
+        else setThreads((x) => x || [])
+      })
+    go()
   }, [token])
+  const [inboxQ, setInboxQ] = useState("")
 
   const loadConvo = useCallback((no) => {
     fetch(`/api/dm?t=${token}&with=${no}`).then((r) => r.json()).then((d) => setConvo(d)).catch(() => setConvo({ with: null, messages: [] }))
@@ -1426,7 +1515,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                           {quoted.deleted ? t("deleted message") : `${quoted.fromMe ? t("you") : (other.name || "").split(" ")[0].toLowerCase()}: ${quoted.text}`}
                         </button>
                       )}
-                      {m.deleted ? t("message deleted") : m.text}
+                      {m.deleted ? t("message deleted") : <WithMentions text={m.text} />}
                       {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
                       <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>
                       {tr && tr !== "same" && !m.deleted && (
@@ -1516,6 +1605,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             </motion.div>
           )}
         </AnimatePresence>
+        <div className="px-3 pt-2"><SpotSuggest token={token} text={text} setText={setText} /></div>
         <div className="flex items-end gap-2 border-t border-line px-3 py-2.5">
           <Composer id="dm-composer" value={text} onChange={setText} onSend={() => send()} placeholder={t("message…")} />
           <button onClick={() => send()} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
@@ -1602,18 +1692,36 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           <p className="mt-1 text-[13px] text-ink-soft">{t("say hi to someone on your dates and it lands here.")}</p>
         </div>
       ) : (
-        <div className="mt-4 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
-          {threads.map((th) => (
+        <>
+        {threads.length > 5 && (
+          <input
+            type="search"
+            name="chat-search"
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            value={inboxQ}
+            onChange={(e) => setInboxQ(e.target.value)}
+            placeholder={t("search chats")}
+            className="mt-4 w-full rounded-full border-2 border-line bg-white/80 px-4 py-2.5 text-[14px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50 focus:border-ink"
+          />
+        )}
+        <div className="mt-3 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
+          {threads.filter((th) => !inboxQ.trim() || `${th.with.name} ${th.with.ig} ${th.last}`.toLowerCase().includes(inboxQ.trim().toLowerCase())).map((th) => (
             <button key={th.with.memberNo} onClick={() => setOpenWith(th.with)} className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/30">
               <Avatar member={th.with} photo={photoMap[th.with.memberNo]} />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{th.with.name.toLowerCase()} <RepBadge score={th.with.repScore} verified={th.with.verified} /></p>
                 <p className="truncate font-mono text-[11px] text-ink-soft">{th.lastFromMe ? "you: " : ""}{th.last}</p>
               </div>
-              {th.unread > 0 && <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 font-mono text-[10px] font-semibold text-ink">{th.unread}</span>}
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <span className="font-mono text-[9.5px] text-ink-soft">{msgTime(th.at)}</span>
+                {th.unread > 0 && <span className="rounded-full bg-lime px-2 py-0.5 font-mono text-[10px] font-semibold text-ink">{th.unread}</span>}
+              </div>
             </button>
           ))}
         </div>
+        </>
       )}
     </div>
   )
@@ -1806,6 +1914,7 @@ export default function Club({ token }) {
   const [unreadTotal, setUnreadTotal] = useState(0)
   const [vibesOpen, setVibesOpen] = useState(false)
   const [spotRoom, setSpotRoom] = useState(null) // { channel, title } of a spot's room tonight
+  const [focusSpot, setFocusSpot] = useState(null) // a tapped @spot: open its board on the mood tab
   const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
   const [personNo, setPersonNo] = useState(null) // whose profile is open
   const [worldOpen, setWorldOpen] = useState(false) // the "where irlpass is" map
@@ -1927,15 +2036,17 @@ export default function Club({ token }) {
   }
 
   // josh's order: dates and chat together, tonight's mood next to people
+  // josh's funnel order: the two discovery tabs lead, chat is the pipe, mood is lightest
   const TABS = [
     { key: "trips", label: t("dates"), icon: CalendarPlus },
+    { key: "members", label: t("people"), icon: UsersThree },
     { key: "dms", label: t("chat"), icon: ChatsCircle },
     { key: "mood", label: t("mood"), icon: Sparkle },
-    { key: "members", label: t("people"), icon: UsersThree },
   ]
   const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || (tab === "mood" && spotRoom) || cityRoom
 
   return (
+    <SpotLink.Provider value={(id) => { setCityRoom(null); setSpotRoom(null); setDmWith(null); setActiveChat(null); setFocusSpot(id); setTab("mood") }}>
     <MotionConfig reducedMotion="user">
     <div className="relative flex h-[var(--app-h)] flex-col">
       <ModeStrip token={token} me={me} />
@@ -1975,7 +2086,7 @@ export default function Club({ token }) {
             onBack={() => setCityRoom(null)}
           />
         )}
-        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} />}
+        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} />}
         {!cityRoom && tab === "mood" && spotRoom && (
           <Thread
             token={token}
@@ -2097,5 +2208,6 @@ export default function Club({ token }) {
       )}
     </div>
     </MotionConfig>
+    </SpotLink.Provider>
   )
 }

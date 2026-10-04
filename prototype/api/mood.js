@@ -3,7 +3,7 @@ import { db } from "./_db.js"
 import { canReach } from "./_access.js"
 import { actsAsMod } from "./_mods.js"
 import { waitUntil } from "@vercel/functions"
-import { enrichSpots } from "./_guide.js"
+import { enrichSpots, googleSearch } from "./_guide.js"
 
 // the mood tab (josh's EDC sprint): pick tonight's mood, see the hand-picked
 // spots for it, tap "i'm going tonight", see who else is going, and drop an
@@ -53,6 +53,14 @@ export default async function handler(req, res) {
   const night = tonight()
 
   try {
+    // the slow, complete search: google maps itself (~20s). for spots the map
+    // data doesn't have, or a pasted google maps link
+    if (req.method === "GET" && req.query?.google) {
+      const out = await googleSearch(String(req.query.google))
+      if (out.error) return res.status(502).json({ error: "google maps search isn't available right now" })
+      return res.status(200).json({ places: out.places.map((p) => ({ ...p, mood: moodFor(guessKind(p.kind)) })) })
+    }
+
     if (req.method === "GET" && req.query?.search) {
       return res.status(200).json({ places: await searchPlaces(String(req.query.search)) })
     }
@@ -176,6 +184,7 @@ export default async function handler(req, res) {
           name,
           area: String(place.area || "").toLowerCase().slice(0, 40) || null,
           kind: String(place.kind || "").replace(/_/g, " ").slice(0, 30) || null,
+          maps_url: place.mapsUrl ? String(place.mapsUrl).slice(0, 500) : null,
           sort: 900,
           added_by: me.memberNo,
           osm_id: osmId,
@@ -186,7 +195,8 @@ export default async function handler(req, res) {
         if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
           waitUntil(enrichSpots({
             ids: [spot.id],
-            query: `${name}, ${place.street || place.area || ""}, Medellín, Colombia`,
+            query: place.mapsUrl && /^https:\/\/www\.google\.[a-z.]+\/maps/.test(place.mapsUrl) ? null : `${name}, ${place.street || place.area || ""}, Medellín, Colombia`,
+            url: place.mapsUrl && /^https:\/\/www\.google\.[a-z.]+\/maps/.test(place.mapsUrl) ? place.mapsUrl : null,
             near: { lat: place.lat, lng: place.lng, name },
           }).catch((e) => console.error("enrich added spot:", e)))
         }
@@ -239,9 +249,9 @@ export default async function handler(req, res) {
       // time is in the text, so the message never needs updating when it expires.
       if (newOuting) {
         const { data: going } = await db.from("spot_going").select("spot_id").eq("member_no", me.memberNo).eq("night", night)
-        const { data: spots } = going?.length ? await db.from("spots").select("name").in("id", going.map((g) => g.spot_id)) : { data: [] }
+        const { data: spots } = going?.length ? await db.from("spots").select("id, name").in("id", going.map((g) => g.spot_id)) : { data: [] }
         const first = String(me.name || "someone").split(/\s+/)[0]
-        const text = `📍 ${first} is out in ${area} til ${fmtUntil(until)}${spots?.length ? ` · going to ${spots.map((x) => x.name).join(" + ")}` : ""}. come say hi`
+        const text = `📍 ${first} is out in ${area} til ${fmtUntil(until)}${spots?.length ? ` · going to ${spots.map((x) => `@[${x.name.replace(/[[\]()]/g, "")}](s${x.id})`).join(" + ")}` : ""}. come say hi`
         await db.from("messages").insert({ channel: "medellin", body: text, from_name: me.name, from_ig: me.ig, from_member_no: me.memberNo })
       }
       return res.status(200).json({ ok: true, out: row, posted: newOuting })
@@ -326,4 +336,15 @@ async function searchPlaces(q) {
   const byOsm = new Map((have || []).map((h) => [h.osm_id, h.id]))
   const byName = new Map((curated || []).map((c) => [norm(c.name), c.id]))
   return out.slice(0, 6).map((x) => ({ ...x, spotId: byOsm.get(x.osmId) || byName.get(norm(x.name)) || null }))
+}
+
+// google's category ("wine bar", "night club") -> our osm-style kind
+function guessKind(cat) {
+  const c = String(cat || "")
+  if (/night ?club|disco|dance/.test(c)) return "nightclub"
+  if (/bar|pub|brew|cocktail|wine|rooftop/.test(c)) return "bar"
+  if (/restaurant|grill|steak|sushi|pizza|bistro/.test(c)) return "restaurant"
+  if (/gym|fitness|yoga|pilates|crossfit/.test(c)) return "fitness_centre"
+  if (/spa|sauna|massage/.test(c)) return "spa"
+  return "cafe"
 }

@@ -51,7 +51,7 @@ const km = (a, b) => {
   const y = (b.lat - a.lat) * r
   return Math.sqrt(x * x + y * y) * 6371
 }
-export async function enrichSpots({ ids = null, limit = 5, query = null, near = null } = {}) {
+export async function enrichSpots({ ids = null, limit = 5, query = null, near = null, url = null } = {}) {
   const token = process.env.APIFY_TOKEN
   if (!token) return { error: "no scraper key" }
   // named spots are checked even while hidden (new ones stay hidden until they check out)
@@ -67,7 +67,7 @@ export async function enrichSpots({ ids = null, limit = 5, query = null, near = 
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        searchStringsArray: [search],
+        ...(url && ids?.length === 1 ? { startUrls: [{ url }] } : { searchStringsArray: [search] }),
         maxCrawledPlacesPerSearch: 1,
         language: "en",
         maxImages: 6,
@@ -124,4 +124,37 @@ export async function enrichSpots({ ids = null, limit = 5, query = null, near = 
   }
   const { count } = await db.from("spots").select("id", { count: "exact", head: true }).eq("active", true).is("enriched_at", null)
   return { done: out.length, left: count || 0, spots: out }
+}
+
+// any place on google maps, for the mood tab's "search google maps": a few
+// matches with their google ids and coordinates, no photos yet (fast)
+export async function googleSearch(q) {
+  const token = process.env.APIFY_TOKEN
+  if (!token) return { error: "no scraper key" }
+  const text = String(q || "").trim().slice(0, 200)
+  if (!text) return { places: [] }
+  const isLink = /^https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)/.test(text)
+  const input = isLink
+    ? { startUrls: [{ url: text }], maxCrawledPlacesPerSearch: 1 }
+    : { searchStringsArray: [`${text}, Medellín, Colombia`], maxCrawledPlacesPerSearch: 5 }
+  const r = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=60`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...input, language: "en", maxImages: 0, maxReviews: 0, scrapeReviewsPersonalData: false }),
+  })
+  if (!r.ok) return { error: `scraper ${r.status}` }
+  const items = await r.json().catch(() => [])
+  return {
+    places: (items || []).filter((p) => p.title && p.location?.lat).map((p) => ({
+      osmId: `G${p.placeId || p.cid || p.title}`.slice(0, 40),
+      name: p.title,
+      kind: String(p.categoryName || "").toLowerCase(),
+      area: p.neighborhood || "",
+      street: p.street || p.address || "",
+      lat: p.location.lat,
+      lng: p.location.lng,
+      mapsUrl: p.url || "",
+      google: true,
+    })),
+  }
 }

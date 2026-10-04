@@ -199,7 +199,7 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
   )
 }
 
-export default function Mood({ token, onOpenRoom }) {
+export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused }) {
   const [data, setData] = useState(null)
   const [mood, setMood] = useState(null)
   const [q, setQ] = useState("") // search the spots, not free-text moods
@@ -208,6 +208,8 @@ export default function Mood({ token, onOpenRoom }) {
   const [area, setArea] = useState("")
   const [busy, setBusy] = useState(null)
   const [openId, setOpenId] = useState(null)
+  // a @spot tapped in a chat lands here with that spot's sheet open
+  useEffect(() => { if (focusSpot) { setOpenId(focusSpot); onFocused?.() } }, [focusSpot, onFocused])
   const [places, setPlaces] = useState([]) // anywhere in town that matches the search
 
   useEffect(() => {
@@ -222,9 +224,26 @@ export default function Mood({ token, onOpenRoom }) {
     return () => clearTimeout(id)
   }, [q, token])
 
+  // google maps itself: slower (~20s) but has every place, and takes a pasted maps link
+  const [gPlaces, setGPlaces] = useState(null) // null = not searched; [] = nothing found
+  const [gBusy, setGBusy] = useState(false)
+  const [gErr, setGErr] = useState("")
+  useEffect(() => { setGPlaces(null); setGErr("") }, [q])
+  const searchGoogle = async () => {
+    setGBusy(true)
+    setGErr("")
+    const d = await fetch(`/api/mood?t=${token}&google=${encodeURIComponent(q.trim())}`).then((r) => r.json()).catch(() => null)
+    setGBusy(false)
+    if (!d?.places) return setGErr(d?.error || t("couldn't reach google maps. try again"))
+    setGPlaces(d.places)
+  }
+  const isMapsLink = /^https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)/.test(q.trim())
+  useEffect(() => { if (isMapsLink && gPlaces === null && !gBusy) searchGoogle() }, [isMapsLink]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const addPlace = async (place) => {
     setBusy(place.osmId)
-    await post({ action: "add", place, mood: place.mood })
+    // it goes on the tab you added it from (a wine bar added on chill stays on chill)
+    await post({ action: "add", place, mood: mood || place.mood })
     await load()
     setBusy(null)
   }
@@ -456,11 +475,11 @@ export default function Mood({ token, onOpenRoom }) {
       )}
 
       {/* not on the guide? any bar, club or cafe in town, straight from the map */}
-      {needle && extra.length > 0 && (
+      {needle && (extra.length > 0 || gPlaces?.length > 0) && (
         <section className="mt-6">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft">{t("anywhere else in medellín")}</p>
           <div className="mt-2 space-y-2">
-            {extra.map((p) => (
+            {[...(gPlaces || []), ...extra.filter((p) => !(gPlaces || []).some((g) => g.name.toLowerCase() === p.name.toLowerCase()))].map((p) => (
               <motion.div
                 key={p.osmId}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -469,7 +488,7 @@ export default function Mood({ token, onOpenRoom }) {
                 <span className="text-[24px] leading-none">{MOODS.find((m) => m.key === p.mood)?.emoji}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-bold leading-tight">{p.name}</p>
-                  <p className="truncate text-[12px] text-ink-soft">{[p.kind.replace(/_/g, " "), p.area.toLowerCase()].filter(Boolean).join(" · ")}</p>
+                  <p className="truncate text-[12px] text-ink-soft">{[String(p.kind || "").replace(/_/g, " "), String(p.area || "").toLowerCase(), p.google ? "google maps" : ""].filter(Boolean).join(" · ")}</p>
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.94 }}
@@ -485,6 +504,17 @@ export default function Mood({ token, onOpenRoom }) {
           <p className="mt-2 text-center text-[11.5px] text-ink-soft">{t("it shows up on the guide for everyone while someone's going")}</p>
         </section>
       )}
+      {needle.length >= 2 && gPlaces === null && (
+        <button
+          onClick={searchGoogle}
+          disabled={gBusy}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border-2 border-dashed border-line bg-white/70 py-3 text-[13px] font-bold text-ink-soft disabled:opacity-70"
+        >
+          {gBusy ? <><CircleNotch size={15} className="animate-spin" /> {t("searching google maps…")}</> : <>🔎 {t("not here? search google maps")}</>}
+        </button>
+      )}
+      {gPlaces?.length === 0 && <p className="mt-3 text-center text-[12.5px] text-ink-soft">{t("google maps has nothing by that name in medellín")}</p>}
+      {gErr && <p className="mt-3 text-center text-[12.5px] font-semibold text-[#b3461f]">{gErr}</p>}
 
       <AnimatePresence>
         {open && (

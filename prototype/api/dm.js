@@ -46,22 +46,38 @@ export default async function handler(req, res) {
           .or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`)
           .order("last_at", { ascending: false })
           .limit(80)
+        // three queries total (was three per thread, one after another, which is
+        // why the chats tab dragged): the people, then every thread's messages
+        const ids = (threads || []).map((th) => th.id)
+        const others = [...new Set((threads || []).map((th) => (th.a_no === me.memberNo ? th.b_no : th.a_no)))]
+        const [{ data: people }, { data: msgs }] = await Promise.all([
+          others.length ? db.from("members").select("*").in("member_no", others) : { data: [] },
+          ids.length
+            ? db.from("dm_messages").select("thread_id, body, from_no, created_at, read_at, deleted").in("thread_id", ids).order("id", { ascending: false }).limit(4000)
+            : { data: [] },
+        ])
+        const byNo = new Map((people || []).map((r) => [r.member_no, rowToMember(r)]))
+        const lastOf = new Map()
+        const unreadOf = new Map()
+        for (const m of msgs || []) {
+          if (!lastOf.has(m.thread_id)) lastOf.set(m.thread_id, m)
+          if (m.from_no !== me.memberNo && !m.read_at) unreadOf.set(m.thread_id, (unreadOf.get(m.thread_id) || 0) + 1)
+        }
         const out = []
         for (const th of threads || []) {
-          const otherNo = th.a_no === me.memberNo ? th.b_no : th.a_no
-          const other = await memberByNo(otherNo)
-          if (!other) continue
-          const { data: last } = await db.from("dm_messages").select("body, from_no, created_at").eq("thread_id", th.id).order("id", { ascending: false }).limit(1).maybeSingle()
-          const { count: unread } = await db
-            .from("dm_messages")
-            .select("id", { count: "exact", head: true })
-            .eq("thread_id", th.id)
-            .neq("from_no", me.memberNo)
-            .is("read_at", null)
-          out.push({ with: lite(other), last: last?.body || "", lastFromMe: last?.from_no === me.memberNo, at: th.last_at, unread: unread || 0, pinned: other.memberNo === "002" })
+          const other = byNo.get(th.a_no === me.memberNo ? th.b_no : th.a_no)
+          if (!other || other.banned) continue
+          const last = lastOf.get(th.id)
+          out.push({
+            with: lite(other),
+            last: last?.deleted ? "" : last?.body || "",
+            lastFromMe: last?.from_no === me.memberNo,
+            at: last?.created_at || th.last_at,
+            unread: unreadOf.get(th.id) || 0,
+          })
         }
-        // josh's thread (the welcome + support line) sits at the top
-        out.sort((x, y) => !!y.pinned - !!x.pinned)
+        // whatsapp order: whoever wrote last is on top
+        out.sort((x, y) => String(y.at).localeCompare(String(x.at)))
         return res.status(200).json({ threads: out })
       }
 
