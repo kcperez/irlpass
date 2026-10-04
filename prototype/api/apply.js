@@ -135,6 +135,17 @@ export default async function handler(req, res) {
     // waitUntil keeps the function alive after the response. a bare promise here
     // got frozen by vercel once we answered, so most signups never got a photo.
     waitUntil(enrichMember(memberNo, record.ig).catch((e) => console.error("enrich error:", e)))
+    // invited by a member (irlpass.xyz/?ref=021): remember who, so both get a
+    // free month once both are on the monthly plan
+    const ref = String(req.body?.ref || "")
+    if (/^\d{3}$/.test(ref) && ref !== memberNo) {
+      waitUntil((async () => {
+        const { data: inviter } = await db.from("members").select("member_no").eq("member_no", ref).eq("banned", false).maybeSingle()
+        if (!inviter) return
+        await db.from("members").update({ referred_by: ref }).eq("member_no", memberNo)
+        await db.from("referrals").upsert({ referee: memberNo, referrer: ref }, { onConflict: "referee" })
+      })().catch((e) => console.error("referral error:", e)))
+    }
     // josh's welcome dm is waiting in their chat tab when they land
     waitUntil(sendWelcome({ member_no: memberNo, name: record.name, city: record.city, home_city: homeCity || null }).catch((e) => console.error("welcome error:", e)))
 

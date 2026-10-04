@@ -1,4 +1,5 @@
 import { getAccepted } from "./_lib.js"
+import { setting } from "./_access.js"
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
@@ -19,18 +20,30 @@ export default async function handler(req, res) {
       ? (yearly ? process.env.STRIPE_TEST_SUB_PRICE_YR : process.env.STRIPE_TEST_SUB_PRICE)
       : (yearly ? process.env.STRIPE_SUB_PRICE_YR : process.env.STRIPE_SUB_PRICE)
 
+    // the monthly plan starts with a free month (card down, $29 after unless
+    // they cancel). from inside the app it comes back to the app, with "next"
+    // saying what to do on return: deliver a waiting message, or buy the ride.
+    const trialDays = yearly ? 0 : Number(await setting("trial_days", "30")) || 0
+    const next = String(req.body?.next || "").replace(/[^a-z0-9:-]/gi, "").slice(0, 40)
+    const inApp = !!req.body?.inApp
     const params = new URLSearchParams({
       mode: "subscription",
       "line_items[0][price]": priceId,
       "line_items[0][quantity]": "1",
       customer_email: member.email,
-      success_url: `https://irlpass.xyz/?screen=pass&t=${token}&session_id={CHECKOUT_SESSION_ID}&name=${encodeURIComponent(member.name)}&n=${member.memberNo}&ig=${encodeURIComponent(member.ig)}`,
-      cancel_url: `https://irlpass.xyz/?screen=offer&t=${token}`,
+      success_url: inApp
+        ? `https://irlpass.xyz/?screen=app&t=${token}&sub=1&next=${next}&session_id={CHECKOUT_SESSION_ID}`
+        : `https://irlpass.xyz/?screen=pass&t=${token}&session_id={CHECKOUT_SESSION_ID}&name=${encodeURIComponent(member.name)}&n=${member.memberNo}&ig=${encodeURIComponent(member.ig)}`,
+      cancel_url: inApp ? `https://irlpass.xyz/?screen=app&t=${token}` : `https://irlpass.xyz/?screen=offer&t=${token}`,
       "metadata[token]": token,
       "subscription_data[metadata][token]": token,
       "metadata[ig]": member.ig,
       "metadata[memberNo]": member.memberNo,
     })
+    if (trialDays > 0) {
+      params.set("subscription_data[trial_period_days]", String(trialDays))
+      params.set("payment_method_collection", "always")
+    }
 
     const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",

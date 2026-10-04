@@ -22,6 +22,7 @@ import Mood from "./Mood"
 import PersonSheet from "../components/PersonSheet"
 import World from "../components/World"
 import WhatsNew, { WHATS_NEW } from "../components/WhatsNew"
+import RideCard from "../components/RideCard"
 import { isSeen, markSeen, useNew, NewDot } from "../lib/newdot"
 import { cityChip, registerCities } from "../lib/cities"
 
@@ -512,19 +513,53 @@ function TopBar({ me, onProfile, dot }) {
 }
 
 /* ---------- map ---------- */
-function PaywallSheet({ token, city, reason = "city", onClose }) {
+// the one paywall. the monthly plan starts with a free month (card down,
+// $29 after unless they cancel). "next" says what happens when they come back:
+// deliver the message they wrote, or buy the ride. a code (ride buyers, hosts,
+// promos) skips the card entirely.
+function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "", onUnlocked, onClose }) {
   const cityName = cityOf(city)?.name || city
   const lines =
-    reason === "dm"
-      ? { head: t("message anyone, anywhere"), sub: t("dms beyond your shared plans are a pass perk.") }
-      : { head: `${t("unlock")} ${cityName}`, sub: t("browse every city free. join the plans with a pass.") }
-  const go = async (plan) => {
+    reason === "deliver"
+      ? { kicker: t("your message is ready"), head: t("start your free month to deliver it"), sub: draft ? `“${draft.slice(0, 120)}”` : "" }
+      : reason === "member"
+        ? { kicker: t("members only"), head: t("the guaranteed ride is for members"), sub: t("start your free month, then grab a seat.") }
+        : reason === "dm"
+          ? { kicker: t("irlpass pass"), head: t("message anyone, anywhere"), sub: t("start your free month and say hi to anyone on your dates.") }
+          : { kicker: t("irlpass pass"), head: `${t("unlock")} ${cityName}`, sub: t("browse every city free. join the plans with a pass.") }
+  const [busy, setBusy] = useState(false)
+  const [codeOpen, setCodeOpen] = useState(false)
+  const [code, setCode] = useState("")
+  const [err, setErr] = useState("")
+  const [copied, setCopied] = useState(false)
+  const go = async () => {
+    setBusy(true)
     const r = await fetch("/api/checkout", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, plan }),
+      body: JSON.stringify({ token, plan: "monthly", inApp: true, next }),
     }).then((x) => x.json()).catch(() => null)
     if (r?.url) window.location.href = r.url
+    else { setBusy(false); setErr(t("checkout isn't available right now")) }
+  }
+  const redeem = async () => {
+    setBusy(true)
+    setErr("")
+    const r = await fetch("/api/code", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, code }),
+    }).then((x) => x.json()).catch(() => null)
+    setBusy(false)
+    if (r?.ok) onUnlocked?.(next)
+    else setErr(r?.error || t("that code didn't work"))
+  }
+  const invite = `https://irlpass.xyz/?ref=${me?.memberNo || ""}`
+  const share = async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: "irlpass", text: t("join me on irlpass. we both get a free month."), url: invite })
+      else { await navigator.clipboard.writeText(invite); setCopied(true) }
+    } catch { /* dismissed */ }
   }
   return (
     <motion.div
@@ -538,33 +573,56 @@ function PaywallSheet({ token, city, reason = "city", onClose }) {
         initial={{ y: 60 }}
         animate={{ y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[440px] rounded-t-3xl border-t border-line bg-cream p-6 pb-9"
+        className="w-full max-w-[440px] rounded-t-3xl border-t border-line bg-cream p-6 pb-[max(2rem,env(safe-area-inset-bottom))]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
         <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-lime-deep">
-          <Sparkle size={12} weight="fill" /> {t("irlpass pass")}
+          <Sparkle size={12} weight="fill" /> {lines.kicker}
         </p>
         <h3 className="display mt-1.5 text-[26px] font-bold leading-tight">{lines.head}</h3>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{lines.sub}</p>
+        {lines.sub && <p className="mt-1.5 text-[14px] italic leading-relaxed text-ink-soft">{lines.sub}</p>}
         <ul className="mt-4 space-y-2 text-[13.5px]">
-          {[t("message anyone whose dates overlap yours"), t("every city, every window"), t("no per-trip unlocks"), t("verified badge included")].map((f) => (
+          {[t("message anyone whose dates overlap yours"), t("every city, every window"), t("members-only rides and nights")].map((f) => (
             <li key={f} className="flex items-start gap-2">
               <span className="mt-0.5 text-lime-deep">✦</span> {f}
             </li>
           ))}
         </ul>
-        <div className="mt-5 flex gap-2">
-          <button onClick={() => go("yearly")} className="flex-1 rounded-2xl bg-ink py-3.5 text-center text-cream active:scale-[0.98]">
-            <span className="block text-[14px] font-semibold">{t("yearly")}</span>
-            <span className="block font-mono text-[10px] text-cream/60">{t("best value")}</span>
-          </button>
-          <button onClick={() => go("monthly")} className="flex-1 rounded-2xl border border-line bg-white/70 py-3.5 text-center active:scale-[0.98]">
-            <span className="block text-[14px] font-semibold">{t("monthly")}</span>
-            <span className="block font-mono text-[10px] text-ink-soft">{t("cancel anytime")}</span>
-          </button>
-        </div>
-        <button onClick={onClose} className="mt-3 w-full py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
-          {t("keep browsing free")}
+        <motion.button whileTap={{ scale: 0.98 }} onClick={go} disabled={busy} className="mt-5 w-full rounded-full bg-ink py-4 text-center text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)] disabled:opacity-60">
+          <span className="block text-[15.5px] font-bold">{busy ? t("one sec…") : t("start your free month")}</span>
+          <span className="block font-mono text-[10px] text-cream/60">{t("then $29/mo · cancel anytime")}</span>
+        </motion.button>
+
+        {codeOpen ? (
+          <div className="mt-3 flex gap-2">
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && redeem()}
+              name="promo-code"
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              autoFocus
+              placeholder="RIDE-XXXXXX"
+              className="w-full rounded-full border-2 border-line bg-white px-4 py-2.5 font-mono text-[14px] font-bold uppercase outline-none focus:border-ink"
+            />
+            <button onClick={redeem} disabled={busy || !code.trim()} className="shrink-0 rounded-full bg-lime px-4 text-[13px] font-bold disabled:opacity-50">{t("use")}</button>
+          </div>
+        ) : (
+          <button onClick={() => setCodeOpen(true)} className="mt-3 w-full py-1.5 text-[13px] font-bold text-ink-soft underline underline-offset-2">{t("have a code?")}</button>
+        )}
+        {err && <p className="mt-2 text-center text-[12.5px] font-semibold text-[#b3461f]">{err}</p>}
+
+        <button onClick={share} className="mt-3 flex w-full items-center justify-between rounded-[1.2rem] border-2 border-dashed border-line px-4 py-3 text-left">
+          <span>
+            <span className="block text-[13.5px] font-bold">🎁 {t("invite a friend, you both get a free month")}</span>
+            <span className="block text-[11.5px] text-ink-soft">{t("once you're both on the monthly plan")}</span>
+          </span>
+          <span className="shrink-0 font-mono text-[10px] font-bold uppercase text-ink-soft">{copied ? t("copied") : t("share")}</span>
+        </button>
+        <button onClick={onClose} className="mt-2 w-full py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+          {reason === "deliver" ? t("keep it as a draft") : t("keep browsing free")}
         </button>
       </motion.div>
     </motion.div>
@@ -836,7 +894,7 @@ function SpotSuggest({ token, text, setText }) {
   )
 }
 
-function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen, onOpenPerson }) {
+function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen, onOpenPerson, onBuyRide }) {
   const [needsDates, setNeedsDates] = useState(false)
 
   const [server, setServer] = useState(null)
@@ -990,6 +1048,9 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
       </div>
 
       {activity && <PinnedInfo token={token} me={me} initial={activity} />}
+      {/^[a-z0-9-]+$/.test(channel) && !channel.startsWith("spot-") && onBuyRide && (
+        <div className="border-b border-line/70 px-3 py-2.5"><RideCard token={token} city={channel} onBuy={onBuyRide} compact /></div>
+      )}
       {channel === "medellin" && (
         <div className="flex items-start gap-2.5 border-b border-line/70 bg-cream-deep/50 px-4 py-2.5">
           <PushPin size={14} weight="fill" className="mt-0.5 shrink-0 text-ink-soft" />
@@ -1302,7 +1363,7 @@ function DeniedScreen() {
 
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
-function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld }) {
+function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld, onBuyRide }) {
   const [roomOpen, setRoomOpen] = useState(false)
   const [rooms, setRooms] = useState([])
   const [roomCity, setRoomCity] = useState(me.city || "medellin")
@@ -1457,6 +1518,11 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       body: JSON.stringify({ t: token, to: openWith.memberNo, text: body, replyTo: reply?.key ?? null }),
     }).then((x) => x.json()).catch(() => null)
     setBusy(false)
+    if (r?.gate === "deliver") {
+      // keep what they wrote: it sends itself once they're in
+      try { localStorage.setItem("irl:pending-dm", JSON.stringify({ to: openWith.memberNo, text: body, replyTo: reply?.key ?? null, name: openWith.name, photo: openWith.photo })) } catch { /* private mode */ }
+      return onPaywall({ reason: "deliver", next: `deliver-${openWith.memberNo}`, draft: body })
+    }
     if (r?.gate === "dm" || r?.gate === "unlock") return onPaywall(r.gate)
     if (r?.error) return alert(r.error)
     if (typeof override !== "string") setText("")
@@ -1474,9 +1540,15 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 border-b border-line px-4 py-3">
           <button onClick={() => setOpenWith(null)} className="text-ink-soft active:scale-90"><ArrowLeft size={20} /></button>
-          <Avatar member={other} photo={photoMap[other.memberNo]} size="h-9 w-9 text-[14px]" />
+          {other.locked ? (
+            <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-cream-deep">
+              {other.photo && <img src={other.photo} alt="" className="h-full w-full scale-110 object-cover blur-[2px]" />}
+            </span>
+          ) : (
+            <Avatar member={other} photo={photoMap[other.memberNo]} size="h-9 w-9 text-[14px]" />
+          )}
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{other.name?.toLowerCase()} <RepBadge score={other.repScore} verified={other.verified} /></p>
+            <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{(other.name || other.first || "").toLowerCase()} <RepBadge score={other.repScore} verified={other.verified} /></p>
             <p className="font-mono text-[10px] text-ink-soft">{other.ig}</p>
           </div>
         </div>
@@ -1627,6 +1699,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         channel={roomCity}
         title={`${cityChip(roomCity).emoji}  ${cityName} chat`}
         onBack={() => setRoomOpen(false)}
+        onBuyRide={onBuyRide}
         onOpenPerson={onOpenPerson}
         onNeedDates={onNeedDates}
         onSeen={(lastId) => markRoomSeen(roomCity, lastId)}
@@ -2013,6 +2086,70 @@ export default function Club({ token }) {
       .catch(() => setState((st) => (st === "ok" ? st : "denied")))
   }, [token])
 
+  // what to do after someone unlocks: deliver the message they wrote, or buy the ride
+  const [notice, setNotice] = useState("")
+  useEffect(() => { if (!notice) return; const id = setTimeout(() => setNotice(""), 4200); return () => clearTimeout(id) }, [notice])
+  const buyRide = useCallback(async (rideId) => {
+    const r = await fetch("/api/rides", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, rideId }),
+    }).then((x) => x.json()).catch(() => null)
+    if (r?.url) window.location.href = r.url
+    else if (r?.gate === "member") setPaywall({ reason: "member", next: `ride-${rideId}` })
+    else setNotice(r?.error || t("the ride checkout isn't available right now"))
+  }, [token])
+  const runNext = useCallback(async (next) => {
+    const deliver = String(next || "").match(/^deliver-(\d{3})$/)
+    const ride = String(next || "").match(/^ride-(\d+)$/)
+    if (deliver) {
+      let pending = null
+      try { pending = JSON.parse(localStorage.getItem("irl:pending-dm") || "null") } catch { /* private mode */ }
+      if (pending?.to === deliver[1] && pending.text) {
+        const r = await fetch("/api/dm", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ t: token, to: pending.to, text: pending.text, replyTo: pending.replyTo ?? null }),
+        }).then((x) => x.json()).catch(() => null)
+        if (r?.ok) {
+          try { localStorage.removeItem("irl:pending-dm") } catch { /* private mode */ }
+          setNotice(t("delivered. your free month has started"))
+        }
+      }
+      setDmWith({ memberNo: deliver[1], name: pending?.name || "", photo: pending?.photo || null })
+      setTab("dms")
+    } else if (ride) {
+      buyRide(Number(ride[1]))
+    } else {
+      setNotice(t("you're in. your free month has started"))
+    }
+  }, [token, buyRide])
+
+  // back from stripe: the free month (activate, then do "next"), or a ride seat
+  useEffect(() => {
+    if (state !== "ok") return
+    const p = new URLSearchParams(window.location.search)
+    const session = p.get("session_id")
+    if (!session) return
+    const clean = () => window.history.replaceState({}, "", `/?screen=app&t=${token}`)
+    if (p.get("sub") === "1") {
+      fetch(`/api/activate?t=${token}&session_id=${encodeURIComponent(session)}`)
+        .then((r) => (r.ok ? runNext(p.get("next")) : setNotice(t("we couldn't confirm that payment yet. refresh in a minute"))))
+        .catch(() => {})
+        .finally(clean)
+    } else if (p.get("ride")) {
+      fetch("/api/rides", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ t: token, action: "confirm", session_id: session }),
+      })
+        .then((r) => r.json())
+        .then((d) => setNotice(d?.ok ? t("your seat is booked. see you at 3am") : t("we couldn't confirm that payment yet. refresh in a minute")))
+        .catch(() => {})
+        .finally(clean)
+    }
+  }, [state, token, runNext])
+
   // returning from a paid-seat checkout: verify + add them, refresh the board, clean the url
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -2080,13 +2217,14 @@ export default function Club({ token }) {
             me={me}
             channel={cityRoom.slug}
             title={`${cityRoom.emoji}  ${cityRoom.name} ${t("chat")}`}
+            onBuyRide={buyRide}
             photoMap={photoMap}
             onOpenPerson={setPersonNo}
             onNeedDates={(c) => { setCityRoom(null); setTab("trips"); setPostCity(c) }}
             onBack={() => setCityRoom(null)}
           />
         )}
-        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} />}
+        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} />}
         {!cityRoom && tab === "mood" && spotRoom && (
           <Thread
             token={token}
@@ -2102,7 +2240,7 @@ export default function Club({ token }) {
           setDmWith(v)
           // back out of a thread opened from "say hi": return to that screen
           if (v === null && dmReturn) { setTab(dmReturn); setDmReturn(null) }
-        }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} />}
+        }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} onBuyRide={buyRide} />}
       </motion.div>
       <AnimatePresence>
         {profileOpen && (
@@ -2181,7 +2319,26 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {paywall && <PaywallSheet token={token} city={me.city} reason={paywall} onClose={() => setPaywall(null)} />}
+        {paywall && (
+          <PaywallSheet
+            token={token}
+            me={me}
+            city={me.city}
+            {...(typeof paywall === "string" ? { reason: paywall } : paywall)}
+            onUnlocked={(next) => { setPaywall(null); runNext(next) }}
+            onClose={() => setPaywall(null)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {notice && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
+            className="fixed inset-x-0 top-3 z-[60] mx-auto w-fit max-w-[90%] rounded-full bg-ink px-4 py-2.5 text-center text-[13px] font-bold text-cream shadow-lg"
+          >
+            {notice}
+          </motion.div>
+        )}
       </AnimatePresence>
       {!inThread && (
         <nav className="sticky bottom-0 z-10 flex border-t-2 border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">

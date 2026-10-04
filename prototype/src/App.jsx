@@ -19,6 +19,8 @@ import Redeem from "./screens/Redeem"
 
 // filming helper: /?screen=pass&name=maya&ig=@maya.travels jumps straight to a screen
 const params = new URLSearchParams(window.location.search)
+// an invite link (?ref=021) is remembered until they sign up, even if they browse first
+try { if (/^\d{3}$/.test(params.get("ref") || "")) localStorage.setItem("irl:ref", params.get("ref")) } catch { /* private mode */ }
 const isAdminPath = window.location.pathname === "/admin"
 const initialScreen = isAdminPath
   ? "admin"

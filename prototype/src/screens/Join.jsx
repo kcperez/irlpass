@@ -136,6 +136,7 @@ export default function Join({ ig, onBack, onDone }) {
           dates: `${starts} to ${ends || starts}`,
           interests: vibes,
           homeCity: local ? city : home && home !== "nomad" ? home.slug : null,
+          ref: (() => { try { return params.get("ref") || localStorage.getItem("irl:ref") || "" } catch { return "" } })(),
         }),
       })
       const d = await r.json()

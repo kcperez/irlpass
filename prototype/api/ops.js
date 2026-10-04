@@ -1,7 +1,7 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { actsAsMod } from "./_mods.js"
-import { today } from "./_access.js"
+import { today, setting } from "./_access.js"
 import { backfillPhotos, backfillNames } from "./_instagram.js"
 import { enrichSpots } from "./_guide.js"
 import { welcomeText, sendWelcome, WELCOME_FROM } from "./_welcome.js"
@@ -30,6 +30,54 @@ export default async function handler(req, res) {
       if (await sendWelcome(m, template).catch(() => false)) sent++
     }
     return res.status(200).json({ sent })
+  }
+
+  // one-time codes for a free month: ride buyers, hosts, partners, promos
+  if (req.method === "POST" && req.query?.action === "make-codes") {
+    const kind = ["ride", "host", "promo", "referral"].includes(req.body?.kind) ? req.body.kind : "promo"
+    const count = Math.min(200, Math.max(1, Number(req.body?.count) || 1))
+    const months = Math.min(12, Math.max(1, Number(req.body?.months) || 1))
+    const maxUses = Math.min(1000, Math.max(1, Number(req.body?.maxUses) || 1))
+    const prefix = String(req.body?.prefix || kind).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)
+    const note = String(req.body?.note || "").slice(0, 140) || null
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    const rand = () => Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("")
+    const rows = Array.from({ length: count }, () => ({ code: `${prefix}-${rand()}`, kind, months, max_uses: maxUses, note, created_by: me.memberNo }))
+    const { error } = await db.from("codes").insert(rows)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ codes: rows.map((r) => r.code) })
+  }
+
+  // the few settings ops can change without a deploy
+  if (req.method === "POST" && req.query?.action === "setting") {
+    const key = String(req.body?.key || "")
+    const allowed = { founding_free_dms: /^(on|off)$/, referral_reward_cents: /^\d{1,5}$/, trial_days: /^\d{1,2}$/ }
+    const value = String(req.body?.value ?? "").trim()
+    if (!allowed[key] || !allowed[key].test(value)) return res.status(400).json({ error: "not a setting ops can change" })
+    await db.from("app_settings").upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" })
+    return res.status(200).json({ ok: true })
+  }
+
+  // the guaranteed ride: create or edit one
+  if (req.method === "POST" && req.query?.action === "ride") {
+    const b = req.body || {}
+    const patch = {}
+    if (b.title !== undefined) patch.title = String(b.title).trim().slice(0, 80)
+    if (b.night !== undefined) patch.night = String(b.night).slice(0, 10)
+    if (b.depart !== undefined) patch.depart = String(b.depart).trim().slice(0, 80) || null
+    if (b.priceCents !== undefined) patch.price_cents = Math.max(100, Number(b.priceCents) || 5000)
+    if (b.seats !== undefined) patch.seats = Math.max(1, Number(b.seats) || 8)
+    if (b.active !== undefined) patch.active = !!b.active
+    if (b.city !== undefined) patch.city = String(b.city).slice(0, 40)
+    if (b.id) {
+      const { error } = await db.from("rides").update(patch).eq("id", Number(b.id))
+      if (error) return res.status(500).json({ error: error.message })
+    } else {
+      if (!patch.title || !/^\d{4}-\d{2}-\d{2}$/.test(patch.night || "")) return res.status(400).json({ error: "a ride needs a title and a date" })
+      const { error } = await db.from("rides").insert(patch)
+      if (error) return res.status(500).json({ error: error.message })
+    }
+    return res.status(200).json({ ok: true })
   }
 
   // GET ?t=&action=email-health -> what resend says about our sending domain:
@@ -211,6 +259,7 @@ export default async function handler(req, res) {
         completed: all.filter((m) => m.ig_verified).length,
       },
       mood: moodStats,
+      conversion: await conversionView(byNo),
       welcome: await welcomeText(),
       spots: spotsAll,
       // vibes: existing members who were shown the prompt vs everyone with 3+
@@ -246,5 +295,33 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error("ops error:", e)
     return res.status(500).json({ error: "could not load ops" })
+  }
+}
+
+// codes, rides, referrals, hosts and the knobs, for the conversion section of ops
+async function conversionView(byNo) {
+  const [{ data: codes }, { data: rides }, { data: orders }, { data: refs }, { data: hosts }, { data: comps }] = await Promise.all([
+    db.from("codes").select("*").order("created_at", { ascending: false }).limit(60),
+    db.from("rides").select("*").order("night", { ascending: false }).limit(20),
+    db.from("ride_orders").select("ride_id, member_no, status, created_at").eq("status", "paid"),
+    db.from("referrals").select("referee, referrer, rewarded_at"),
+    db.from("host_interest").select("*").order("created_at", { ascending: false }),
+    db.from("members").select("member_no").gte("comp_until", today()),
+  ])
+  const who = (no) => ({ memberNo: no, name: byNo.get(no)?.name || no, ig: byNo.get(no)?.ig || "" })
+  return {
+    settings: {
+      founding_free_dms: await setting("founding_free_dms", "off"),
+      referral_reward_cents: await setting("referral_reward_cents", "2900"),
+      trial_days: await setting("trial_days", "30"),
+    },
+    codes: codes || [],
+    rides: (rides || []).map((r) => ({
+      ...r,
+      buyers: (orders || []).filter((o) => o.ride_id === r.id).map((o) => who(o.member_no)),
+    })),
+    referrals: { joined: (refs || []).length, rewarded: (refs || []).filter((r) => r.rewarded_at).length },
+    hosts: (hosts || []).map((h) => ({ ...who(h.member_no), earn: h.earn_range, note: h.note, at: h.created_at })),
+    compedNow: (comps || []).length,
   }
 }

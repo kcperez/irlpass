@@ -243,11 +243,12 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
               <div className="border-t border-line/70 bg-cream/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
                 {p.canMessage ? (
                   <motion.button whileTap={{ scale: 0.97 }} onClick={() => onMessage?.(p)} className="w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]">
-                    {p.talked ? t("open chat") : `${t("say hi to")} ${p.first}`}
+                    {p.talked ? t("open chat") : `${t("make a plan with")} ${p.first}`}
                   </motion.button>
                 ) : (
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => onUnlock?.(p)} className="flex w-full items-center justify-center gap-2 rounded-full bg-ink py-4 text-[15px] font-bold text-cream">
-                    <LockSimple size={16} weight="fill" /> {t("unlock to say hi")}
+                  // open the chat and write; the paywall shows when they hit send
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => onMessage?.(p)} className="w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]">
+                    {t("make a plan with")} {p.first}
                   </motion.button>
                 )}
               </div>

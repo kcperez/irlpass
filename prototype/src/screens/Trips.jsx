@@ -79,9 +79,7 @@ function PersonRow({ p, onMessage, onOpen, cityLabel }) {
         </p>
       </div>
       </button>
-      {p.locked || (!p.canMessage && !p.womenOnly) ? (
-        <LockSimple size={17} weight="fill" className="shrink-0 text-ink-soft/50" />
-      ) : p.canMessage ? (
+      {!p.womenOnly ? (
         <button
           onClick={() => onMessage(p)}
           className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}

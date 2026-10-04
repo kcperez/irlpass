@@ -399,20 +399,13 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
                   <span className="flex justify-center py-2 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">
                     {t("women only")}
                   </span>
-                ) : !data.iHaveDates ? (
-                  <button
-                    onClick={() => onNeedDates?.(city)}
-                    className="w-full rounded-full bg-lime py-2 text-[12.5px] font-bold"
-                  >
-                    {t("post your dates")}
-                  </button>
                 ) : (
+                  // josh's tripwire: open the chat and type; the paywall fires on send
                   <button
-                    onClick={() => onUnlock(p)}
-                    className="flex w-full items-center justify-center gap-1 rounded-full border-2 border-line py-1.5 text-[12.5px] font-bold text-ink-soft"
+                    onClick={() => onOpenDM(p)}
+                    className="w-full rounded-full bg-ink py-2 text-[12.5px] font-bold text-cream"
                   >
-                    <LockSimple size={13} weight="fill" />
-                    {t("unlock")}
+                    {t("make a plan")}
                   </button>
                 )}
               </div>

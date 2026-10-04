@@ -1,5 +1,6 @@
 import { getAccepted } from "./_lib.js"
 import { db } from "./_db.js"
+import { rewardReferrals } from "./_referrals.js"
 
 // called by the stripe success redirect: verifies the checkout session really
 // paid, then marks the member paid so the token unlocks the app
@@ -25,10 +26,12 @@ export default async function handler(req, res) {
 
       const { error } = await db
         .from("members")
-        .update({ paid: true, paid_at: new Date().toISOString(), stripe_customer: session.customer || null })
+        .update({ paid: true, paid_at: new Date().toISOString(), stripe_customer: session.customer || null, stripe_sub: session.subscription || null })
         .eq("token", t)
       if (error) throw error
     }
+    // invite a friend: once both are on the plan, both get a free month
+    await rewardReferrals(member.memberNo).catch((e) => console.error("referral reward error:", e))
     return res.status(200).json({ ok: true })
   } catch (e) {
     console.error("activate error:", e)

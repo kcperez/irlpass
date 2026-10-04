@@ -1,6 +1,6 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
-import { rowToMember } from "./_lib.js"
+import { rowToMember, safeFirstName, lockedPhoto } from "./_lib.js"
 import { notifyMemberNo } from "./_notify.js"
 import { canReachMember } from "./_access.js"
 import { isMod, actsAsMod } from "./_mods.js"
@@ -85,7 +85,15 @@ export default async function handler(req, res) {
       if (!other) return res.status(404).json({ error: "no such member" })
       const [a, b] = pair(me.memberNo, withNo)
       const { data: th } = await db.from("dm_threads").select("id").eq("a_no", a).eq("b_no", b).maybeSingle()
-      if (!th) return res.status(200).json({ with: lite(other), messages: [] })
+      if (!th) {
+        // a first message to someone you can't reach yet: you can open the chat
+        // and type (the paywall fires on send), but their preview stays a preview
+        const reach = actsAsMod(me) || isMod(withNo) ? { ok: true } : await canReachMember(me, withNo).catch(() => ({ ok: false }))
+        const shown = reach.ok
+          ? lite(other)
+          : { memberNo: other.memberNo, name: safeFirstName(other.name, other.ig), ig: "", photo: lockedPhoto(other.photo), verified: other.verified, locked: true }
+        return res.status(200).json({ with: shown, messages: [], canSend: reach.ok })
+      }
       const { data: msgs } = await db.from("dm_messages").select("*").eq("thread_id", th.id).order("id", { ascending: false }).limit(200)
       msgs?.reverse()
       // mark their messages to me as read
@@ -168,7 +176,9 @@ export default async function handler(req, res) {
         const reach = await canReachMember(me, String(to))
         const shared = reach.ok ? true : await shareActivity(me.memberNo, String(to))
         if (!reach.ok && !shared) {
-          return res.status(402).json({ error: "unlock these dates to send the first message", gate: "unlock", to: String(to) })
+          // josh's tripwire: they wrote something for someone specific. the
+          // message stays in their box; the pass delivers it.
+          return res.status(402).json({ error: "your message is ready. start your free month to deliver it.", gate: "deliver", to: String(to) })
         }
       }
 

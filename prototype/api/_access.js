@@ -5,6 +5,27 @@ import { db } from "./_db.js"
 export const FOUNDING_SLOTS = Number(process.env.FOUNDING_SLOTS || 40)
 
 export const today = () => new Date().toISOString().slice(0, 10)
+
+// small editable settings (ops), cached for a minute per warm instance
+let settingsAt = 0
+let settings = {}
+export async function setting(key, fallback) {
+  if (Date.now() - settingsAt > 60e3) {
+    const { data } = await db.from("app_settings").select("key, value")
+    settings = Object.fromEntries((data || []).map((r) => [r.key, r.value]))
+    settingsAt = Date.now()
+  }
+  return settings[key] ?? fallback
+}
+
+// a free month from a code (ride buyers, hosts, promos, referrals) counts as the pass
+export const hasComp = (member) => !!member.compUntil && member.compUntil >= today()
+
+// josh 10/2: one trigger, every dm. the old "founding free" flag (239 members)
+// skipped the paywall entirely, so it only counts while ops turns it back on.
+async function foundingCounts(member) {
+  return member.foundingFree && (await setting("founding_free_dms", "off")) === "on"
+}
 export const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""))
 
 // two windows overlap when each starts on or before the other ends
@@ -42,8 +63,9 @@ export async function foundingLeft() {
 // Can this member start conversations with people on these dates in this city?
 // Free when: they hold a founding slot, they subscribe, or they bought this window.
 export async function canReach(member, city, starts, ends) {
-  if (member.foundingFree) return { ok: true, via: "founding" }
   if (member.paid) return { ok: true, via: "pass" }
+  if (hasComp(member)) return { ok: true, via: "comp" }
+  if (await foundingCounts(member)) return { ok: true, via: "founding" }
   const { data } = await db
     .from("unlocks")
     .select("city, starts, ends")
@@ -69,8 +91,9 @@ export async function myUnlocks(memberNo) {
 // founding slot or the pass, when they bought a window covering one of the
 // other's trips, or when the other person already wrote to them.
 export async function canReachMember(me, otherNo) {
-  if (me.foundingFree) return { ok: true, via: "founding" }
   if (me.paid) return { ok: true, via: "pass" }
+  if (hasComp(me)) return { ok: true, via: "comp" }
+  if (await foundingCounts(me)) return { ok: true, via: "founding" }
   const { data: trips } = await db
     .from("trips")
     .select("city, starts, ends")

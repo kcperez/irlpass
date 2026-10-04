@@ -44,6 +44,8 @@ export const rowToMember = (r) =>
     foundingNo: r.founding_no || null,
     testAsMember: r.test_as_member === true,
     homeCity: r.home_city || null,
+    compUntil: r.comp_until || null,
+    referredBy: r.referred_by || null,
   }
 
 // look up an accepted person by token (paid or not)

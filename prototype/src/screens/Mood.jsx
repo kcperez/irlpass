@@ -5,6 +5,8 @@ import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, Clock, MapPin, Sta
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
+import RideCard from "../components/RideCard"
+import { cityChip } from "../lib/cities"
 
 // the guide: tonight in medellín, the way a good city guide reads. pick a
 // mood, browse hand-picked spots with real photos and a line on why you go,
@@ -199,7 +201,7 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
   )
 }
 
-export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused }) {
+export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBuyRide }) {
   const [data, setData] = useState(null)
   const [mood, setMood] = useState(null)
   const [q, setQ] = useState("") // search the spots, not free-text moods
@@ -319,12 +321,26 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused }) {
   const others = (data.presence || []).filter((p) => !p.me)
   const outEnds = data.myOut ? new Date(data.myOut.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() : null
   const meta = MOODS.find((m) => m.key === mood)
+  // medellín is "yours" when you're there, have dates there, or live there
+  const myCity = me?.city || "medellin"
+  const inMde = !me || myCity === "medellin" || (me.cities || []).includes("medellin")
   const dateLine = new Date().toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }).toLowerCase()
 
   return (
     <div className="relative px-4 pb-28 pt-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">{t("the guide")} · medellín · {dateLine}</p>
-      <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{t(meta?.title || "tonight")}</h2>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">{t("the guide")} · medellín{inMde ? ` · ${dateLine}` : ""}</p>
+      <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{inMde ? t(meta?.title || "tonight") : t("medellín, city one")}</h2>
+      {/* content follows where you are: somewhere else, the guide says plainly
+          that it's medellín's, instead of acting like it's your city */}
+      {!inMde && (
+        <div className="mt-3 rounded-[1.4rem] border-2 border-dashed border-line bg-white/70 px-4 py-3">
+          <p className="text-[14px] font-bold leading-snug">
+            {cityChip(myCity).emoji} {t("no guide for")} {cityChip(myCity).name.toLowerCase()} {t("yet")}
+          </p>
+          <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("this is medellín's, where irlpass started. yours opens as more people post dates there.")}</p>
+        </div>
+      )}
+      {inMde && <RideCard token={token} city="medellin" onBuy={onBuyRide} />}
 
       <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
         {MOODS.map((m) => (
@@ -358,6 +374,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused }) {
       />
 
       {/* who's out right now: neighborhood only, gone after a few hours */}
+      {inMde && (
       <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/70 p-3">
         {data.myOut ? (
           <div className="flex items-center justify-between gap-2">
@@ -420,6 +437,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused }) {
           </div>
         )}
       </div>
+      )}
 
       {sections.map((sec) => (
       <div key={sec.key}>

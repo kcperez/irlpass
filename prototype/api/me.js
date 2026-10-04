@@ -14,20 +14,24 @@ export default async function handler(req, res) {
   waitUntil(refreshIfStale(member).catch(() => {}))
 
   // v2: where you are is where your next trip is
-  const { data: trip } = await db
+  // (a trip happening now sorts first, since it started earliest)
+  const { data: trips } = await db
     .from("trips")
     .select("city")
     .eq("member_no", member.memberNo)
     .gte("ends", today())
     .order("starts")
-    .limit(1)
-    .maybeSingle()
+    .limit(12)
+  const trip = trips?.[0]
 
   return res.status(200).json({
     name: member.name,
     ig: member.ig,
     memberNo: member.memberNo,
-    city: trip?.city || member.city || "medellin",
+    city: trip?.city || member.homeCity || member.city || "medellin",
+    // every city they have dates in, plus home: content follows these
+    cities: [...new Set([...(trips || []).map((x) => x.city), member.homeCity].filter(Boolean))],
+    home: member.homeCity || null,
     photo: member.photo || null,
     canHost: member.canHost,
     paid: !!member.paid,

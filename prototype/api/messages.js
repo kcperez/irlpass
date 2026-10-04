@@ -2,7 +2,7 @@ import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { notifyMemberNo } from "./_notify.js"
 import { actsAsMod } from "./_mods.js"
-import { today } from "./_access.js"
+import { today, hasComp } from "./_access.js"
 
 // channels: a city slug (everyone in that city, plus mods) or a legacy activity id
 async function canAccess(channel, me) {
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
         }
         // a city room is for people who are actually going to be there, or who
         // hold the pass (every city's chat is part of it)
-        else if (!actsAsMod(me) && !me.paid && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
+        else if (!actsAsMod(me) && !me.paid && !hasComp(me) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
           const { count } = await db
             .from("trips")
             .select("id", { count: "exact", head: true })
