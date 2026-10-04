@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       dms,
       { data: outRows },
       { data: goingRows },
+      { data: planRows },
       { data: cityRows },
     ] = await Promise.all([
       db.from("trips")
@@ -43,6 +44,8 @@ export default async function handler(req, res) {
       // who's going out tonight: an "i'm out" status, or "i'm going" on a spot
       db.from("presence").select("member_no, area").gt("expires_at", new Date().toISOString()),
       db.from("spot_going").select("member_no, spot_id").eq("night", night),
+      // "out tonight?" / "which nights this week?" answers, tonight onward
+      db.from("night_plans").select("member_no, night").eq("city", city).eq("answer", "out").gte("night", night),
       // everyone who belongs to this city, dates or not
       db.from("members").select("*").eq("city", city).eq("banned", false).lt("member_no", "900").limit(200),
     ])
@@ -64,6 +67,10 @@ export default async function handler(req, res) {
       const sp = spotById.get(g.spot_id)
       if (sp) outTonight.set(g.member_no, { now: false, area: sp.area || "", spot: sp.name, spotId: sp.id })
     }
+    // "down tonight" from the daily prompt: lowest of the three, no place yet
+    for (const p of planRows || []) {
+      if (p.night === night && !outTonight.has(p.member_no)) outTonight.set(p.member_no, { now: false, area: "", spot: null, down: true })
+    }
     for (const o of outRows || []) outTonight.set(o.member_no, { ...(outTonight.get(o.member_no) || {}), now: true, area: o.area })
 
     // the strip counts people, not trips: someone with two stays on the same day
@@ -76,6 +83,10 @@ export default async function handler(req, res) {
       }
     }
     const days = Object.fromEntries(Object.entries(daySets).map(([d, set]) => [d, set.size]))
+    // who's down which night, from the prompts: the night-level view of the week
+    const downSets = {}
+    for (const p of planRows || []) if (p.member_no !== me.memberNo) (downSets[p.night] = downSets[p.night] || new Set()).add(p.member_no)
+    const down = Object.fromEntries(Object.entries(downSets).map(([d, set]) => [d, set.size]))
 
     // and one row per person, with their stays merged into a single span
     const mergedTrips = new Map()
@@ -177,6 +188,7 @@ export default async function handler(req, res) {
       city,
       iHaveDates: (mine || []).length > 0,
       days,                       // head count per day, for the calendar strip
+      down,                       // how many said they're down each night (prompts)
       people: out,
       others,
       inCity: (cityRows || []).length,

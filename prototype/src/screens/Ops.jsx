@@ -55,6 +55,96 @@ function WelcomeEditor({ token, text }) {
   )
 }
 
+// conversion: the knobs, free-month codes, the ride and who bought, hosts
+function ConversionPanel({ token, c, onSaved }) {
+  const [note, setNote] = useState("")
+  const [codes, setCodes] = useState([])
+  const [mk, setMk] = useState({ kind: "ride", count: 8, months: 1, maxUses: 1, note: "" })
+  const [ride, setRide] = useState({ title: "guaranteed ride out of the stadium", night: "2026-10-11", depart: "3am from the stadium gates", priceCents: 5000, seats: 8 })
+  const post = (action, body) =>
+    fetch(`/api/ops?t=${token}&action=${action}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body || {}),
+    }).then((r) => r.json()).catch(() => ({ error: "failed" }))
+  const field = "w-full min-w-0 rounded-lg border border-line bg-white px-2 py-1.5 text-[13px]"
+  if (!c) return null
+  return (
+    <div className="mt-4 rounded-[1.25rem] border-2 border-line bg-white/70 p-3">
+      <p className="text-[13px] font-bold">conversion</p>
+      <p className="text-[11.5px] text-ink-soft">{c.compedNow} on a free month from a code · referrals {c.referrals.joined} joined, {c.referrals.rewarded} rewarded</p>
+
+      <div className="mt-2 grid grid-cols-3 gap-1.5 text-[11.5px]">
+        <button
+          onClick={async () => { const r = await post("setting", { key: "founding_free_dms", value: c.settings.founding_free_dms === "on" ? "off" : "on" }); setNote(r.ok ? "saved" : r.error); onSaved() }}
+          className={`rounded-lg border-2 px-2 py-1.5 font-bold ${c.settings.founding_free_dms === "on" ? "border-ink bg-lime" : "border-line"}`}
+        >
+          founding free dms: {c.settings.founding_free_dms}
+        </button>
+        <label className="rounded-lg border-2 border-line px-2 py-1 font-bold">
+          free days
+          <input defaultValue={c.settings.trial_days} onBlur={async (e) => { const r = await post("setting", { key: "trial_days", value: e.target.value }); setNote(r.ok ? "saved" : r.error) }} className={field} />
+        </label>
+        <label className="rounded-lg border-2 border-line px-2 py-1 font-bold">
+          referral ¢
+          <input defaultValue={c.settings.referral_reward_cents} onBlur={async (e) => { const r = await post("setting", { key: "referral_reward_cents", value: e.target.value }); setNote(r.ok ? "saved" : r.error) }} className={field} />
+        </label>
+      </div>
+
+      <p className="mt-3 text-[12px] font-bold">free-month codes</p>
+      <div className="mt-1 grid grid-cols-4 gap-1.5">
+        <select value={mk.kind} onChange={(e) => setMk({ ...mk, kind: e.target.value })} className={field}>
+          {["ride", "host", "promo"].map((k) => <option key={k}>{k}</option>)}
+        </select>
+        <input type="number" value={mk.count} onChange={(e) => setMk({ ...mk, count: e.target.value })} className={field} title="how many codes" />
+        <input type="number" value={mk.months} onChange={(e) => setMk({ ...mk, months: e.target.value })} className={field} title="months free" />
+        <input type="number" value={mk.maxUses} onChange={(e) => setMk({ ...mk, maxUses: e.target.value })} className={field} title="uses per code" />
+      </div>
+      <p className="mt-0.5 text-[10.5px] text-ink-soft">kind · how many · months free · uses each</p>
+      <button
+        onClick={async () => { const r = await post("make-codes", mk); setCodes(r.codes || []); setNote(r.error || `made ${r.codes?.length}`); onSaved() }}
+        className="mt-1.5 w-full rounded-full bg-ink py-2 text-[12.5px] font-bold text-cream"
+      >
+        make codes
+      </button>
+      {codes.length > 0 && <p className="mt-1.5 select-all rounded-lg bg-cream-deep p-2 font-mono text-[12px]">{codes.join("  ")}</p>}
+      <div className="mt-2 max-h-40 overflow-y-auto font-mono text-[11px] text-ink-soft">
+        {c.codes.map((x) => <p key={x.code}>{x.code} · {x.kind} · {x.uses}/{x.max_uses} used</p>)}
+      </div>
+
+      <p className="mt-3 text-[12px] font-bold">the ride (members only, $ in the app)</p>
+      {c.rides.map((r) => (
+        <div key={r.id} className="mt-1.5 rounded-lg border border-line bg-white px-2.5 py-2 text-[12px]">
+          <p className="font-bold">{r.title} · {fmtDay(r.night)} · ${Math.round(r.price_cents / 100)} · {r.buyers.length}/{r.seats} sold {r.active ? "" : "(hidden)"}</p>
+          {r.buyers.length > 0 && <p className="text-ink-soft">{r.buyers.map((b) => `${b.name} ${b.ig}`).join(", ")}</p>}
+          <button onClick={async () => { await post("ride", { id: r.id, active: !r.active }); onSaved() }} className="mt-1 text-[11px] font-bold underline">{r.active ? "hide" : "show"}</button>
+        </div>
+      ))}
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <input value={ride.title} onChange={(e) => setRide({ ...ride, title: e.target.value })} className={`${field} col-span-2`} placeholder="title" />
+        <input type="date" value={ride.night} onChange={(e) => setRide({ ...ride, night: e.target.value })} className={field} />
+        <input value={ride.depart} onChange={(e) => setRide({ ...ride, depart: e.target.value })} className={field} placeholder="3am from the stadium" />
+        <input type="number" value={ride.priceCents / 100} onChange={(e) => setRide({ ...ride, priceCents: Math.round(Number(e.target.value) * 100) })} className={field} title="price $" />
+        <input type="number" value={ride.seats} onChange={(e) => setRide({ ...ride, seats: e.target.value })} className={field} title="seats" />
+      </div>
+      <button
+        onClick={async () => { const r = await post("ride", ride); setNote(r.ok ? "ride added" : r.error); onSaved() }}
+        className="mt-1.5 w-full rounded-full border-2 border-ink py-2 text-[12.5px] font-bold"
+      >
+        add a ride
+      </button>
+
+      {c.hosts.length > 0 && (
+        <>
+          <p className="mt-3 text-[12px] font-bold">want to host ({c.hosts.length})</p>
+          {c.hosts.map((h) => <p key={h.memberNo} className="text-[12px]">{h.name} {h.ig} · {h.earn}{h.note ? ` · ${h.note}` : ""}</p>)}
+        </>
+      )}
+      {note && <p className="mt-1.5 text-[12px] font-semibold text-ink-soft">{note}</p>}
+    </div>
+  )
+}
+
 // josh curates the mood boards here: rename, move, hide, add
 function SpotsEditor({ token, spots, onSaved }) {
   const [draft, setDraft] = useState({ mood: "pregame", name: "", area: "", kind: "", recovery: false })
@@ -292,6 +382,7 @@ export default function Ops({ token }) {
       <SpotsEditor token={token} spots={d.spots || []} onSaved={load} />
 
       <WelcomeEditor token={token} text={d.welcome || ""} />
+      <ConversionPanel token={token} c={d.conversion} onSaved={load} />
 
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">vibes</p>
       <div className="mt-2 grid grid-cols-3 gap-2">

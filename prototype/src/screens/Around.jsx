@@ -63,7 +63,7 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
     const out = []
     for (let i = 0; i < 14; i++) {
       const d = addDays(from, i)
-      out.push({ d, n: data?.days?.[d] || 0 })
+      out.push({ d, n: data?.days?.[d] || 0, down: data?.down?.[d] || 0 })
     }
     return out
   }, [data, from])
@@ -254,6 +254,8 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
                 <span className={`mt-0.5 text-[12px] font-bold ${s2.n ? "" : "text-ink-soft/40"}`}>
                   {s2.n || "·"}
                 </span>
+                {/* who said they're down that night (the daily / weekly prompt) */}
+                {s2.down > 0 && <span className="mt-0.5 rounded-full bg-ink px-1.5 text-[9px] font-bold leading-[1.5] text-cream">🔥{s2.down}</span>}
               </button>
             )
           })}

@@ -23,6 +23,7 @@ import PersonSheet from "../components/PersonSheet"
 import World from "../components/World"
 import WhatsNew, { WHATS_NEW } from "../components/WhatsNew"
 import RideCard from "../components/RideCard"
+import NightPrompt from "../components/NightPrompt"
 import { isSeen, markSeen, useNew, NewDot } from "../lib/newdot"
 import { cityChip, registerCities } from "../lib/cities"
 
@@ -250,7 +251,7 @@ function VerifyCard({ token, me, onVerified }) {
   )
 }
 
-function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, onClose, profileNew }) {
+function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, onHost, onClose, profileNew }) {
   const drag = useDragControls()
   const [hasDates, setHasDates] = useState(false)
   useEffect(() => {
@@ -371,6 +372,10 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
             <span className="block text-[12px] text-ink-soft">{t("stamps, people you've met, what others see")}</span>
           </span>
           <span className="text-[20px]">🛂</span>
+        </button>
+        <button onClick={onHost} className="mt-2 flex w-full items-center justify-between rounded-[1.3rem] border-2 border-line bg-white/70 px-4 py-3 text-left active:scale-[0.99]">
+          <span className="text-[14px] font-bold">{t("want to host a night?")}</span>
+          <span className="text-[18px]">🏠</span>
         </button>
         <label className={`mt-3 flex w-full cursor-pointer items-center justify-center rounded-full bg-lime px-6 py-3.5 text-[14.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] ${busy ? "opacity-60" : ""}`}>
           {busy ? t("uploading…") : me.photo ? t("change your photo") : t("add your photo")}
@@ -1800,6 +1805,62 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
   )
 }
 
+/* ---------- "yes, i want to host" ---------- */
+function HostSheet({ token, onClose }) {
+  const [d, setD] = useState(null)
+  const [earn, setEarn] = useState(null)
+  const [note, setNote] = useState("")
+  const [sent, setSent] = useState(false)
+  useEffect(() => {
+    fetch(`/api/host?t=${token}`).then((r) => r.json()).then((x) => { setD(x); setEarn(x.mine?.earn_range || null); setNote(x.mine?.note || "") }).catch(() => setD({ ranges: [] }))
+  }, [token])
+  const save = async () => {
+    const r = await fetch("/api/host", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, earn, note }),
+    }).then((x) => x.json()).catch(() => null)
+    if (r?.ok) setSent(true)
+  }
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-40 flex items-end bg-ink/40" onClick={onClose}>
+      <motion.div
+        initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }}
+        transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+      >
+        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+        {sent ? (
+          <>
+            <h2 className="display text-[26px] font-bold leading-tight">{t("you're on the host list")}</h2>
+            <p className="mt-1 text-[13.5px] text-ink-soft">{t("josh will message you about your first night.")}</p>
+            <button onClick={onClose} className="mt-4 w-full rounded-full bg-ink py-3.5 text-[15px] font-bold text-cream">{t("done")}</button>
+          </>
+        ) : (
+          <>
+            <h2 className="display text-[26px] font-bold leading-tight">{t("want to host a night?")}</h2>
+            <p className="mt-1 text-[13.5px] text-ink-soft">{t("dinners, pregames, rides. what would you want to earn per night?")}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {(d?.ranges || []).map((r) => (
+                <button key={r} onClick={() => setEarn(r)} className={`rounded-2xl border-2 py-3 text-[14px] font-bold ${earn === r ? "border-ink bg-lime" : "border-line bg-white/70"}`}>{r}</button>
+              ))}
+            </div>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder={t("what would you host? (optional)")}
+              className="mt-3 w-full resize-none rounded-2xl border-2 border-line bg-white/80 px-4 py-2.5 text-[14px] outline-none focus:border-ink"
+            />
+            <button onClick={save} disabled={!earn} className="mt-3 w-full rounded-full bg-ink py-3.5 text-[15px] font-bold text-cream disabled:opacity-40">{t("yes, i want to host")}</button>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  )
+}
+
 /* ---------- a real name, for members whose name is only their handle ---------- */
 function NameSheet({ token, me, onSaved, onClose }) {
   const [name, setName] = useState("")
@@ -1990,6 +2051,7 @@ export default function Club({ token }) {
   const [focusSpot, setFocusSpot] = useState(null) // a tapped @spot: open its board on the mood tab
   const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
   const [personNo, setPersonNo] = useState(null) // whose profile is open
+  const [hostOpen, setHostOpen] = useState(false)
   const [worldOpen, setWorldOpen] = useState(false) // the "where irlpass is" map
   const [cityRoom, setCityRoom] = useState(null) // another city's chat, opened from the map
   const [peopleKey, setPeopleKey] = useState(0) // bump to reload the people grid after vibes change
@@ -2252,9 +2314,13 @@ export default function Club({ token }) {
             onVibes={() => { setProfileOpen(false); setVibesOpen(true) }}
             profileNew={profileNew}
             onOpenProfile={() => { clearProfileNew(); setProfileOpen(false); setPersonNo(me.memberNo) }}
+            onHost={() => { setProfileOpen(false); setHostOpen(true) }}
             onClose={() => setProfileOpen(false)}
           />
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {hostOpen && <HostSheet token={token} onClose={() => setHostOpen(false)} />}
       </AnimatePresence>
       <AnimatePresence>
         {worldOpen && (
@@ -2330,6 +2396,14 @@ export default function Club({ token }) {
           />
         )}
       </AnimatePresence>
+      {!inThread && (
+        <NightPrompt
+          token={token}
+          city={me.city}
+          hold={whatsNewOpen || nameOpen || vibesOpen || !!paywall || profileOpen || !!personNo || worldOpen}
+          onAnswered={(a) => { if (a === "out") { setNotice(t("you're on tonight's board")); setPeopleKey((k) => k + 1) } }}
+        />
+      )}
       <AnimatePresence>
         {notice && (
           <motion.div
