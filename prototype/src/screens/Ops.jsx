@@ -73,6 +73,17 @@ function ConversionPanel({ token, c, onSaved }) {
     <div className="mt-4 rounded-[1.25rem] border-2 border-line bg-white/70 p-3">
       <p className="text-[13px] font-bold">conversion</p>
       <p className="text-[11.5px] text-ink-soft">{c.compedNow} on a free month from a code · referrals {c.referrals.joined} joined, {c.referrals.rewarded} rewarded</p>
+      {c.funnel && (
+        <div className="mt-2 grid grid-cols-4 gap-1.5 text-center">
+          {[[c.funnel.people, "saw the paywall"], [c.funnel.subscribed, "subscribed"], [c.funnel.tripUnlocks, "bought a trip"], [c.funnel.codes, "used a code"]].map(([n, l]) => (
+            <div key={l} className="rounded-lg bg-cream-deep px-1 py-1.5">
+              <p className="text-[18px] font-bold leading-none">{n}</p>
+              <p className="mt-0.5 text-[10px] font-semibold text-ink-soft">{l}</p>
+            </div>
+          ))}
+          <p className="col-span-4 text-[10.5px] text-ink-soft">last 7 days · {c.funnel.views} paywall views ({Object.entries(c.funnel.byReason).map(([k, v]) => `${k} ${v}`).join(", ") || "none yet"})</p>
+        </div>
+      )}
 
       <div className="mt-2 grid grid-cols-3 gap-1.5 text-[11.5px]">
         <button

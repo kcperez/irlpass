@@ -300,6 +300,23 @@ export default async function handler(req, res) {
 
 // codes, rides, referrals, hosts and the knobs, for the conversion section of ops
 async function conversionView(byNo) {
+  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString()
+  const [{ data: views }, { data: subs }, { data: tripBuys }, { data: redeemed }] = await Promise.all([
+    db.from("paywall_events").select("member_no, reason, created_at").gte("created_at", weekAgo).lt("member_no", "900"),
+    db.from("members").select("member_no").eq("paid", true).gte("paid_at", weekAgo),
+    db.from("unlocks").select("member_no").eq("source", "stripe").gte("created_at", weekAgo),
+    db.from("code_redemptions").select("member_no").gte("created_at", weekAgo),
+  ])
+  const byReason = {}
+  for (const v of views || []) byReason[v.reason] = (byReason[v.reason] || 0) + 1
+  const funnel = {
+    views: (views || []).length,
+    people: new Set((views || []).map((v) => v.member_no)).size,
+    byReason,
+    subscribed: (subs || []).length,
+    tripUnlocks: (tripBuys || []).length,
+    codes: (redeemed || []).length,
+  }
   const [{ data: codes }, { data: rides }, { data: orders }, { data: refs }, { data: hosts }, { data: comps }] = await Promise.all([
     db.from("codes").select("*").order("created_at", { ascending: false }).limit(60),
     db.from("rides").select("*").order("night", { ascending: false }).limit(20),
@@ -323,5 +340,6 @@ async function conversionView(byNo) {
     referrals: { joined: (refs || []).length, rewarded: (refs || []).filter((r) => r.rewarded_at).length },
     hosts: (hosts || []).map((h) => ({ ...who(h.member_no), earn: h.earn_range, note: h.note, at: h.created_at })),
     compedNow: (comps || []).length,
+    funnel,
   }
 }

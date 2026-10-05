@@ -532,6 +532,10 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
         : reason === "dm"
           ? { kicker: t("irlpass pass"), head: t("message anyone, anywhere"), sub: t("start your free month and say hi to anyone on your dates.") }
           : { kicker: t("irlpass pass"), head: `${t("unlock")} ${cityName}`, sub: t("browse every city free. join the plans with a pass.") }
+  // count each time this shows (ops: paywall views vs payers)
+  useEffect(() => {
+    fetch("/api/paywall", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, reason }) }).catch(() => {})
+  }, [token, reason])
   const [busy, setBusy] = useState(false)
   const [codeOpen, setCodeOpen] = useState(false)
   const [code, setCode] = useState("")
