@@ -106,6 +106,8 @@ export async function enrichSpots({ ids = null, limit = 5, query = null, near = 
       maps_url: p.url || null,
       hours: p.openingHours || null,
       quote: pickQuote(p.reviews),
+      lat: p.location?.lat ?? null,
+      lng: p.location?.lng ?? null,
       enriched_at: new Date().toISOString(),
     }
     await db.from("spots").update(row).eq("id", s.id)
@@ -157,4 +159,32 @@ export async function googleSearch(q) {
       google: true,
     })),
   }
+}
+
+// coordinates for every spot that has a google maps link, in one scraper run
+// (no photos or reviews, so it's quick). "near you" needs these.
+export async function spotCoords() {
+  const token = process.env.APIFY_TOKEN
+  if (!token) return { error: "no scraper key" }
+  const { data: spots } = await db.from("spots").select("id, maps_url").not("maps_url", "is", null).is("lat", null).limit(120)
+  if (!spots?.length) return { done: 0 }
+  const r = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=280`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ startUrls: spots.map((x) => ({ url: x.maps_url })), maxImages: 0, maxReviews: 0, language: "en", scrapeReviewsPersonalData: false }),
+  })
+  if (!r.ok) return { error: `scraper ${r.status}` }
+  const items = await r.json().catch(() => [])
+  // match results back by place id inside the url, then by url
+  const pid = (u) => String(u || "").match(/query_place_id=([^&]+)/)?.[1] || String(u || "").match(/!1s(0x[0-9a-f]+:0x[0-9a-f]+)/)?.[1] || ""
+  let done = 0
+  for (const sp of spots) {
+    const key = pid(sp.maps_url)
+    const hit = items.find((p) => (key && (p.placeId === key || pid(p.url) === key)) || p.url === sp.maps_url)
+    if (hit?.location?.lat) {
+      await db.from("spots").update({ lat: hit.location.lat, lng: hit.location.lng }).eq("id", sp.id)
+      done++
+    }
+  }
+  return { done, of: spots.length, scraped: items.length }
 }

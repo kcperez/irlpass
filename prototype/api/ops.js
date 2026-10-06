@@ -3,7 +3,7 @@ import { db } from "./_db.js"
 import { actsAsMod } from "./_mods.js"
 import { today, setting } from "./_access.js"
 import { backfillPhotos, backfillNames } from "./_instagram.js"
-import { enrichSpots } from "./_guide.js"
+import { enrichSpots, spotCoords } from "./_guide.js"
 import { welcomeText, sendWelcome, WELCOME_FROM } from "./_welcome.js"
 
 // long enough for one scraper run over every member missing a photo
@@ -30,6 +30,10 @@ export default async function handler(req, res) {
       if (await sendWelcome(m, template).catch(() => false)) sent++
     }
     return res.status(200).json({ sent })
+  }
+
+  if (req.method === "POST" && req.query?.action === "spot-coords") {
+    return res.status(200).json(await spotCoords())
   }
 
   // one-time codes for a free month: ride buyers, hosts, partners, promos
@@ -329,7 +333,7 @@ async function conversionView(byNo) {
   return {
     settings: {
       founding_free_dms: await setting("founding_free_dms", "off"),
-      referral_reward_cents: await setting("referral_reward_cents", "2900"),
+      referral_reward_cents: await setting("referral_reward_cents", "1999"),
       trial_days: await setting("trial_days", "30"),
     },
     codes: codes || [],

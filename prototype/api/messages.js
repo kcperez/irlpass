@@ -2,7 +2,7 @@ import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { notifyMemberNo } from "./_notify.js"
 import { actsAsMod } from "./_mods.js"
-import { today, hasComp } from "./_access.js"
+import { today, hasComp, canReach } from "./_access.js"
 
 // channels: a city slug (everyone in that city, plus mods) or a legacy activity id
 async function canAccess(channel, me) {
@@ -75,6 +75,9 @@ export default async function handler(req, res) {
             .eq("member_no", me.memberNo)
             .eq("night", `${spotRoom[2]}-${spotRoom[3]}-${spotRoom[4]}`)
           if (!count) return res.status(402).json({ error: "tap i'm going to write here", gate: "going" })
+          // the plan's group chat is where people actually meet up: the pass delivers it
+          const reach = await canReach(me, "medellin", `${spotRoom[2]}-${spotRoom[3]}-${spotRoom[4]}`, `${spotRoom[2]}-${spotRoom[3]}-${spotRoom[4]}`)
+          if (!reach.ok) return res.status(402).json({ error: "your message is ready. start your free month to deliver it.", gate: "deliver" })
         }
         // a city room is for people who are actually going to be there, or who
         // hold the pass (every city's chat is part of it)

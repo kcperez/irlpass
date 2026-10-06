@@ -16,11 +16,9 @@ export default async function handler(req, res) {
     const sandbox = process.env.STRIPE_MODE === "test"
     const stripeKey = sandbox ? process.env.STRIPE_TEST_KEY : process.env.STRIPE_SECRET_KEY
     const yearly = req.body?.plan === "yearly"
-    const priceId = sandbox
-      ? (yearly ? process.env.STRIPE_TEST_SUB_PRICE_YR : process.env.STRIPE_TEST_SUB_PRICE)
-      : (yearly ? process.env.STRIPE_SUB_PRICE_YR : process.env.STRIPE_SUB_PRICE)
-
-    // the monthly plan starts with a free month (card down, $29 after unless
+    // priced inline (matches nomadtable plus): $19.99/mo, $89/yr
+    const amount = yearly ? 8900 : 1999
+    // the monthly plan starts with a free month (card down, $19.99 after unless
     // they cancel). from inside the app it comes back to the app, with "next"
     // saying what to do on return: deliver a waiting message, or buy the ride.
     const trialDays = yearly ? 0 : Number(await setting("trial_days", "30")) || 0
@@ -28,7 +26,10 @@ export default async function handler(req, res) {
     const inApp = !!req.body?.inApp
     const params = new URLSearchParams({
       mode: "subscription",
-      "line_items[0][price]": priceId,
+      "line_items[0][price_data][currency]": "usd",
+      "line_items[0][price_data][unit_amount]": String(amount),
+      "line_items[0][price_data][recurring][interval]": yearly ? "year" : "month",
+      "line_items[0][price_data][product_data][name]": yearly ? "irlpass · yearly" : "irlpass · monthly",
       "line_items[0][quantity]": "1",
       customer_email: member.email,
       success_url: inApp

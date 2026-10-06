@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions"
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { rowToMember, safeFirstName, lockedPhoto } from "./_lib.js"
@@ -199,11 +200,12 @@ export default async function handler(req, res) {
         reply_to: Number.isInteger(req.body?.replyTo) ? req.body.replyTo : null,
       })
       if (me2) throw me2
-      notifyMemberNo(String(to), {
+      waitUntil(notifyMemberNo(String(to), {
         subject: `${me.name.toLowerCase()} sent you a message`,
         line: `${me.name.toLowerCase()}: "${String(text).trim().slice(0, 120)}"`,
         ctaLabel: "open your dms",
-      })
+        push: { title: String(me.name || "").split(/\s+/)[0], body: String(text).trim().slice(0, 140), tag: `dm-${me.memberNo}`, go: `dm-${me.memberNo}` },
+      }).catch(() => {}))
       return res.status(200).json({ ok: true })
     }
 

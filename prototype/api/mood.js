@@ -4,6 +4,7 @@ import { canReach } from "./_access.js"
 import { actsAsMod } from "./_mods.js"
 import { waitUntil } from "@vercel/functions"
 import { enrichSpots, googleSearch } from "./_guide.js"
+import { notifyMemberNo } from "./_notify.js"
 
 // the mood tab (josh's EDC sprint): pick tonight's mood, see the hand-picked
 // spots for it, tap "i'm going tonight", see who else is going, and drop an
@@ -18,6 +19,12 @@ import { enrichSpots, googleSearch } from "./_guide.js"
 // POST { t, action: "add", place, mood } -> add that venue and mark yourself going
 
 export const MOODS = ["pregame", "afters", "chill"]
+
+const addDays = (iso, n) => {
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
 
 // "til 9pm", "til midnight" or "all night": every out status ends by 6am
 // medellín time, so nobody still looks out the next afternoon
@@ -50,7 +57,11 @@ export const tonight = () => {
 export default async function handler(req, res) {
   const me = await getUser(req.method === "GET" ? req.query?.t : req.body?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
-  const night = tonight()
+  // plans can be for tonight or any night in the next two weeks
+  const tn = tonight()
+  const asked = String((req.method === "GET" ? req.query?.night : req.body?.night) || "")
+  const night = /^\d{4}-\d{2}-\d{2}$/.test(asked) && asked >= tn && asked <= addDays(tn, 14) ? asked : tn
+  const when = night === tn ? "tonight" : `on ${new Date(`${night}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }).toLowerCase()}`
 
   try {
     // the slow, complete search: google maps itself (~20s). for spots the map
@@ -75,6 +86,13 @@ export default async function handler(req, res) {
         canReach(me, city, night, night),
         db.from("dm_threads").select("a_no, b_no").or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`),
       ])
+      // which plans have a live group chat this night
+      const { data: roomMsgs } = await db.from("messages").select("channel").like("channel", `spot-%-${night.replace(/-/g, "")}`).eq("deleted", false)
+      const chatCount = {}
+      for (const m of roomMsgs || []) {
+        const id = Number(m.channel.split("-")[1])
+        chatCount[id] = (chatCount[id] || 0) + 1
+      }
 
       // everyone we need to draw: people going somewhere tonight + people out
       const nos = [...new Set([...(going || []).map((g) => g.member_no), ...(out || []).map((p) => p.member_no)])]
@@ -136,18 +154,25 @@ export default async function handler(req, res) {
           added: !!s.added_by,
           mood: s.mood,
           room: `spot-${s.id}-${night.replace(/-/g, "")}`,
+          chat: chatCount[s.id] || 0,
         })
       }
 
       for (const m of MOODS) {
         board[m] = board[m]
           .map((x, i) => ({ x, i }))
-          .sort((a, b) => b.x.going - a.x.going || a.i - b.i)
+          // one rule everywhere: live plans first (people going or a group
+          // chat going), then the most active, then the guide's own order
+          .sort((a, b) =>
+            (b.x.going > 0 || b.x.chat > 0) - (a.x.going > 0 || a.x.chat > 0) ||
+            b.x.going * 3 + b.x.chat - (a.x.going * 3 + a.x.chat) ||
+            a.i - b.i)
           .map(({ x }) => x)
       }
 
       return res.status(200).json({
         night,
+        tonight: tn,
         mood: myMood?.mood || null,
         board,
         presence: (out || []).map((p) => ({ ...face(p.member_no), area: p.area, until: p.expires_at })).filter((p) => p.memberNo),
@@ -221,7 +246,40 @@ export default async function handler(req, res) {
           }
         }
         await db.from("spot_going").upsert({ spot_id: spotId, member_no: me.memberNo, night }, { onConflict: "spot_id,member_no,night" })
+        // a ping to whoever's already going: the plan just got a person bigger
+        const [{ data: others }, { data: sp }] = await Promise.all([
+          db.from("spot_going").select("member_no").eq("spot_id", spotId).eq("night", night).neq("member_no", me.memberNo).limit(20),
+          db.from("spots").select("name").eq("id", spotId).maybeSingle(),
+        ])
+        const first = String(me.name || "someone").split(/\s+/)[0]
+        for (const o of others || []) {
+          waitUntil(notifyMemberNo(o.member_no, {
+            subject: `${first} is going to ${sp?.name || "your spot"} too`,
+            line: `${first} is going to ${sp?.name || "your spot"} ${when}`,
+            push: { title: `${first} joined your plan`, body: `going to ${sp?.name || "your spot"} ${when}. say hi in the group`, tag: `spot-${spotId}`, go: `spot-${spotId}` },
+            email: false,
+          }).catch(() => {}))
+        }
       }
+      return res.status(200).json({ ok: true })
+    }
+
+    // "make a plan with sofia": you're going somewhere, and she gets asked along.
+    // the invite is what the pass delivers (the plan itself is free to make).
+    if (action === "invite") {
+      const spotId = Number(req.body?.spotId)
+      const to = String(req.body?.to || "")
+      if (!spotId || !/^\d{3}$/.test(to) || to === me.memberNo) return res.status(400).json({ error: "who's it for?" })
+      const reach = actsAsMod(me) ? { ok: true } : await canReach(me, "medellin", night, night)
+      if (!reach.ok) return res.status(402).json({ error: "your plan is ready. start your free month to send it.", gate: "invite" })
+      const { data: sp } = await db.from("spots").select("name").eq("id", spotId).maybeSingle()
+      const first = String(me.name || "someone").split(/\s+/)[0]
+      waitUntil(notifyMemberNo(to, {
+        subject: `${first} made a plan with you`,
+        line: `${first} is going to ${sp?.name || "a spot"} ${when} and wants you there.`,
+        ctaLabel: "see the plan",
+        push: { title: `${first} made a plan with you`, body: `${sp?.name || "a spot"} ${when}. you in?`, tag: `spot-${spotId}`, go: `spot-${spotId}` },
+      }).catch(() => {}))
       return res.status(200).json({ ok: true })
     }
 

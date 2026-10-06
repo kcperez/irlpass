@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { SpotLink } from "../lib/spotlink"
 import { cachedJson } from "../lib/cached"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
@@ -25,7 +26,8 @@ import { cityChip, CITY_INDEX, rememberCity } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
 import { isMod } from "../lib/mods"
 
-export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld, onOpenTonight, onUnlock, onNeedDates, viewCity, onViewCity }) {
+export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, onOpenWorld, onOpenTonight, onUnlock, onNeedDates, viewCity, onViewCity }) {
+  const openSpot = useContext(SpotLink)
   const [mapNew, clearMapNew] = useNew("travel-map")
   const [data, setData] = useState(null)
   const [week, setWeek] = useState(0) // which 14-day window we're looking at
@@ -50,6 +52,8 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
   const found = useCitySearch(typed)
   const [view, setView] = useState("weeks") // weeks | year
   const [selectedDay, setSelectedDay] = useState(null)
+  const [showAll, setShowAll] = useState(false) // the full list, not just who's going out
+  useEffect(() => { setShowAll(false) }, [selectedDay])
   const [othersShown, setOthersShown] = useState(24) // the city roster can be hundreds; reveal it a page at a time
 
   const load = useCallback(() => {
@@ -100,12 +104,19 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
     return [...by.values()]
   }
 
-  const visible = useMemo(() => {
+  const everyone = useMemo(() => {
     const to = addDays(from, 13)
     const inWindow = (data?.people || []).filter((p) => p.starts <= to && p.ends >= from)
     if (!selectedDay) return dedupe(inWindow).sort(byPresence)
     return dedupe(inWindow.filter((p) => p.starts <= selectedDay && p.ends >= selectedDay)).sort(byPresence)
   }, [data, from, selectedDay])
+  // josh: a day tap is the hot list (who's going out that night, spot attached);
+  // the avatar row / "see everyone" is the full list. never 76 cards by default.
+  const day = selectedDay || data?.night
+  const isOut = (p) => (day === data?.night ? !!p.out : (p.downNights || []).includes(day))
+  const hot = everyone.filter(isOut)
+  const visible = showAll ? everyone : hot.length ? hot : everyone.slice(0, 8)
+  const hiddenCount = everyone.length - visible.length
 
   if (!data) {
     return (
@@ -208,7 +219,14 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
         const areas = [...new Set(out.filter((p) => !p.out.spot).map((p) => p.out.area).filter(Boolean))]
         return (
           <button
-            onClick={() => onOpenTonight?.()}
+            onClick={() => {
+              // straight to the plan it's describing: the spot most of them are headed to
+              const tally = {}
+              for (const p of out) if (p.out.spotId) tally[p.out.spotId] = (tally[p.out.spotId] || 0) + 1
+              const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]
+              if (top) openSpot(Number(top[0]))
+              else onOpenTonight?.()
+            }}
             className="lift mt-3 flex w-full items-center gap-3 rounded-[1.5rem] bg-ink px-4 py-3 text-left text-cream"
           >
             <div className="flex -space-x-2.5">
@@ -262,10 +280,10 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
         </div>
 
         {/* tapping a day shows its three best matches: most vibes in common */}
-        {selectedDay && visible.length > 0 && (
-          <div className="mt-3 flex items-center gap-2.5 rounded-[1.1rem] bg-cream-deep/60 px-3 py-2">
+        {selectedDay && everyone.length > 0 && (
+          <button onClick={() => setShowAll(true)} className="mt-3 flex w-full items-center gap-2.5 rounded-[1.1rem] bg-cream-deep/60 px-3 py-2 text-left active:scale-[0.99]">
             <div className="flex -space-x-2">
-              {[...visible]
+              {[...everyone]
                 .sort((a, b) => (b.shared?.length || 0) - (a.shared?.length || 0))
                 .slice(0, 3)
                 .map((p) => (
@@ -283,13 +301,14 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
             </div>
             <p className="min-w-0 truncate text-[12.5px] font-semibold">
               {(() => {
-                const top = [...visible].sort((a, b) => (b.shared?.length || 0) - (a.shared?.length || 0)).slice(0, 3)
+                const top = [...everyone].sort((a, b) => (b.shared?.length || 0) - (a.shared?.length || 0)).slice(0, 3)
                 const names = top.map((p) => (p.locked ? p.first : String(p.name || p.first).split(" ")[0]))
-                const more = visible.length - top.length
+                const more = everyone.length - top.length
                 return `${names.join(", ")}${more > 0 ? ` + ${more} ${t("more")}` : ""}`
               })()}
             </p>
-          </div>
+            <span className="ml-auto shrink-0 text-[11.5px] font-bold text-ink-soft">{t("all")} →</span>
+          </button>
         )}
 
         <div className="mt-3 flex items-center justify-between">
@@ -314,6 +333,15 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
         </div>
       </div>
 
+      {!showAll && hot.length > 0 && (
+        <p className="mt-4 text-[13px] font-bold">🔥 {hot.length} {t("going out")} {day === data.night ? t("tonight") : fmt(day)}</p>
+      )}
+      {showAll && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-[13px] font-bold">{everyone.length} {t("here")}{selectedDay ? ` · ${fmt(selectedDay)}` : ""}</p>
+          <button onClick={() => setShowAll(false)} className="text-[12px] font-bold text-ink-soft underline">{t("who's going out")}</button>
+        </div>
+      )}
       {visible.length === 0 ? (
         <div className="mt-4 rounded-[1.75rem] border-2 border-dashed border-line bg-white/50 px-5 py-7 text-center">
           <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
@@ -392,7 +420,7 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
               <div className="p-2">
                 {p.canMessage ? (
                   <button
-                    onClick={() => onOpenDM(p)}
+                    onClick={() => (p.unread > 0 ? onOpenDM(p) : onMakePlan ? onMakePlan(p) : onOpenDM(p))}
                     className={`w-full rounded-full py-2 text-[12.5px] font-bold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
                   >
                     {p.unread > 0 ? `${p.unread} ${t("new")} · ${t("make a plan")}` : t("make a plan")}
@@ -402,9 +430,9 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
                     {t("women only")}
                   </span>
                 ) : (
-                  // josh's tripwire: open the chat and type; the paywall fires on send
+                  // josh: make a plan heads to the mood tab, not a dm
                   <button
-                    onClick={() => onOpenDM(p)}
+                    onClick={() => (onMakePlan ? onMakePlan(p) : onOpenDM(p))}
                     className="w-full rounded-full bg-ink py-2 text-[12.5px] font-bold text-cream"
                   >
                     {t("make a plan")}
@@ -414,6 +442,11 @@ export default function Around({ token, me, onOpenDM, onOpenPerson, onOpenWorld,
             </div>
           ))}
         </div>
+      )}
+      {!showAll && hiddenCount > 0 && (
+        <button onClick={() => setShowAll(true)} className="mt-3 w-full rounded-full border-2 border-ink bg-white py-3 text-[13.5px] font-bold">
+          {t("see everyone here")} ({everyone.length})
+        </button>
       )}
       </>)}
 

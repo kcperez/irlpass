@@ -192,7 +192,7 @@ export default function CityPage({ onApply }) {
           { icon: CalendarPlus, head: t("post your dates, free"), sub: t("30 seconds, no approval, no waiting") },
           { icon: GlobeHemisphereWest, head: t("see who overlaps"), sub: t("every person whose trip crosses yours, day by day") },
           { icon: ShieldCheck, head: t("safe by default"), sub: t("real instagram accounts, women-only mode, block and report 🌸") },
-          { icon: Ticket, head: t("message when you want to"), sub: t("replying is free · $19 a trip or $29/mo to start one") },
+          { icon: Ticket, head: t("message when you want to"), sub: t("replying is free · $19 a trip or $19.99/mo to start one") },
         ].map((r) => (
           <div key={r.head} className="flex items-center gap-4 px-5 py-3.5">
             <r.icon size={20} weight="duotone" className="shrink-0 text-ink" />
@@ -214,7 +214,7 @@ export default function CityPage({ onApply }) {
       {/* compliance footer — pricing, contact, legal (stripe reviewers read this) */}
       <motion.footer variants={rise} className="px-5 py-5 text-center">
         <p className="font-mono text-[10px] text-ink-soft">
-          free to join and post dates · $19 per trip or $29/mo to message ·{" "}
+          free to join and post dates · $19 per trip or $19.99/mo to message ·{" "}
           <a href="/?screen=info" className="underline underline-offset-2">terms</a> ·{" "}
           <a href="mailto:kevincastroperez@gmail.com" className="underline underline-offset-2">contact</a>{" "}
           · © 2026 irlpass

@@ -12,7 +12,7 @@ export async function rewardReferrals(memberNo) {
     .or(`referee.eq.${memberNo},referrer.eq.${memberNo}`)
     .is("rewarded_at", null)
   if (!pairs?.length) return 0
-  const cents = Number(await setting("referral_reward_cents", "2900")) || 2900
+  const cents = Number(await setting("referral_reward_cents", "1999")) || 1999
   let done = 0
   for (const p of pairs) {
     const { data: rows } = await db

@@ -87,6 +87,8 @@ export default async function handler(req, res) {
     const downSets = {}
     for (const p of planRows || []) if (p.member_no !== me.memberNo) (downSets[p.night] = downSets[p.night] || new Set()).add(p.member_no)
     const down = Object.fromEntries(Object.entries(downSets).map(([d, set]) => [d, set.size]))
+    const downBy = new Map()
+    for (const p of planRows || []) downBy.set(p.member_no, [...(downBy.get(p.member_no) || []), p.night])
 
     // and one row per person, with their stays merged into a single span
     const mergedTrips = new Map()
@@ -142,6 +144,7 @@ export default async function handler(req, res) {
         canMessage: open && !blocked,
         talked: !!dms.get(m.memberNo)?.talked,
         out: outTonight.get(m.memberNo) || null,
+        downNights: downBy.get(m.memberNo) || [],
         // where they're from: the country they gave, and the city they live in
         country: m.country || null,
         home: m.homeCity || null,
@@ -176,6 +179,7 @@ export default async function handler(req, res) {
         canMessage: known.has(m.memberNo) && !blocked,
         talked: !!dms.get(m.memberNo)?.talked,
         out: outTonight.get(m.memberNo) || null,
+        downNights: downBy.get(m.memberNo) || [],
         // where they're from: the country they gave, and the city they live in
         country: m.country || null,
         home: m.homeCity || null,
@@ -189,6 +193,7 @@ export default async function handler(req, res) {
       iHaveDates: (mine || []).length > 0,
       days,                       // head count per day, for the calendar strip
       down,                       // how many said they're down each night (prompts)
+      night,                      // tonight's date, medellín time
       people: out,
       others,
       inCity: (cityRows || []).length,

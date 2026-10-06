@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback, createContext, useContext } from "react"
+import { useEffect, useRef, useState, useCallback, useContext } from "react"
+import { SpotLink } from "../lib/spotlink"
 import { cachedJson } from "../lib/cached"
 import { motion, AnimatePresence, MotionConfig, useDragControls } from "framer-motion"
 import {
@@ -23,7 +24,10 @@ import PersonSheet from "../components/PersonSheet"
 import World from "../components/World"
 import WhatsNew, { WHATS_NEW } from "../components/WhatsNew"
 import RideCard from "../components/RideCard"
+import TonightPin from "../components/TonightPin"
 import NightPrompt from "../components/NightPrompt"
+import PushPrompt from "../components/PushPrompt"
+import { registerSW, askPush } from "../lib/push"
 import { isSeen, markSeen, useNew, NewDot } from "../lib/newdot"
 import { cityChip, registerCities } from "../lib/cities"
 
@@ -527,6 +531,10 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
   const lines =
     reason === "deliver"
       ? { kicker: t("your message is ready"), head: t("start your free month to deliver it"), sub: draft ? `“${draft.slice(0, 120)}”` : "" }
+      : reason === "invite"
+        ? { kicker: t("your plan is ready"), head: t("start your free month to send it"), sub: draft ? `“${draft}”` : "" }
+      : reason === "shuffle"
+        ? { kicker: t("right now"), head: t("unlimited picks, every city"), sub: t("start your free month and shuffle as much as you want, wherever you are.") }
       : reason === "member"
         ? { kicker: t("members only"), head: t("the guaranteed ride is for members"), sub: t("start your free month, then grab a seat.") }
         : reason === "dm"
@@ -599,7 +607,7 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
         </ul>
         <motion.button whileTap={{ scale: 0.98 }} onClick={go} disabled={busy} className="mt-5 w-full rounded-full bg-ink py-4 text-center text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)] disabled:opacity-60">
           <span className="block text-[15.5px] font-bold">{busy ? t("one sec…") : t("start your free month")}</span>
-          <span className="block font-mono text-[10px] text-cream/60">{t("then $29/mo · cancel anytime")}</span>
+          <span className="block font-mono text-[10px] text-cream/60">{t("then $19.99/mo · cancel anytime")}</span>
         </motion.button>
 
         {codeOpen ? (
@@ -817,8 +825,6 @@ function Composer({ id, value, onChange, onSend, placeholder }) {
 }
 
 // @name in a message renders bold
-// tap a @spot in any chat and land on its board (set by Club)
-export const SpotLink = createContext(() => {})
 
 // chat text: links you can tap, @people in bold, @[spot](s12) as a spot chip.
 // a spot tag is a door into the room: it opens that spot's board.
@@ -903,7 +909,7 @@ function SpotSuggest({ token, text, setText }) {
   )
 }
 
-function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen, onOpenPerson, onBuyRide }) {
+function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, onNeedDates, onSeen, onOpenPerson, onBuyRide, onPaywall }) {
   const [needsDates, setNeedsDates] = useState(false)
 
   const [server, setServer] = useState(null)
@@ -957,6 +963,14 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
       if (d?.gate === "dates") {
         setPending([])
         setNeedsDates(true)
+        return
+      }
+      if (d?.gate === "deliver" && body.action === "send") {
+        // keep what they wrote: it posts itself once they're in
+        setPending([])
+        setText(body.text)
+        try { localStorage.setItem("irl:pending-room", JSON.stringify({ channel, text: body.text, title })) } catch { /* private mode */ }
+        onPaywall?.({ reason: "deliver", next: `room-${channel}`, draft: body.text })
         return
       }
       pollRef.current()
@@ -1057,6 +1071,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
       </div>
 
       {activity && <PinnedInfo token={token} me={me} initial={activity} />}
+      {channel === "medellin" && <TonightPin token={token} />}
       {/^[a-z0-9-]+$/.test(channel) && !channel.startsWith("spot-") && onBuyRide && (
         <div className="border-b border-line/70 px-3 py-2.5"><RideCard token={token} city={channel} onBuy={onBuyRide} compact /></div>
       )}
@@ -1536,6 +1551,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
     if (r?.error) return alert(r.error)
     if (typeof override !== "string") setText("")
     loadConvo(openWith.memberNo)
+    askPush(t("they reply"))
   }
 
   // trust before meeting: one tap asks for a short video call first
@@ -2053,6 +2069,19 @@ export default function Club({ token }) {
   const [vibesOpen, setVibesOpen] = useState(false)
   const [spotRoom, setSpotRoom] = useState(null) // { channel, title } of a spot's room tonight
   const [focusSpot, setFocusSpot] = useState(null) // a tapped @spot: open its board on the mood tab
+  // josh: every tab funnels into the mood tab. "make a plan with sofia" opens
+  // the board (on her spot if she's out somewhere), you pick the spot and night,
+  // a group chat forms, and she gets asked along.
+  const [planWith, setPlanWith] = useState(null) // { memberNo, first, photo, nights }
+  const makePlan = (p, nights = null) => {
+    setPersonNo(null)
+    setDmWith(null)
+    setCityRoom(null)
+    setSpotRoom(null)
+    setPlanWith({ memberNo: p.memberNo, first: p.first || String(p.name || "").split(/\s+/)[0], photo: p.photo || null, nights })
+    if (p.out?.spotId) setFocusSpot(p.out.spotId)
+    setTab("mood")
+  }
   const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
   const [personNo, setPersonNo] = useState(null) // whose profile is open
   const [hostOpen, setHostOpen] = useState(false)
@@ -2152,6 +2181,21 @@ export default function Club({ token }) {
       .catch(() => setState((st) => (st === "ok" ? st : "denied")))
   }, [token])
 
+  useEffect(() => { if (state === "ok") registerSW() }, [state])
+
+  // a tapped push lands here: ?go=dm-021 opens that chat, ?go=spot-12 opens the spot
+  useEffect(() => {
+    if (state !== "ok") return
+    const p = new URLSearchParams(window.location.search)
+    let go = p.get("go") || ""
+    if (!go) { try { go = localStorage.getItem("irl:go") || ""; localStorage.removeItem("irl:go") } catch { /* private mode */ } }
+    const dm = go.match(/^dm-(\d{3})$/)
+    const spot = go.match(/^spot-(\d+)$/)
+    if (dm) { setDmWith({ memberNo: dm[1] }); setTab("dms") }
+    else if (spot) { setFocusSpot(Number(spot[1])); setTab("mood") }
+    if (p.get("go")) window.history.replaceState({}, "", `/?screen=app&t=${token}`)
+  }, [state, token])
+
   // what to do after someone unlocks: deliver the message they wrote, or buy the ride
   const [notice, setNotice] = useState("")
   useEffect(() => { if (!notice) return; const id = setTimeout(() => setNotice(""), 4200); return () => clearTimeout(id) }, [notice])
@@ -2184,6 +2228,30 @@ export default function Club({ token }) {
       }
       setDmWith({ memberNo: deliver[1], name: pending?.name || "", photo: pending?.photo || null })
       setTab("dms")
+    } else if (/^room-spot-\d+-\d{8}$/.test(next || "")) {
+      const channel = next.slice(5)
+      let pending = null
+      try { pending = JSON.parse(localStorage.getItem("irl:pending-room") || "null") } catch { /* private mode */ }
+      if (pending?.channel === channel && pending.text) {
+        const r = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ t: token, channel, action: "send", text: pending.text }),
+        }).then((x) => x.json()).catch(() => null)
+        if (r?.ok) { try { localStorage.removeItem("irl:pending-room") } catch { /* private mode */ } setNotice(t("delivered. your free month has started")) }
+      }
+      setSpotRoom({ channel, title: pending?.title || t("the plan") })
+      setTab("mood")
+    } else if (/^invite-\d+-\d{8}-\d{3}$/.test(next || "")) {
+      const [, spotId, n, to] = next.split("-")
+      const r = await fetch("/api/mood", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ t: token, action: "invite", spotId: Number(spotId), night: `${n.slice(0, 4)}-${n.slice(4, 6)}-${n.slice(6)}`, to }),
+      }).then((x) => x.json()).catch(() => null)
+      setNotice(r?.ok ? t("sent. your free month has started") : t("you're in. your free month has started"))
+      setFocusSpot(Number(spotId))
+      setTab("mood")
     } else if (ride) {
       buyRide(Number(ride[1]))
     } else {
@@ -2261,7 +2329,7 @@ export default function Club({ token }) {
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
         className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
-        {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} />}
+        {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} onPaywall={setPaywall} onJoinTrip={(p, nights) => makePlan(p, nights)} />}
         {!cityRoom && tab === "members" && (
           <Around
             key={peopleKey}
@@ -2270,6 +2338,7 @@ export default function Club({ token }) {
             viewCity={viewCity}
             onViewCity={setViewCity}
             onOpenDM={(m) => { setDmWith(m); setDmReturn("members"); setTab("dms") }}
+            onMakePlan={(p) => makePlan(p)}
             onOpenPerson={setPersonNo}
             onOpenWorld={() => setWorldOpen(true)}
             onOpenTonight={() => setTab("mood")}
@@ -2290,13 +2359,14 @@ export default function Club({ token }) {
             onBack={() => setCityRoom(null)}
           />
         )}
-        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} />}
+        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => setPlanWith(null)} onPaywall={setPaywall} />}
         {!cityRoom && tab === "mood" && spotRoom && (
           <Thread
             token={token}
             me={me}
             channel={spotRoom.channel}
             title={spotRoom.title}
+            onPaywall={setPaywall}
             photoMap={photoMap}
             onOpenPerson={setPersonNo}
             onBack={() => setSpotRoom(null)}
@@ -2344,7 +2414,10 @@ export default function Club({ token }) {
             token={token}
             memberNo={personNo}
             onClose={() => setPersonNo(null)}
-            onMessage={(p) => { setPersonNo(null); setDmWith({ memberNo: p.memberNo, name: p.name || p.first, ig: p.ig, photo: p.photo }); setDmReturn(tab); setTab("dms") }}
+            onMessage={(p) => {
+              if (!p.talked) return makePlan(p)
+              setPersonNo(null); setDmWith({ memberNo: p.memberNo, name: p.name || p.first, ig: p.ig, photo: p.photo }); setDmReturn(tab); setTab("dms")
+            }}
             onUnlock={() => { setPersonNo(null); setTab("trips"); setUnlockRequest(Date.now()) }}
           />
         )}
@@ -2384,6 +2457,7 @@ export default function Club({ token }) {
               else if (key === "world") setWorldOpen(true)
               else if (key === "mood") { clearMoodNew(); setTab("mood") }
               else if (key === "dms") setTab("dms")
+              else if (key === "now") setTab("trips")
             }}
           />
         )}
@@ -2400,6 +2474,7 @@ export default function Club({ token }) {
           />
         )}
       </AnimatePresence>
+      <PushPrompt token={token} />
       {!inThread && (
         <NightPrompt
           token={token}

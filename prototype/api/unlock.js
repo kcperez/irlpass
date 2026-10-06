@@ -6,7 +6,7 @@ import { isDate, today } from "./_access.js"
 // v2 pricing. Prices are built inline (price_data) so a new city or window
 // needs no Stripe dashboard work.
 export const TRIP_PRICE = Number(process.env.TRIP_PRICE_CENTS || 1900) // $19, one window
-export const PASS_PRICE = Number(process.env.PASS_PRICE_CENTS || 2900) // $29/mo, every window
+export const PASS_PRICE = Number(process.env.PASS_PRICE_CENTS || 1999) // $19.99/mo, every window
 
 const stripeKey = () =>
   process.env.STRIPE_MODE === "test" ? process.env.STRIPE_TEST_KEY : process.env.STRIPE_SECRET_KEY

@@ -6,6 +6,8 @@ import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
 import RideCard from "../components/RideCard"
+import InvitePrompt from "../components/InvitePrompt"
+import { askPush } from "../lib/push"
 import { cityChip } from "../lib/cities"
 
 // the guide: tonight in medellín, the way a good city guide reads. pick a
@@ -79,7 +81,7 @@ function GoingButton({ s, busy, onToggle, full = false }) {
         s.imGoing ? "border-2 border-ink bg-white text-ink" : "bg-ink text-cream"
       }`}
     >
-      {s.imGoing ? <span className="flex items-center justify-center gap-1"><CheckCircle size={15} weight="fill" /> {t("you're going")}</span> : t("i'm going tonight")}
+      {s.imGoing ? <span className="flex items-center justify-center gap-1"><CheckCircle size={15} weight="fill" /> {t("you're going")}</span> : t("i'm going")}
     </motion.button>
   )
 }
@@ -101,7 +103,7 @@ function WhoGoing({ s }) {
       </div>
       <div className="min-w-0">
         <p className="truncate text-[12.5px] font-semibold">
-          {s.going} {t("going tonight")}
+          {s.going} {t("going")}
           {match && <span className="text-ink-soft"> · {match.first} {t("is into")} {joinVibes(match.shared)}</span>}
         </p>
         {flags.length > 0 && (
@@ -201,7 +203,7 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
   )
 }
 
-export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBuyRide }) {
+export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBuyRide, planWith, onPlanDone, onPaywall }) {
   const [data, setData] = useState(null)
   const [mood, setMood] = useState(null)
   const [q, setQ] = useState("") // search the spots, not free-text moods
@@ -210,6 +212,14 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   const [area, setArea] = useState("")
   const [busy, setBusy] = useState(null)
   const [openId, setOpenId] = useState(null)
+  // which night the board is for: tonight, or a night you're planning ahead
+  const [night, setNight] = useState(null)
+  useEffect(() => { if (planWith?.nights?.length) setNight(planWith.nights[0]) }, [planWith])
+  const [invite, setInvite] = useState(null) // { spot, when } right after a plan is born
+  const nightLabel = (iso) =>
+    !iso || iso === data?.tonight
+      ? t("tonight")
+      : new Date(`${iso}T12:00:00Z`).toLocaleDateString([], { weekday: "long", timeZone: "UTC" }).toLowerCase()
   // a @spot tapped in a chat lands here with that spot's sheet open
   useEffect(() => { if (focusSpot) { setOpenId(focusSpot); onFocused?.() } }, [focusSpot, onFocused])
   const [places, setPlaces] = useState([]) // anywhere in town that matches the search
@@ -245,15 +255,15 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   const addPlace = async (place) => {
     setBusy(place.osmId)
     // it goes on the tab you added it from (a wine bar added on chill stays on chill)
-    await post({ action: "add", place, mood: mood || place.mood })
+    await post({ action: "add", place, mood: mood || place.mood, night: data?.night })
     await load()
     setBusy(null)
   }
 
   const load = useCallback(() => {
-    cachedJson(`/api/mood?t=${token}&city=medellin`, (d) => { setData(d); setMood((m) => m || d.mood || "pregame") })
+    cachedJson(`/api/mood?t=${token}&city=medellin${night ? `&night=${night}` : ""}`, (d) => { setData(d); setMood((m) => m || d.mood || "pregame") })
       .catch(() => setData((d) => d || { board: {}, presence: [] }))
-  }, [token])
+  }, [token, night])
   useEffect(() => { load() }, [load])
   // the board is live on a night out: refresh every half minute
   useEffect(() => { const id = setInterval(load, 30000); return () => clearInterval(id) }, [load])
@@ -272,7 +282,26 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
 
   const toggleGoing = async (spot) => {
     setBusy(spot.id)
-    await post({ action: "going", spotId: spot.id, on: !spot.imGoing })
+    await post({ action: "going", spotId: spot.id, on: !spot.imGoing, night: data?.night })
+    if (!spot.imGoing) {
+      // a plan just got made: ask the person you're planning with, then offer to pull more people in
+      if (planWith) {
+        const r = await fetch("/api/mood", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ t: token, action: "invite", spotId: spot.id, night: data?.night, to: planWith.memberNo }),
+        }).then(async (x) => ({ status: x.status })).catch(() => ({ status: 0 }))
+        onPlanDone?.()
+        if (r.status === 402) {
+          // one sheet at a time: the paywall is the moment, the share sheet can wait
+          onPaywall?.({ reason: "invite", next: `invite-${spot.id}-${String(data?.night || "").replace(/-/g, "")}-${planWith.memberNo}`, draft: `${spot.name} · ${nightLabel(data?.night)} · ${t("with")} ${planWith.first}` })
+          await load()
+          setBusy(null)
+          return
+        }
+      }
+      setInvite({ spot, when: nightLabel(data?.night) })
+    }
     await load()
     setBusy(null)
   }
@@ -342,6 +371,39 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       )}
       {inMde && <RideCard token={token} city="medellin" onBuy={onBuyRide} />}
 
+      {/* making a plan with someone: pick the night, then the spot */}
+      {planWith && (
+        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 flex items-center gap-3 rounded-[1.4rem] bg-ink px-4 py-3 text-cream">
+          {planWith.photo && <img src={planWith.photo} alt="" className="h-10 w-10 shrink-0 rounded-full border-2 border-cream object-cover" />}
+          <div className="min-w-0 flex-1">
+            <p className="text-[14.5px] font-bold leading-tight">{t("making a plan with")} {planWith.first}</p>
+            <p className="text-[12px] text-cream/70">{t("pick a spot and tap i'm going. we'll ask them along.")}</p>
+          </div>
+          <button onClick={() => onPlanDone?.()} aria-label={t("close")} className="shrink-0 text-cream/70"><X size={18} /></button>
+        </motion.div>
+      )}
+
+      {/* plan tonight or any night ahead (the overlap with them, when planning together) */}
+      {inMde && data.tonight && (
+        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+          {(planWith?.nights?.length
+            ? planWith.nights
+            : Array.from({ length: 7 }, (_, i) => { const d = new Date(`${data.tonight}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + i); return d.toISOString().slice(0, 10) })
+          ).map((d) => {
+            const on = (night || data.tonight) === d
+            return (
+              <button
+                key={d}
+                onClick={() => setNight(d === data.tonight ? null : d)}
+                className={`shrink-0 rounded-full border-2 px-3.5 py-1.5 text-[12.5px] font-bold ${on ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
+              >
+                {d === data.tonight ? t("tonight") : new Date(`${d}T12:00:00Z`).toLocaleDateString([], { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
         {MOODS.map((m) => (
           <button
@@ -374,7 +436,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       />
 
       {/* who's out right now: neighborhood only, gone after a few hours */}
-      {inMde && (
+      {inMde && (!night || night === data.tonight) && (
       <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/70 p-3">
         {data.myOut ? (
           <div className="flex items-center justify-between gap-2">
@@ -514,7 +576,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
                   disabled={busy === p.osmId}
                   className="shrink-0 rounded-full bg-ink px-3.5 py-2 text-[12.5px] font-bold text-cream disabled:opacity-50"
                 >
-                  {busy === p.osmId ? <CircleNotch size={14} className="animate-spin" /> : t("i'm going tonight")}
+                  {busy === p.osmId ? <CircleNotch size={14} className="animate-spin" /> : t("i'm going")}
                 </motion.button>
               </motion.div>
             ))}
@@ -534,6 +596,9 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       {gPlaces?.length === 0 && <p className="mt-3 text-center text-[12.5px] text-ink-soft">{t("google maps has nothing by that name in medellín")}</p>}
       {gErr && <p className="mt-3 text-center text-[12.5px] font-semibold text-[#b3461f]">{gErr}</p>}
 
+      <AnimatePresence>
+        {invite && <InvitePrompt me={me} spot={invite.spot} when={invite.when} onClose={() => { setInvite(null); setTimeout(() => askPush(t("people join your plan")), 600) }} />}
+      </AnimatePresence>
       <AnimatePresence>
         {open && (
           <SpotSheet

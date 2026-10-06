@@ -7,6 +7,7 @@ import {
 import { CITY_INDEX, cityChip, rememberCity } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
 import { t } from "../lib/i18n"
+import RightNow from "../components/RightNow"
 import RangePicker from "../components/RangePicker"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
@@ -458,7 +459,7 @@ function UnlockSheet({ token, trip, count, onClose, onDone }) {
   )
 }
 
-export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest, closeSheets, postCity, onCityPosted }) {
+export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest, closeSheets, postCity, onCityPosted, onPaywall, onJoinTrip }) {
   const [state, setState] = useState("loading")
   const [trips, setTrips] = useState([])
   const [active, setActive] = useState(0) // index of the trip being viewed
@@ -547,6 +548,9 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
       <div className="flex-1 overflow-y-auto px-4 pb-28 pt-2">
 
 
+
+        {/* the daily reason to open the app: what should i do right now? */}
+        <RightNow token={token} me={me} onPaywall={onPaywall} />
 
         {/* my trips */}
         <div className="mb-4">
@@ -699,7 +703,17 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                       p={p}
                       cityLabel={cityName(trip.city).toLowerCase()}
                       onOpen={onOpenPerson}
-                      onMessage={(person) => onOpenDM({ memberNo: person.memberNo, name: person.name, ig: person.ig, photo: person.photo })}
+                      onMessage={(person) => {
+                        // unread? that's a conversation. otherwise: join their trip = a plan
+                        // on the nights you overlap (the first one up front)
+                        if (person.unread > 0 || !onJoinTrip) return onOpenDM({ memberNo: person.memberNo, name: person.name, ig: person.ig, photo: person.photo })
+                        const today = new Date().toISOString().slice(0, 10)
+                        const a = [trip.starts, person.starts, today].sort().pop()
+                        const b = [trip.ends, person.ends].sort()[0]
+                        const nights = []
+                        for (let d = new Date(`${a}T00:00:00Z`); d.toISOString().slice(0, 10) <= b && nights.length < 14; d.setUTCDate(d.getUTCDate() + 1)) nights.push(d.toISOString().slice(0, 10))
+                        onJoinTrip(person, nights.length ? nights : null)
+                      }}
                     />
                   ))}
                 </div>

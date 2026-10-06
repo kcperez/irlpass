@@ -3,13 +3,13 @@ import { t } from "../lib/i18n"
 
 // shown once after an update: what changed, and a button that takes you
 // straight to each thing. close it and it's gone (the dots stay until visited).
-export const WHATS_NEW = "whatsnew-2026-10"
+export const WHATS_NEW = "whatsnew-2026-10b"
 
 const ITEMS = [
+  { key: "now", emoji: "🎲", title: "what should i do right now?", body: "say how you feel. three picks open near you, with who from irlpass is going." },
+  { key: "mood", emoji: "🔥", title: "make a plan", body: "pick a spot and a night. a group chat forms and the people you want get asked along." },
   { key: "profile", emoji: "🛂", title: "your connections", body: "everyone you've met or gone out with on irlpass, with stamps for the cities you shared." },
   { key: "world", emoji: "🌍", title: "travel map", body: "see where the people you've met are headed next, and who's already there." },
-  { key: "mood", emoji: "🔎", title: "any spot in medellín", body: "search any bar, club or cafe. tap i'm going and it shows up for everyone." },
-  { key: "dms", emoji: "💬", title: "reply and react in dms", body: "hold a message to reply, react, edit or translate it." },
 ]
 
 export default function WhatsNew({ onGo, onClose }) {
@@ -25,7 +25,7 @@ export default function WhatsNew({ onGo, onClose }) {
       >
         <div className="mx-auto h-1.5 w-11 rounded-full bg-line" />
         <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">{t("new on irlpass")}</p>
-        <h2 className="display text-[28px] font-bold leading-tight">{t("the people you meet stay with you")}</h2>
+        <h2 className="display text-[28px] font-bold leading-tight">{t("your trip, planned in a tap")}</h2>
         <div className="mt-4 space-y-2">
           {ITEMS.map((it, i) => (
             <motion.button

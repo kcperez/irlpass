@@ -1,17 +1,27 @@
 import { db } from "./_db.js"
 import { sendEmail } from "./_email.js"
+import { pushMember } from "./_push.js"
 
 const COOLDOWN_MS = 90_000 // don't email the same member more than once per 90s
 
 // notify a member by member_no if they're opted in and not in cooldown. fire-and-forget.
-export async function notifyMemberNo(memberNo, { subject, line, ctaLabel = "open irlpass" }) {
+export async function notifyMemberNo(memberNo, { subject, line, ctaLabel = "open irlpass", push = null, email = true }) {
   try {
     const { data: m } = await db
       .from("members")
       .select("token, name, email, notify, last_notified_at")
       .eq("member_no", memberNo)
       .maybeSingle()
-    if (!m || !m.notify || !m.email) return
+    if (!m) return
+    // push goes out every time (it's instant and the phone groups them by tag);
+    // the email below keeps its cooldown and its opt-out
+    await pushMember(memberNo, {
+      title: push?.title || subject,
+      body: push?.body || line.replace(/<[^>]+>/g, ""),
+      url: `https://irlpass.xyz/?screen=app&t=${m.token}${push?.go ? `&go=${push.go}` : ""}`,
+      tag: push?.tag,
+    }).catch(() => {})
+    if (!email || !m.notify || !m.email) return
     if (m.last_notified_at && Date.now() - new Date(m.last_notified_at).getTime() < COOLDOWN_MS) return
 
     await sendEmail({
