@@ -28,24 +28,13 @@ async function audience() {
   const mde = new Set((trips || []).filter((t) => t.city === "medellin" && t.starts <= "2026-10-11" && t.ends >= "2026-10-10").map((t) => t.member_no))
   return (members || [])
     .filter((m) => m.email && m.notify !== false)
-    .map((m) => ({ ...m, trip: next.get(m.member_no) || null, edc: mde.has(m.member_no) }))
+    // the edc paragraph only while it's still ahead
+    .map((m) => ({ ...m, trip: next.get(m.member_no) || null, edc: mde.has(m.member_no) && today() <= "2026-10-11" }))
     // edc people first, then anyone with dates coming up, then everyone else
     .sort((a, b) => b.edc - a.edc || !!b.trip - !!a.trip)
 }
 
-export default async function handler(req, res) {
-  const me = await getUser(req.method === "GET" ? req.query?.t : req.body?.t)
-  if (!actsAsMod(me)) return res.status(401).json({ error: "mods only" })
-  try {
-    const [all, done] = await Promise.all([audience(), sentSet()])
-    let todo = all.filter((m) => !done.has(m.member_no))
-    if (req.body?.only === "medellin") todo = todo.filter((m) => m.edc)
-    // test: just me, nothing marked as sent
-    const test = req.body?.test === true
-    if (test) todo = all.filter((m) => m.member_no === me.memberNo).map((m) => ({ ...m, edc: true }))
-    if (req.method === "GET") {
-      return res.status(200).json({ audience: all.length, edc: all.filter((m) => m.edc).length, sent: done.size, left: todo.length })
-    }
+export async function sendBatch(todo, done, test = false) {
     const sent = []
     const failed = []
     for (const m of todo.slice(0, BATCH)) {
@@ -68,6 +57,33 @@ export default async function handler(req, res) {
       else failed.push({ memberNo: m.member_no, why: mail.reason })
       await new Promise((r) => setTimeout(r, 600)) // resend rate limit
     }
+  return { sent, failed }
+}
+
+// daily from vercel cron: the next batch of 40, edc people first, until everyone has it
+export async function cronBatch() {
+  const [all, done] = await Promise.all([audience(), sentSet()])
+  const todo = all.filter((m) => !done.has(m.member_no))
+  if (!todo.length) return { sent: 0, left: 0 }
+  const { sent, failed } = await sendBatch(todo, done)
+  await db.from("app_settings").upsert({ key: KEY, value: JSON.stringify([...done]), updated_at: new Date().toISOString() }, { onConflict: "key" })
+  return { sent: sent.length, failed: failed.length, left: todo.length - sent.length }
+}
+
+export default async function handler(req, res) {
+  const me = await getUser(req.method === "GET" ? req.query?.t : req.body?.t)
+  if (!actsAsMod(me)) return res.status(401).json({ error: "mods only" })
+  try {
+    const [all, done] = await Promise.all([audience(), sentSet()])
+    let todo = all.filter((m) => !done.has(m.member_no))
+    if (req.body?.only === "medellin") todo = todo.filter((m) => m.edc)
+    // test: just me, nothing marked as sent
+    const test = req.body?.test === true
+    if (test) todo = all.filter((m) => m.member_no === me.memberNo).map((m) => ({ ...m, edc: true }))
+    if (req.method === "GET") {
+      return res.status(200).json({ audience: all.length, edc: all.filter((m) => m.edc).length, sent: done.size, left: todo.length })
+    }
+    const { sent, failed } = await sendBatch(todo, done, test)
     await db.from("app_settings").upsert({ key: KEY, value: JSON.stringify([...done]), updated_at: new Date().toISOString() }, { onConflict: "key" })
     return res.status(200).json({ sent: sent.length, failed, left: todo.length - sent.length })
   } catch (e) {

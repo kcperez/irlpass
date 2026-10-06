@@ -17,6 +17,10 @@
     {
       "path": "/api/cron-checkin",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron-announce",
+      "schedule": "0 16 * * *"
     }
   ]
 }
