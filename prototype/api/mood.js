@@ -270,6 +270,10 @@ export default async function handler(req, res) {
       const spotId = Number(req.body?.spotId)
       const to = String(req.body?.to || "")
       if (!spotId || !/^\d{3}$/.test(to) || to === me.memberNo) return res.status(400).json({ error: "who's it for?" })
+      // same safety rule as dms: someone who only takes messages from women never gets this from a man
+      const { data: target } = await db.from("members").select("allow_dm_from_men, banned").eq("member_no", to).maybeSingle()
+      if (!target || target.banned) return res.status(404).json({ error: "who's it for?" })
+      if (me.gender === "man" && target.allow_dm_from_men === false && !actsAsMod(me)) return res.status(403).json({ error: "they only take plans from women" })
       const reach = actsAsMod(me) ? { ok: true } : await canReach(me, "medellin", night, night)
       if (!reach.ok) return res.status(402).json({ error: "your plan is ready. start your free month to send it.", gate: "invite" })
       const { data: sp } = await db.from("spots").select("name").eq("id", spotId).maybeSingle()

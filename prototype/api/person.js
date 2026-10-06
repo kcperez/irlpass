@@ -108,6 +108,7 @@ export default async function handler(req, res) {
       been: past.map(cityLabel),
       out: out || spots?.length ? { area: out?.area || spots?.[0]?.area || "", spots: (spots || []).map((s) => s.name) } : null,
       canMessage: !self && open && !blocked,
+      blocked,
       talked: !!dms.get(no)?.talked,
       self,
     })

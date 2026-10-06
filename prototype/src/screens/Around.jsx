@@ -106,10 +106,11 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
 
   const everyone = useMemo(() => {
     const to = addDays(from, 13)
-    const inWindow = (data?.people || []).filter((p) => p.starts <= to && p.ends >= from)
+    // a small city shows everyone, whatever their dates (the two-week window is for busy ones)
+    const inWindow = sparse ? data?.people || [] : (data?.people || []).filter((p) => p.starts <= to && p.ends >= from)
     if (!selectedDay) return dedupe(inWindow).sort(byPresence)
     return dedupe(inWindow.filter((p) => p.starts <= selectedDay && p.ends >= selectedDay)).sort(byPresence)
-  }, [data, from, selectedDay])
+  }, [data, from, selectedDay, sparse])
   // josh: a day tap is the hot list (who's going out that night, spot attached);
   // the avatar row / "see everyone" is the full list. never 76 cards by default.
   const day = selectedDay || data?.night
@@ -153,6 +154,11 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
           ? t("people here on your dates. say hi to join them.")
           : t("post your dates for this city to see who you'd overlap with.")}
       </p>
+      {!data.iHaveDates && (
+        <button onClick={() => onNeedDates?.(city)} className="mt-2 rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-cream active:scale-95">
+          + {t("post your dates")}
+        </button>
+      )}
 
       {myCities.length > 1 && !picking && (
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -423,7 +429,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                     onClick={() => (p.unread > 0 ? onOpenDM(p) : onMakePlan ? onMakePlan(p) : onOpenDM(p))}
                     className={`w-full rounded-full py-2 text-[12.5px] font-bold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
                   >
-                    {p.unread > 0 ? `${p.unread} ${t("new")} · ${t("make a plan")}` : t("make a plan")}
+                    {p.unread > 0 ? `${p.unread} ${t("new")} · ${t("open chat")}` : t("make a plan")}
                   </button>
                 ) : p.womenOnly ? (
                   <span className="flex justify-center py-2 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">

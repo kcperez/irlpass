@@ -129,14 +129,30 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
   return (
     <>
       <section className={`overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.06),0_14px_34px_-18px_rgba(58,50,44,0.45)] ${compact ? "" : "mb-4"}`}>
-        <div className="bg-gradient-to-br from-[#e6dcfa] via-[#f6efe6] to-[#fbe1cf] px-4 pb-3 pt-4">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#e6dcfa] via-[#f6efe6] to-[#fbe1cf] px-4 pb-4 pt-4">
+          <motion.span
+            aria-hidden
+            animate={{ rotate: [0, 12, -8, 0], y: [0, -3, 0] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+            className="pointer-events-none absolute -right-2 -top-1 text-[64px] opacity-90"
+          >
+            🎲
+          </motion.span>
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
-            {t("right now")} · {lastCity || t("near you")} · {clock}
+            {t("the shuffle")} · {lastCity || t("near you")} · {clock}
           </p>
-          <h3 className="display mt-0.5 text-[24px] font-bold leading-tight">{t("how are you feeling?")}</h3>
+          <h3 className="display mt-0.5 max-w-[78%] text-[26px] font-bold leading-[1.05]">{t("what should i do right now?")}</h3>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => ask("surprise")}
+            className="mt-3 w-full rounded-full bg-ink py-3.5 text-[15.5px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]"
+          >
+            🎲 {t("shuffle me")}
+          </motion.button>
+          <p className="mt-2.5 text-[12px] font-semibold text-ink-soft">{t("or tell it how you feel")}</p>
         </div>
         <div className="grid grid-cols-4 gap-1.5 p-3">
-          {FEELINGS.map((x, i) => (
+          {FEELINGS.filter((x) => x.key !== "surprise").map((x, i) => (
             <motion.button
               key={x.key}
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.025 }}

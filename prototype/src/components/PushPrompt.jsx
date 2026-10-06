@@ -9,6 +9,8 @@ export default function PushPrompt({ token }) {
   const [why, setWhy] = useState(null)
   const [state, setState] = useState(null)
   const [busy, setBusy] = useState(false)
+  // tell the shell a prompt is up, so the night prompt waits its turn
+  useEffect(() => { window.dispatchEvent(new CustomEvent("irl:prompt", { detail: !!why })) }, [why])
   useEffect(() => {
     const on = (e) => {
       const st = pushState()
@@ -38,7 +40,7 @@ export default function PushPrompt({ token }) {
         <motion.div
           initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
           transition={{ type: "spring", stiffness: 340, damping: 30 }}
-          className="fixed inset-x-0 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-[45] mx-auto w-[calc(100%-1.5rem)] max-w-[436px] rounded-[1.6rem] bg-white p-4 shadow-[0_18px_40px_-14px_rgba(28,27,23,0.55)]"
+          className="fixed inset-x-0 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-[70] mx-auto w-[calc(100%-1.5rem)] max-w-[436px] rounded-[1.6rem] bg-white p-4 shadow-[0_18px_40px_-14px_rgba(28,27,23,0.55)]"
         >
           <p className="text-[15px] font-bold leading-snug">🔔 {t("get a ping when")} {why}?</p>
           {state === "needs-install" ? (

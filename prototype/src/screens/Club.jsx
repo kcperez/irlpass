@@ -525,9 +525,9 @@ function TopBar({ me, onProfile, dot }) {
 // the one paywall. the monthly plan starts with a free month (card down,
 // $29 after unless they cancel). "next" says what happens when they come back:
 // deliver the message they wrote, or buy the ride. a code (ride buyers, hosts,
-// promos) skips the card entirely.
+// promos) skips the card entirely. $19.99/mo after the free month, or $89/yr.
 function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "", onUnlocked, onClose }) {
-  const cityName = cityOf(city)?.name || city
+  const cityName = cityChip(city || "medellin").name.toLowerCase()
   const lines =
     reason === "deliver"
       ? { kicker: t("your message is ready"), head: t("start your free month to deliver it"), sub: draft ? `“${draft.slice(0, 120)}”` : "" }
@@ -549,12 +549,12 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
   const [code, setCode] = useState("")
   const [err, setErr] = useState("")
   const [copied, setCopied] = useState(false)
-  const go = async () => {
+  const go = async (plan = "monthly") => {
     setBusy(true)
     const r = await fetch("/api/checkout", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token, plan: "monthly", inApp: true, next }),
+      body: JSON.stringify({ token, plan, inApp: true, next }),
     }).then((x) => x.json()).catch(() => null)
     if (r?.url) window.location.href = r.url
     else { setBusy(false); setErr(t("checkout isn't available right now")) }
@@ -590,7 +590,7 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
         initial={{ y: 60 }}
         animate={{ y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[440px] rounded-t-3xl border-t border-line bg-cream p-6 pb-[max(2rem,env(safe-area-inset-bottom))]"
+        className="max-h-[92dvh] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-cream p-6 pb-[max(2rem,env(safe-area-inset-bottom))]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
         <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-lime-deep">
@@ -605,10 +605,13 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
             </li>
           ))}
         </ul>
-        <motion.button whileTap={{ scale: 0.98 }} onClick={go} disabled={busy} className="mt-5 w-full rounded-full bg-ink py-4 text-center text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)] disabled:opacity-60">
+        <motion.button whileTap={{ scale: 0.98 }} onClick={() => go("monthly")} disabled={busy} className="mt-5 w-full rounded-full bg-ink py-4 text-center text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)] disabled:opacity-60">
           <span className="block text-[15.5px] font-bold">{busy ? t("one sec…") : t("start your free month")}</span>
           <span className="block font-mono text-[10px] text-cream/60">{t("then $19.99/mo · cancel anytime")}</span>
         </motion.button>
+        <button onClick={() => go("yearly")} disabled={busy} className="mt-2 w-full py-1.5 text-[12.5px] font-semibold text-ink-soft">
+          {t("or $89 for the year")}
+        </button>
 
         {codeOpen ? (
           <div className="mt-3 flex gap-2">
@@ -963,6 +966,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
       if (d?.gate === "dates") {
         setPending([])
         setNeedsDates(true)
+        if (body.action === "send") setText(body.text)
         return
       }
       if (d?.gate === "deliver" && body.action === "send") {
@@ -973,9 +977,20 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
         onPaywall?.({ reason: "deliver", next: `room-${channel}`, draft: body.text })
         return
       }
+      if (!r.ok && body.action === "send") {
+        // didn't post: take the bubble back, give them their text and the reason
+        setPending([])
+        setText(body.text)
+        setSendErr(d?.error || t("that didn't send. try again"))
+        return
+      }
+      setSendErr("")
       pollRef.current()
-    } catch { /* offline */ }
+    } catch {
+      if (body.action === "send") { setPending([]); setText(body.text); setSendErr(t("you're offline. try again")) }
+    }
   }
+  const [sendErr, setSendErr] = useState("")
 
   const send = async () => {
     const body = text.trim()
@@ -1244,10 +1259,10 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                                 onClick={() => { setEditing(m); setReplyTo(null); setText(m.text); setFocused(null) }}
                                 className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
                               >
-                                edit
+                                {t("edit")}
                               </button>
                               <button onClick={() => remove(m)} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b3461f]">
-                                delete
+                                {t("delete")}
                               </button>
                             </>
                           )}
@@ -1287,19 +1302,20 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
             >
               <div className="mb-2 flex items-center justify-between rounded-xl border border-line bg-cream-deep/70 px-3 py-1.5">
                 <p className="truncate font-mono text-[10.5px] text-ink-soft">
-                  {editing ? "editing your message" : `replying to ${replyTo.from.name.toLowerCase()}: ${replyTo.text.slice(0, 50)}`}
+                  {editing ? t("editing your message") : `${t("replying to")} ${replyTo.from.name.toLowerCase()}: ${replyTo.text.slice(0, 50)}`}
                 </p>
                 <button
                   onClick={() => { setReplyTo(null); setEditing(null); setText("") }}
                   className="ml-2 font-mono text-[10px] uppercase text-ink-soft"
                 >
-                  cancel
+                  {t("cancel")}
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-        <SpotSuggest token={token} text={text} setText={setText} />
+        {sendErr && <p className="mb-2 text-center text-[12px] font-semibold text-[#b3461f]">{sendErr}</p>}
+        {(channel === "medellin" || channel.startsWith("spot-")) && <SpotSuggest token={token} text={text} setText={setText} />}
         {mentionPool.length > 0 && (
           <div className="mb-2 flex gap-1.5 overflow-x-auto">
             {mentionPool.map((f) => (
@@ -1387,7 +1403,7 @@ function DeniedScreen() {
 
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
-function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld, onBuyRide }) {
+function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld, onBuyRide, onOpenRoom }) {
   const [roomOpen, setRoomOpen] = useState(false)
   const [rooms, setRooms] = useState([])
   const [roomCity, setRoomCity] = useState(me.city || "medellin")
@@ -1469,15 +1485,24 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
   const [inboxQ, setInboxQ] = useState("")
 
   const loadConvo = useCallback((no) => {
-    fetch(`/api/dm?t=${token}&with=${no}`).then((r) => r.json()).then((d) => setConvo(d)).catch(() => setConvo({ with: null, messages: [] }))
+    fetch(`/api/dm?t=${token}&with=${no}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((d) => setConvo((prev) => (d?.messages ? d : prev)))
+      .catch(() => setConvo((prev) => prev || { with: null, messages: [], failed: true }))
   }, [token])
 
   useEffect(() => {
     if (openWith) { setConvo(null); loadConvo(openWith.memberNo) }
     else { setConvo(null); loadInbox() }
+    // an open conversation stays live: replies show up without backing out
+    if (!openWith) return
+    const id = setInterval(() => loadConvo(openWith.memberNo), 3500)
+    return () => clearInterval(id)
   }, [openWith, loadConvo, loadInbox])
 
-  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }) }, [convo])
+  // only jump to the bottom when a message actually arrives, not on every poll
+  const convoLen = convo?.messages?.length || 0
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }) }, [convoLen])
 
   const [dmTranslated, setDmTranslated] = useState({}) // key -> text | "loading" | "error"
   const translateDm = async (m) => {
@@ -1563,7 +1588,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
     const other = convo?.with || openWith
     return (
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+        <div className="flex items-center gap-3 border-b border-line px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <button onClick={() => setOpenWith(null)} className="text-ink-soft active:scale-90"><ArrowLeft size={20} /></button>
           {other.locked ? (
             <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-cream-deep">
@@ -1681,7 +1706,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           )}
           <div ref={endRef} />
         </div>
-        {convo && !convo.messages.some((m) => m.text.startsWith("📹")) && (
+        {convo && other.memberNo !== "002" && convo.messages.some((m) => m.fromMe) && convo.messages.some((m) => !m.fromMe) && !convo.messages.some((m) => m.text.startsWith("📹")) && (
           <button
             onClick={askVideo}
             disabled={busy}
@@ -1702,8 +1727,8 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="px-3 pt-2"><SpotSuggest token={token} text={text} setText={setText} /></div>
-        <div className="flex items-end gap-2 border-t border-line px-3 py-2.5">
+        {me.city === "medellin" && <div className="px-3 pt-2"><SpotSuggest token={token} text={text} setText={setText} /></div>}
+        <div className="flex items-end gap-2 border-t border-line px-3 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2.5">
           <Composer id="dm-composer" value={text} onChange={setText} onSend={() => send()} placeholder={t("message…")} />
           <button onClick={() => send()} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
             <PaperPlaneRight size={17} weight="fill" />
@@ -1740,7 +1765,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       {rooms.map((c) => (
         <button
           key={c}
-          onClick={() => { setRoomCity(c); setRoomOpen(true) }}
+          onClick={() => { setRoomUnread((u) => ({ ...u, [c]: 0 })); onOpenRoom ? onOpenRoom({ slug: c, name: cityChip(c).name.toLowerCase(), emoji: cityChip(c).emoji }) : (setRoomCity(c), setRoomOpen(true)) }}
           className="lift mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left"
         >
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-cream text-[26px] leading-none" aria-hidden>
@@ -1810,7 +1835,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
               <Avatar member={th.with} photo={photoMap[th.with.memberNo]} />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{th.with.name.toLowerCase()} <RepBadge score={th.with.repScore} verified={th.with.verified} /></p>
-                <p className="truncate font-mono text-[11px] text-ink-soft">{th.lastFromMe ? "you: " : ""}{th.last}</p>
+                <p className="truncate font-mono text-[11px] text-ink-soft">{th.lastFromMe ? `${t("you")}: ` : ""}{th.last}</p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
                 <span className="font-mono text-[9.5px] text-ink-soft">{msgTime(th.at)}</span>
@@ -2073,7 +2098,16 @@ export default function Club({ token }) {
   // the board (on her spot if she's out somewhere), you pick the spot and night,
   // a group chat forms, and she gets asked along.
   const [planWith, setPlanWith] = useState(null) // { memberNo, first, photo, nights }
-  const makePlan = (p, nights = null) => {
+  const makePlan = (p, nights = null, city = null) => {
+    // plan boards only exist where we have a guide (medellín for now). anywhere
+    // else, a plan starts as a conversation instead of a medellín bar list.
+    if (city && city !== "medellin") {
+      setPersonNo(null)
+      setDmWith({ memberNo: p.memberNo, name: p.name || p.first, photo: p.photo || null })
+      setDmReturn(tab)
+      setTab("dms")
+      return
+    }
     setPersonNo(null)
     setDmWith(null)
     setCityRoom(null)
@@ -2085,6 +2119,8 @@ export default function Club({ token }) {
   const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
   const [personNo, setPersonNo] = useState(null) // whose profile is open
   const [hostOpen, setHostOpen] = useState(false)
+  const [pushUp, setPushUp] = useState(false)
+  useEffect(() => { const on = (e) => setPushUp(!!e.detail); window.addEventListener("irl:prompt", on); return () => window.removeEventListener("irl:prompt", on) }, [])
   const [worldOpen, setWorldOpen] = useState(false) // the "where irlpass is" map
   const [cityRoom, setCityRoom] = useState(null) // another city's chat, opened from the map
   const [peopleKey, setPeopleKey] = useState(0) // bump to reload the people grid after vibes change
@@ -2122,11 +2158,13 @@ export default function Club({ token }) {
   const [profileNew, clearProfileNew] = useNew("connections")
   useEffect(() => {
     if (state !== "ok" || !me || nameOpen || vibesOpen || isSeen(WHATS_NEW)) return
+    // never on top of something they came for (a push deep link, a sheet, a chat)
+    if (paywall || personNo || profileOpen || worldOpen || focusSpot || dmWith || cityRoom || spotRoom || new URLSearchParams(window.location.search).get("go")) return
     // members who still owe their vibes get that sheet this visit instead
     if ((me.interests || []).filter((i) => VIBES.some((v) => v.key === i)).length < MIN_VIBES) return
     const id = setTimeout(() => setWhatsNewOpen(true), 1200)
     return () => clearTimeout(id)
-  }, [state, me, nameOpen, vibesOpen])
+  }, [state, me, nameOpen, vibesOpen, paywall, personNo, profileOpen, worldOpen, focusSpot, dmWith, cityRoom, spotRoom])
   const closeWhatsNew = () => { markSeen(WHATS_NEW); setWhatsNewOpen(false) }
 
   // flags + names for every real city in use, so rooms and chips have an identity
@@ -2178,7 +2216,8 @@ export default function Club({ token }) {
         // no geolocation: where you are is where your dates say you are
       })
       // a cached profile already on screen stays up if the network blips
-      .catch(() => setState((st) => (st === "ok" ? st : "denied")))
+      // only a real "no such member" is denied; a network blip gets a retry, not a logout
+      .catch((e) => setState((st) => (st === "ok" ? st : e === 401 ? "denied" : "offline")))
   }, [token])
 
   useEffect(() => { if (state === "ok") registerSW(token) }, [state, token])
@@ -2307,6 +2346,15 @@ export default function Club({ token }) {
   if (state === "denied") {
     return <DeniedScreen />
   }
+  if (state === "offline") {
+    return (
+      <div className="flex min-h-[var(--app-h)] flex-col items-center justify-center gap-3 px-8 text-center">
+        <p className="display text-[24px] font-bold">{t("can't reach irlpass")}</p>
+        <p className="text-[14px] text-ink-soft">{t("the signal dropped. your account is fine.")}</p>
+        <button onClick={() => window.location.reload()} className="mt-2 rounded-full bg-ink px-6 py-3 text-[14px] font-bold text-cream">{t("try again")}</button>
+      </div>
+    )
+  }
 
   // josh's order: dates and chat together, tonight's mood next to people
   // josh's funnel order: the two discovery tabs lead, chat is the pipe, mood is lightest
@@ -2331,7 +2379,7 @@ export default function Club({ token }) {
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
         className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
-        {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => setViewCity(c)} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} onPaywall={setPaywall} onJoinTrip={(p, nights) => makePlan(p, nights)} />}
+        {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => { setViewCity(c); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} onPaywall={setPaywall} onJoinTrip={(p, nights, city) => makePlan(p, nights, city)} onPostCityUsed={() => setPostCity(null)} />}
         {!cityRoom && tab === "members" && (
           <Around
             key={peopleKey}
@@ -2340,11 +2388,11 @@ export default function Club({ token }) {
             viewCity={viewCity}
             onViewCity={setViewCity}
             onOpenDM={(m) => { setDmWith(m); setDmReturn("members"); setTab("dms") }}
-            onMakePlan={(p) => makePlan(p)}
+            onMakePlan={(p) => makePlan(p, null, viewCity || me.city)}
             onOpenPerson={setPersonNo}
             onOpenWorld={() => setWorldOpen(true)}
             onOpenTonight={() => setTab("mood")}
-            onUnlock={() => { setTab("trips"); setUnlockRequest(Date.now()) }}
+            onUnlock={() => setPaywall("dm")}
             onNeedDates={(c) => { setTab("trips"); setPostCity(c) }}
           />
         )}
@@ -2359,6 +2407,7 @@ export default function Club({ token }) {
             onOpenPerson={setPersonNo}
             onNeedDates={(c) => { setCityRoom(null); setTab("trips"); setPostCity(c) }}
             onBack={() => setCityRoom(null)}
+            onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
         )}
         {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => setPlanWith(null)} onPaywall={setPaywall} />}
@@ -2378,7 +2427,7 @@ export default function Club({ token }) {
           setDmWith(v)
           // back out of a thread opened from "say hi": return to that screen
           if (v === null && dmReturn) { setTab(dmReturn); setDmReturn(null) }
-        }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => { if (r === "unlock") { setTab("trips"); setUnlockRequest(Date.now()) } else setPaywall(r) }} onBuyRide={buyRide} />}
+        }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => setPaywall(r === "unlock" ? "dm" : r)} onBuyRide={buyRide} onOpenRoom={setCityRoom} />}
       </motion.div>
       <AnimatePresence>
         {profileOpen && (
@@ -2405,7 +2454,7 @@ export default function Club({ token }) {
             onClose={() => setWorldOpen(false)}
             onBrowse={(slug) => { setWorldOpen(false); setViewCity(slug); setTab("members") }}
             onOpenRoom={(c) => { setWorldOpen(false); setCityRoom(c) }}
-            onPaywall={() => { setWorldOpen(false); setPaywall("city") }}
+            onPaywall={(c) => { setWorldOpen(false); setPaywall(c?.slug ? { reason: "city", city: c.slug } : "city") }}
             onOpenPerson={(no) => { setWorldOpen(false); setPersonNo(no) }}
           />
         )}
@@ -2417,10 +2466,10 @@ export default function Club({ token }) {
             memberNo={personNo}
             onClose={() => setPersonNo(null)}
             onMessage={(p) => {
-              if (!p.talked) return makePlan(p)
+              if (!p.talked) return makePlan(p, null, p.trips?.[0]?.city || me.city)
               setPersonNo(null); setDmWith({ memberNo: p.memberNo, name: p.name || p.first, ig: p.ig, photo: p.photo }); setDmReturn(tab); setTab("dms")
             }}
-            onUnlock={() => { setPersonNo(null); setTab("trips"); setUnlockRequest(Date.now()) }}
+            onUnlock={() => { setPersonNo(null); setPaywall("dm") }}
           />
         )}
       </AnimatePresence>
@@ -2477,11 +2526,11 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       <PushPrompt token={token} />
-      {!inThread && (
+      {(
         <NightPrompt
           token={token}
           city={me.city}
-          hold={whatsNewOpen || nameOpen || vibesOpen || !!paywall || profileOpen || !!personNo || worldOpen}
+          hold={inThread || pushUp || hostOpen || whatsNewOpen || nameOpen || vibesOpen || !!paywall || profileOpen || !!personNo || worldOpen}
           onAnswered={(a) => { if (a === "out") { setNotice(t("you're on tonight's board")); setPeopleKey((k) => k + 1) } }}
         />
       )}
@@ -2489,7 +2538,7 @@ export default function Club({ token }) {
         {notice && (
           <motion.div
             initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
-            className="fixed inset-x-0 top-3 z-[60] mx-auto w-fit max-w-[90%] rounded-full bg-ink px-4 py-2.5 text-center text-[13px] font-bold text-cream shadow-lg"
+            className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[60] mx-auto w-fit max-w-[90%] rounded-full bg-ink px-4 py-2.5 text-center text-[13px] font-bold text-cream shadow-lg"
           >
             {notice}
           </motion.div>

@@ -88,7 +88,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
                   <X size={18} weight="bold" />
                 </button>
                 {p.out && (
-                  <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-bold text-cream shadow-lg">
+                  <span className={`absolute left-3 ${viewNo !== memberNo ? "top-14" : "top-3"} flex items-center gap-1.5 rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-bold text-cream shadow-lg`}>
                     <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-[#5fd35f]" /></span>
                     {t("going out tn")}{p.out.area ? ` · ${p.out.area}` : ""}
                   </span>
@@ -239,7 +239,12 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
               </div>
             </div>
 
-            {!p.self && (
+            {!p.self && p.blocked && (
+              <div className="border-t border-line/70 bg-cream/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft">
+                {t("women only")}
+              </div>
+            )}
+            {!p.self && !p.blocked && (
               <div className="border-t border-line/70 bg-cream/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
                 {p.canMessage ? (
                   <motion.button whileTap={{ scale: 0.97 }} onClick={() => onMessage?.(p)} className="w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]">

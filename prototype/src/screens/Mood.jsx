@@ -292,6 +292,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           body: JSON.stringify({ t: token, action: "invite", spotId: spot.id, night: data?.night, to: planWith.memberNo }),
         }).then(async (x) => ({ status: x.status })).catch(() => ({ status: 0 }))
         onPlanDone?.()
+        setOpenId(null) // one sheet at a time
         if (r.status === 402) {
           // one sheet at a time: the paywall is the moment, the share sheet can wait
           onPaywall?.({ reason: "invite", next: `invite-${spot.id}-${String(data?.night || "").replace(/-/g, "")}-${planWith.memberNo}`, draft: `${spot.name} · ${nightLabel(data?.night)} · ${t("with")} ${planWith.first}` })
@@ -300,6 +301,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           return
         }
       }
+      setOpenId(null)
       setInvite({ spot, when: nightLabel(data?.night) })
     }
     await load()

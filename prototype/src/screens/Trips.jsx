@@ -46,7 +46,7 @@ function Initials({ name, photo, locked, size = "h-11 w-11" }) {
   )
 }
 
-function PersonRow({ p, onMessage, onOpen, cityLabel }) {
+function PersonRow({ p, onMessage, onOpen, cityLabel, viewerIsMan }) {
   return (
     <div className="flex items-center gap-3 border-b border-line/60 px-4 py-3 last:border-b-0">
       <button onClick={() => onOpen?.(p.memberNo)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
@@ -81,7 +81,7 @@ function PersonRow({ p, onMessage, onOpen, cityLabel }) {
         </p>
       </div>
       </button>
-      {!p.womenOnly ? (
+      {!(p.womenOnly && viewerIsMan) ? (
         <button
           onClick={() => onMessage(p)}
           className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
@@ -89,7 +89,7 @@ function PersonRow({ p, onMessage, onOpen, cityLabel }) {
           {p.unread > 0 ? `${p.unread} ${t("new")}` : t("join their trip")}
         </button>
       ) : (
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">women only</span>
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">{t("women only")}</span>
       )}
     </div>
   )
@@ -460,7 +460,7 @@ function UnlockSheet({ token, trip, count, onClose, onDone }) {
   )
 }
 
-export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest, closeSheets, postCity, onCityPosted, onPaywall, onJoinTrip }) {
+export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest, closeSheets, postCity, onCityPosted, onPaywall, onJoinTrip, onPostCityUsed }) {
   const [state, setState] = useState("loading")
   const [trips, setTrips] = useState([])
   const [active, setActive] = useState(0) // index of the trip being viewed
@@ -493,10 +493,11 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
   }, [])
 
   // sent here from a city chat they can't write in yet
-  useEffect(() => { if (postCity) setFormOpen(true) }, [postCity])
+  useEffect(() => { if (postCity) { setFormOpen(true); onPostCityUsed?.() } }, [postCity]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // the dm screen bounced someone off the paywall: open the sheet here
-  useEffect(() => { if (unlockRequest) setUnlockOpen(true) }, [unlockRequest])
+  // (the one paywall lives in Club now: free month, then $19.99)
+  useEffect(() => { if (unlockRequest) onPaywall?.({ reason: "dm" }) }, [unlockRequest]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // only one sheet at a time: the profile sheet closes these
   useEffect(() => {
@@ -706,6 +707,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                       p={p}
                       cityLabel={cityName(trip.city).toLowerCase()}
                       onOpen={onOpenPerson}
+                      viewerIsMan={me?.gender === "man"}
                       onMessage={(person) => {
                         // unread? that's a conversation. otherwise: join their trip = a plan
                         // on the nights you overlap (the first one up front)
@@ -715,7 +717,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                         const b = [trip.ends, person.ends].sort()[0]
                         const nights = []
                         for (let d = new Date(`${a}T00:00:00Z`); d.toISOString().slice(0, 10) <= b && nights.length < 14; d.setUTCDate(d.getUTCDate() + 1)) nights.push(d.toISOString().slice(0, 10))
-                        onJoinTrip(person, nights.length ? nights : null)
+                        onJoinTrip(person, nights.length ? nights : null, trip.city)
                       }}
                     />
                   ))}
@@ -723,11 +725,11 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
 
                 {lockedCount > 0 && (
                   <button
-                    onClick={() => setUnlockOpen(true)}
+                    onClick={() => onPaywall?.({ reason: "dm" })}
                     className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-4 text-[15px] font-semibold text-cream"
                   >
                     <LockSimple size={16} weight="fill" />
-                    message {lockedCount === overlap.count ? "them" : `the other ${lockedCount}`} · $19
+                    {t("meet them")} · {t("first month free")}
                   </button>
                 )}
             {overlap.access && (
@@ -789,15 +791,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
       </AnimatePresence>
 
       <AnimatePresence>
-        {unlockOpen && trip && (
-          <UnlockSheet
-            token={token}
-            trip={trip}
-            count={overlap?.count || 0}
-            onClose={() => setUnlockOpen(false)}
-            onDone={() => setUnlockOpen(false)}
-          />
-        )}
+
       </AnimatePresence>
     </div>
   )
