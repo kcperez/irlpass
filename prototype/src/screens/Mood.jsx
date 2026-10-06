@@ -8,6 +8,7 @@ import { countryOf } from "../lib/countries"
 import RideCard from "../components/RideCard"
 import InvitePrompt from "../components/InvitePrompt"
 import { askPush } from "../lib/push"
+import { MoreList } from "../lib/more"
 import { cityChip } from "../lib/cities"
 
 // the guide: tonight in medellín, the way a good city guide reads. pick a
@@ -508,8 +509,12 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       {sec.label && sec.list.length > 0 && (
         <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft">{sec.label}</p>
       )}
-      <div className="mt-4 space-y-5">
-        {sec.list.map((s, i) => (
+      <MoreList
+        items={sec.list}
+        step={6}
+        resetKey={`${mood}-${needle}-${night}`}
+        wrap={(kids) => <div className="mt-4 space-y-5">{kids}</div>}
+        render={(s, i) => (
           <motion.article
             key={s.id}
             initial={{ opacity: 0, y: 12 }}
@@ -548,8 +553,8 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
               </div>
             </div>
           </motion.article>
-        ))}
-      </div>
+        )}
+      />
       </div>
       ))}
       {spots.length === 0 && !extra.length && (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useContext } from "react"
 import { SpotLink } from "../lib/spotlink"
-import { cachedJson } from "../lib/cached"
+import { MoreList } from "../lib/more"
+import { cachedJson, prefetch } from "../lib/cached"
 import { motion, AnimatePresence, MotionConfig, useDragControls } from "framer-motion"
 import {
   CalendarPlus,
@@ -1456,8 +1457,9 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           fetch("/api/stats")
             .then((r) => r.json())
             .then((st) => {
-              const all = Object.keys(st.byCity || {})
-              setRooms((prev) => [...new Set([...prev, ...all])])
+              // every other city's room goes in one collapsed "moderate" row, not the main list
+              const own = new Set(cities.length ? cities : [me.city || "medellin"])
+              setModRooms(Object.keys(st.byCity || {}).filter((c) => !own.has(c)).sort((a, b) => (st.byCity[b] || 0) - (st.byCity[a] || 0)))
             })
             .catch(() => {})
         }
@@ -1465,6 +1467,8 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+  const [modRooms, setModRooms] = useState([])
+  const [modOpen, setModOpen] = useState(false)
   const [threads, setThreads] = useState(null)
   const [convo, setConvo] = useState(null) // { with, messages }
   const [text, setText] = useState("")
@@ -1784,6 +1788,27 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           )}
         </button>
       ))}
+      {modRooms.length > 0 && (
+        <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/70">
+          <button onClick={() => setModOpen((x) => !x)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+            <span className="text-[13.5px] font-bold">🛡️ {t("moderate")} · {modRooms.length} {t("other city chats")}</span>
+            <span className="text-[12px] font-bold text-ink-soft">{modOpen ? "▴" : "▾"}</span>
+          </button>
+          {modOpen && (
+            <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+              {modRooms.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => onOpenRoom ? onOpenRoom({ slug: c, name: cityChip(c).name.toLowerCase(), emoji: cityChip(c).emoji }) : (setRoomCity(c), setRoomOpen(true))}
+                  className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12.5px] font-bold active:scale-95"
+                >
+                  {cityChip(c).emoji} {cityChip(c).name.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <button
         onClick={onOpenWorld}
         className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-line bg-white/70 px-4 py-3.5 text-left active:scale-[0.99]"
@@ -1830,7 +1855,11 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           />
         )}
         <div className="mt-3 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
-          {threads.filter((th) => !inboxQ.trim() || `${th.with.name} ${th.with.ig} ${th.last}`.toLowerCase().includes(inboxQ.trim().toLowerCase())).map((th) => (
+          <MoreList
+            items={threads.filter((th) => !inboxQ.trim() || `${th.with.name} ${th.with.ig} ${th.last}`.toLowerCase().includes(inboxQ.trim().toLowerCase()))}
+            step={15}
+            resetKey={inboxQ}
+            render={(th) => (
             <button key={th.with.memberNo} onClick={() => setOpenWith(th.with)} className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/30">
               <Avatar member={th.with} photo={photoMap[th.with.memberNo]} />
               <div className="min-w-0 flex-1">
@@ -1842,7 +1871,8 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                 {th.unread > 0 && <span className="rounded-full bg-lime px-2 py-0.5 font-mono text-[10px] font-semibold text-ink">{th.unread}</span>}
               </div>
             </button>
-          ))}
+          )}
+          />
         </div>
         </>
       )}
@@ -2180,13 +2210,16 @@ export default function Club({ token }) {
   useEffect(() => {
     if (state !== "ok") return
     const check = () =>
-      fetch(`/api/dm?t=${token}`)
+      fetch(`/api/unread?t=${token}`)
         .then((r) => r.json())
-        .then((d) => setUnreadTotal((d.threads || []).reduce((n, th) => n + (th.unread || 0), 0)))
+        .then((d) => typeof d.dms === "number" && setUnreadTotal(d.dms))
         .catch(() => {})
     check()
-    const id = setInterval(check, 30000)
-    return () => clearInterval(id)
+    const id = setInterval(check, 15000)
+    // back to the app (or the tab): check right away instead of waiting
+    const onShow = () => document.visibilityState === "visible" && check()
+    document.addEventListener("visibilitychange", onShow)
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onShow) }
   }, [state, token])
 
   // photo lookup for avatars in chats and joined stacks
@@ -2221,6 +2254,21 @@ export default function Club({ token }) {
   }, [token])
 
   useEffect(() => { if (state === "ok") registerSW(token) }, [state, token])
+
+  // warm every tab in the background once you're in, so switching tabs opens
+  // on real data instantly instead of a spinner
+  const meCity = me?.city
+  useEffect(() => {
+    if (state !== "ok" || !meCity) return
+    const id = setTimeout(() => {
+      prefetch(`/api/trips?t=${token}`)
+      prefetch(`/api/members?t=${token}&city=${meCity}`)
+      prefetch(`/api/dm?t=${token}`)
+      prefetch(`/api/mood?t=${token}&city=medellin`)
+      prefetch(`/api/rides?t=${token}&city=medellin`)
+    }, 600)
+    return () => clearTimeout(id)
+  }, [state, token, meCity])
 
   // a tapped push lands here: ?go=dm-021 opens that chat, ?go=spot-12 opens the spot
   useEffect(() => {

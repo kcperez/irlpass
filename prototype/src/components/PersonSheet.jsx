@@ -5,6 +5,7 @@ import { t } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import { countryOf } from "../lib/countries"
 import { vibeEmoji, vibeLabel } from "../lib/vibes"
+import { MoreList } from "../lib/more"
 
 // tap someone and see who they are: where they're from, when they're around,
 // what they're into, whether they're out tonight. one button at the bottom.
@@ -197,7 +198,11 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
                       <p className="mt-1.5 text-[13px] text-ink-soft">{t("everyone you talk to or go out with on irlpass shows up here.")}</p>
                     ) : (
                       <div className="mt-2 grid grid-cols-2 gap-2.5">
-                        {p.connections.map((c, i) => (
+                        <MoreList
+                          items={p.connections}
+                          step={6}
+                          resetKey={viewNo}
+                          render={(c, i) => (
                           <motion.button
                             key={c.memberNo}
                             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}
@@ -218,7 +223,8 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
                               </div>
                             )}
                           </motion.button>
-                        ))}
+                        )}
+                        />
                       </div>
                     )}
                     <button onClick={toggleHide} className="mt-3 flex w-full items-center justify-between rounded-[1.2rem] border-2 border-line bg-white/70 px-4 py-3 text-left">

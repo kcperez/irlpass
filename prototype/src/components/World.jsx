@@ -4,6 +4,7 @@ import { ChatsCircle, CircleNotch, UsersThree, X } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { registerCities } from "../lib/cities"
 import { cachedJson } from "../lib/cached"
+import { MoreList } from "../lib/more"
 
 // "where irlpass is": every city with people in it. counts and blurred faces
 // give people a reason to go somewhere, or at least to peek at its chat.
@@ -173,7 +174,11 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
                   {t("people you talk to or go out with show up here, with where they're headed next.")}
                 </p>
               )}
-              {(data?.cities || []).map((c, i) => (
+              <MoreList
+                items={data?.cities || []}
+                step={8}
+                resetKey={"world"}
+                render={(c, i) => (
                 <motion.button
                   key={c.slug}
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.03 }}
@@ -193,7 +198,8 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
                     {c.faces.slice(0, 3).map((f) => <img key={f} src={f} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className="h-8 w-8 rounded-full border-2 border-white object-cover blur-[1px]" />)}
                   </div>
                 </motion.button>
-              ))}
+              )}
+              />
             </div>
           )}
         </div>

@@ -1,21 +1,21 @@
 import { useState, lazy, Suspense } from "react"
-import Welcome from "./screens/Welcome"
-import Join from "./screens/Join"
-import Ops from "./screens/Ops"
-import InviteAccept from "./screens/InviteAccept"
+const Welcome = lazy(() => import("./screens/Welcome"))
+const Join = lazy(() => import("./screens/Join"))
+const Ops = lazy(() => import("./screens/Ops"))
+const InviteAccept = lazy(() => import("./screens/InviteAccept"))
 import { cityChip } from "./lib/cities"
-import CityPage from "./screens/CityPage"
-import Apply from "./screens/Apply"
-import Review from "./screens/Review"
-import Received from "./screens/Received"
-import Offer from "./screens/Offer"
-import Pass from "./screens/Pass"
-import Info from "./screens/Info"
+const CityPage = lazy(() => import("./screens/CityPage"))
+const Apply = lazy(() => import("./screens/Apply"))
+const Review = lazy(() => import("./screens/Review"))
+const Received = lazy(() => import("./screens/Received"))
+const Offer = lazy(() => import("./screens/Offer"))
+const Pass = lazy(() => import("./screens/Pass"))
+const Info = lazy(() => import("./screens/Info"))
 const Club = lazy(() => import("./screens/Club"))
-import Admin from "./screens/Admin"
-import Auth from "./screens/Auth"
-import Invite from "./screens/Invite"
-import Redeem from "./screens/Redeem"
+const Admin = lazy(() => import("./screens/Admin"))
+const Auth = lazy(() => import("./screens/Auth"))
+const Invite = lazy(() => import("./screens/Invite"))
+const Redeem = lazy(() => import("./screens/Redeem"))
 
 // filming helper: /?screen=pass&name=maya&ig=@maya.travels jumps straight to a screen
 const params = new URLSearchParams(window.location.search)
@@ -68,6 +68,8 @@ export default function App() {
       <div aria-hidden className="wash pointer-events-none fixed inset-0 z-0" />
       <div className={`relative z-10 mx-auto w-full ${screen === "welcome" ? "max-w-[460px] lg:max-w-[1040px]" : "max-w-[460px]"}`}>
         <div className="grain h-full w-full">
+          {/* everything but the homepage loads on demand: members never download signup */}
+          <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-ink" /></div>}>
           <div key={screen}>
               {/* already a member and handed an invite: one button, no signup */}
               {inviteFromUrl && savedToken && (screen === "welcome" || screen === "join") && (
@@ -128,6 +130,7 @@ export default function App() {
                 />
               )}
           </div>
+          </Suspense>
         </div>
       </div>
     </div>

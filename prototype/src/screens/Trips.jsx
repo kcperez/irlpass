@@ -9,6 +9,7 @@ import { useCitySearch } from "../lib/useCitySearch"
 import { t } from "../lib/i18n"
 import RightNow from "../components/RightNow"
 import CityBrief from "../components/CityBrief"
+import { MoreList } from "../lib/more"
 import RangePicker from "../components/RangePicker"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
@@ -701,7 +702,11 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                 </div>
 
                 <div className="lift overflow-hidden rounded-[1.75rem] bg-white">
-                  {overlap.people.map((p) => (
+                  <MoreList
+                    items={overlap.people}
+                    step={10}
+                    resetKey={trip?.id}
+                    render={(p) => (
                     <PersonRow
                       key={`${p.memberNo}-${p.starts}`}
                       p={p}
@@ -720,7 +725,8 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                         onJoinTrip(person, nights.length ? nights : null, trip.city)
                       }}
                     />
-                  ))}
+                  )}
+                  />
                 </div>
 
                 {lockedCount > 0 && (

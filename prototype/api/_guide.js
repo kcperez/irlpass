@@ -188,3 +188,44 @@ export async function spotCoords() {
   }
   return { done, of: spots.length, scraped: items.length }
 }
+
+// photos (and hours, rating, map pin) for a handful of new spots in ONE scraper
+// run, so a fresh shuffle's cards fill in within ~30s instead of one by one.
+// rows: [{ id, q }] where q is "name, area, city"
+export async function quickPhotos(rows) {
+  const token = process.env.APIFY_TOKEN
+  if (!token || !rows.length) return 0
+  const r = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=90`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ searchStringsArray: rows.map((x) => x.q), maxCrawledPlacesPerSearch: 1, maxImages: 3, maxReviews: 0, language: "en", scrapeReviewsPersonalData: false }),
+  })
+  if (!r.ok) return 0
+  const items = await r.json().catch(() => [])
+  let done = 0
+  for (const row of rows) {
+    const p = items.find((it) => it.searchString === row.q) || null
+    if (!p) continue
+    const urls = [p.imageUrl, ...(p.imageUrls || [])].filter(Boolean)
+    const photos = []
+    for (const u of [...new Set(urls)].slice(0, 2)) {
+      const stored = await storePhoto(u, `spots/${row.id}-${photos.length}.jpg`)
+      if (stored) photos.push(stored)
+    }
+    await db.from("spots").update({
+      photos,
+      rating: typeof p.totalScore === "number" ? p.totalScore : null,
+      reviews: typeof p.reviewsCount === "number" ? p.reviewsCount : null,
+      address: p.address || null,
+      category: p.categoryName || null,
+      price: p.price || null,
+      maps_url: p.url || null,
+      hours: p.openingHours || null,
+      lat: p.location?.lat ?? null,
+      lng: p.location?.lng ?? null,
+      enriched_at: new Date().toISOString(),
+    }).eq("id", row.id)
+    done++
+  }
+  return done
+}

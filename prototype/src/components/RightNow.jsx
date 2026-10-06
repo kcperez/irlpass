@@ -41,13 +41,33 @@ function whereAmI() {
   })
 }
 
-// the shuffle is a spin, not a loading bar: places roll past until the pick lands
+// the shuffle is a spin, not a loading bar: places roll past, and a status
+// line says what it's doing right now (like claude does), so a 10-20s search
+// feels like work happening, never like it froze
 const ROLL = ["🍜", "☕", "🍸", "🪩", "🌮", "🥂", "🎧", "🍣", "🧃", "🌇", "🎲", "🍕"]
-function Spinner({ emoji }) {
+function Spinner({ emoji, city }) {
   const [i, setI] = useState(0)
-  useEffect(() => { const id = setInterval(() => setI((x) => x + 1), 90); return () => clearInterval(id) }, [])
+  const [ms, setMs] = useState(0)
+  useEffect(() => {
+    const a = setInterval(() => setI((x) => x + 1), 90)
+    const b = setInterval(() => setMs((x) => x + 500), 500)
+    return () => { clearInterval(a); clearInterval(b) }
+  }, [])
+  const where = city ? city.toLowerCase() : t("your area")
+  const steps = [
+    t("checking the time and where you are"),
+    t("finding what's open right now"),
+    `${t("asking around")} ${where}`,
+    t("reading the reviews"),
+    t("skipping the tourist traps"),
+    t("picking your six"),
+  ]
+  const step = Math.min(steps.length - 1, Math.floor(ms / 2600))
+  const slow = ms > 17000
+  // eases toward 92% so it always looks like it's moving
+  const pct = Math.min(92, 100 * (1 - Math.exp(-ms / 9000)))
   return (
-    <div className="flex h-[300px] flex-col items-center justify-center gap-4 rounded-[1.6rem] bg-white">
+    <div className="flex h-[320px] flex-col items-center justify-center gap-4 rounded-[1.6rem] bg-white px-6">
       <div className="flex gap-3">
         {[0, 1, 2].map((k) => (
           <motion.span
@@ -60,7 +80,18 @@ function Spinner({ emoji }) {
           </motion.span>
         ))}
       </div>
-      <p className="text-[13px] font-bold text-ink-soft">{emoji} {t("finding what's open near you…")}</p>
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={slow ? "slow" : step}
+          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+          className="text-center text-[13.5px] font-bold text-ink"
+        >
+          {emoji} {slow ? t("still on it. good spots take a second") : steps[step]}…
+        </motion.p>
+      </AnimatePresence>
+      <div className="h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-cream-deep">
+        <motion.div animate={{ width: `${pct}%` }} transition={{ ease: "easeOut", duration: 0.5 }} className="h-full rounded-full bg-ink" />
+      </div>
     </div>
   )
 }
@@ -113,6 +144,23 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
     window.addEventListener("irl:now", on)
     return () => window.removeEventListener("irl:now", on)
   })
+  // fresh places get their photos a few seconds after the list lands: poll and fade them in
+  useEffect(() => {
+    const missing = (res?.picks || []).filter((p) => !p.photo && p.ref).map((p) => p.ref)
+    if (!missing.length) return
+    let tries = 0
+    const id = setInterval(async () => {
+      tries++
+      const d = await fetch(`/api/spot-photos?t=${token}&ids=${missing.join(",")}`).then((r) => r.json()).catch(() => null)
+      const got = d?.photos || {}
+      if (Object.keys(got).length) {
+        setRes((r) => r && { ...r, picks: r.picks.map((p) => (got[p.ref] && !p.photo ? { ...p, photo: got[p.ref].photo, facts: p.facts || (got[p.ref].rating ? `${got[p.ref].rating}★` : "") } : p)) })
+      }
+      if (tries > 20 || missing.every((m) => got[m])) clearInterval(id)
+    }, 3000)
+    return () => clearInterval(id)
+  }, [res?.picks?.length, res?.cityName, token]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const close = () => { setFeeling(null); setRes(null); setSeen([]); setErr(""); setAheadCity(null) }
   const [lastCity, setLastCity] = useState(() => { try { return sessionStorage.getItem("irl:now-city") || "" } catch { return "" } })
   // the loop: "irlpass sent me to oni nikkei 🎲" goes to the group chat or the story
@@ -210,7 +258,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                 </div>
               )}
               <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-3">
-                {busy && <Spinner emoji={f?.emoji} />}
+                {busy && <Spinner emoji={f?.emoji} city={res?.cityName || lastCity} />}
                 {err && <p className="py-8 text-center text-[14px] font-semibold text-ink-soft">{err}</p>}
                 {!busy && res?.empty && (
                   <p className="py-8 text-center text-[14px] text-ink-soft">{t("nothing open for that right now. try another mood, or shuffle in a bit.")}</p>
@@ -237,7 +285,11 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                   >
                     <div className="relative h-36 bg-cream-deep">
                       {p.photo ? (
-                        <img src={p.photo} alt="" className="h-full w-full object-cover" />
+                        <motion.img initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} src={p.photo} alt="" className="h-full w-full object-cover" />
+                      ) : p.ref ? (
+                        <div className="shimmer flex h-full w-full items-end p-3">
+                          <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-bold text-ink-soft">📷 {t("getting photos")}…</span>
+                        </div>
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#d9cdf3] via-cream-deep to-[#f4d9c4] text-[52px]">{f?.emoji}</div>
                       )}

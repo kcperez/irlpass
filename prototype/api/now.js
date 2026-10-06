@@ -6,7 +6,7 @@ import { actsAsMod } from "./_mods.js"
 import { cityLabel } from "./_cities.js"
 import { openAt, fmtMin } from "./_hours.js"
 import { tonight } from "./mood.js"
-import { enrichSpots } from "./_guide.js"
+import { quickPhotos } from "./_guide.js"
 
 // "what should i do right now?" — a flo-style check-in. you say how you feel;
 // we already know where you are (your phone, else your dates), the day and the
@@ -46,13 +46,14 @@ export const FREE_PER_DAY = 3
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
 const norm = (x) => String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
 
-async function claude(body) {
+// haiku for speed (a shuffle should feel like a spin, not a wait)
+async function claude(body, model = "claude-haiku-4-5-20251001") {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return null
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 1600, ...body }),
+    body: JSON.stringify({ model, max_tokens: 1600, ...body }),
   })
   if (!r.ok) { console.error("claude", r.status, await r.text().catch(() => "")); return null }
   const d = await r.json()
@@ -158,7 +159,8 @@ export default async function handler(req, res) {
       review: x.s.quote || "",
     }))
     const card = (c, x, slot, why) => ({
-      id: c.id,
+      id: city === "medellin" ? c.id : null,
+      ref: c.id,
       name: c.name,
       area: c.area,
       category: c.category,
@@ -221,10 +223,12 @@ export default async function handler(req, res) {
       // save them into this city's guide (once per name), then fill in from google in the background
       const saved = []
       if (web.length) {
-        const { data: have } = await db.from("spots").select("id, name").eq("city", city)
+        const { data: have } = await db.from("spots").select("id, name, photos").eq("city", city)
         const byName = new Map((have || []).map((s) => [norm(s.name), s.id]))
+        const hasPhoto = new Map((have || []).map((s) => [s.id, Array.isArray(s.photos) && s.photos.length > 0 ? s.photos[0] : null]))
         for (const p of web) {
           let id = byName.get(norm(p.name))
+          if (id && !hasPhoto.get(id)) saved.push({ id, q: `${p.name}, ${p.area || ""}, ${cityName}` })
           if (!id) {
             const { data: made } = await db.from("spots").insert({
               city,
@@ -241,11 +245,12 @@ export default async function handler(req, res) {
           }
           picks.push({
             id: city === "medellin" ? id || null : null,
+            ref: id || null,
             name: String(p.name).slice(0, 80),
             area: String(p.area || "").slice(0, 60),
             category: "",
             label: SLOTS.includes(p.label) ? p.label : "",
-            photo: null,
+            photo: (id && hasPhoto.get(id)) || null,
             why: String(p.why || "").slice(0, 160),
             facts: [p.rating && `${p.rating}★`, p.price].filter(Boolean).join(" · "),
             going: 0,
@@ -253,9 +258,8 @@ export default async function handler(req, res) {
           })
         }
       }
-      if (saved.length) {
-        waitUntil(Promise.all(saved.slice(0, 3).map((x) => enrichSpots({ ids: [x.id], query: x.q }).catch(() => null))))
-      }
+      // photos for all of them in one scraper run; the app polls and fades them in
+      if (saved.length) waitUntil(quickPhotos(saved.slice(0, PICKS)).catch((e) => console.error("photos:", e)))
     }
 
     await db.from("now_checks").insert({ member_no: me.memberNo, feeling, city, picks }).then(() => {}, () => {})

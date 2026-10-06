@@ -4,6 +4,7 @@ import { cachedJson } from "../lib/cached"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { useNew, NewDot } from "../lib/newdot"
+import { MoreList } from "../lib/more"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
 
@@ -357,8 +358,12 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
           <p className="mt-1 text-[13px] text-ink-soft">{t("try later dates, or post yours and get told when someone lands.")}</p>
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
-          {visible.map((p) => (
+        <MoreList
+          items={visible}
+          step={12}
+          resetKey={`${selectedDay}-${showAll}-${city}`}
+          wrap={(kids) => <div className="mt-4 grid grid-cols-2 gap-2.5">{kids}</div>}
+          render={(p) => (
             <div key={`${p.memberNo}-${p.starts}`} className="lift overflow-hidden rounded-[1.5rem] bg-white">
               <div
                 onClick={() => onOpenPerson?.(p.memberNo)}
@@ -446,8 +451,8 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                 )}
               </div>
             </div>
-          ))}
-        </div>
+)}
+        />
       )}
       {!showAll && hiddenCount > 0 && (
         <button onClick={() => setShowAll(true)} className="mt-3 w-full rounded-full border-2 border-ink bg-white py-3 text-[13.5px] font-bold">
