@@ -104,6 +104,12 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
     setSeen([...skip, ...r.d.picks.map((p) => String(p.id ?? p.name))])
   }
 
+  // a check-in push ("hungry?") opens straight onto the picks
+  useEffect(() => {
+    const on = (e) => { if (FEELINGS.some((x) => x.key === e.detail)) ask(e.detail) }
+    window.addEventListener("irl:now", on)
+    return () => window.removeEventListener("irl:now", on)
+  })
   const close = () => { setFeeling(null); setRes(null); setSeen([]); setErr("") }
   const [lastCity, setLastCity] = useState(() => { try { return sessionStorage.getItem("irl:now-city") || "" } catch { return "" } })
   // the loop: "irlpass sent me to oni nikkei 🎲" goes to the group chat or the story

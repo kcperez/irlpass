@@ -2181,7 +2181,7 @@ export default function Club({ token }) {
       .catch(() => setState((st) => (st === "ok" ? st : "denied")))
   }, [token])
 
-  useEffect(() => { if (state === "ok") registerSW() }, [state])
+  useEffect(() => { if (state === "ok") registerSW(token) }, [state, token])
 
   // a tapped push lands here: ?go=dm-021 opens that chat, ?go=spot-12 opens the spot
   useEffect(() => {
@@ -2191,6 +2191,8 @@ export default function Club({ token }) {
     if (!go) { try { go = localStorage.getItem("irl:go") || ""; localStorage.removeItem("irl:go") } catch { /* private mode */ } }
     const dm = go.match(/^dm-(\d{3})$/)
     const spot = go.match(/^spot-(\d+)$/)
+    const now = go.match(/^now-([a-z]+)$/)
+    if (now) { setTab("trips"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:now", { detail: now[1] })), 700) }
     if (dm) { setDmWith({ memberNo: dm[1] }); setTab("dms") }
     else if (spot) { setFocusSpot(Number(spot[1])); setTab("mood") }
     if (p.get("go")) window.history.replaceState({}, "", `/?screen=app&t=${token}`)

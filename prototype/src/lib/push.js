@@ -9,9 +9,20 @@ export function pushState() {
   return Notification.permission // default | granted | denied
 }
 
-export function registerSW() {
+export function registerSW(token) {
   if (!("serviceWorker" in navigator)) return
   navigator.serviceWorker.register("/sw.js").catch(() => {})
+  // already on? refresh it with today's timezone (you might have flown since)
+  if (token && "Notification" in window && Notification.permission === "granted") {
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => sub && fetch("/api/push", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ t: token, sub: sub.toJSON(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      }))
+      .catch(() => {})
+  }
 }
 
 const b64 = (s) => {
@@ -30,7 +41,7 @@ export async function enablePush(token) {
   const r = await fetch("/api/push", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ t: token, sub: sub.toJSON() }),
+    body: JSON.stringify({ t: token, sub: sub.toJSON(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
   })
   return r.ok
 }

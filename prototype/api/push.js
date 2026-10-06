@@ -12,7 +12,10 @@ export default async function handler(req, res) {
     const sub = req.body?.sub || {}
     const endpoint = String(sub.endpoint || "")
     if (!/^https:\/\//.test(endpoint) || !sub.keys?.p256dh || !sub.keys?.auth) return res.status(400).json({ error: "bad subscription" })
-    await db.from("push_subs").upsert({ endpoint, member_no: me.memberNo, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth } }, { onConflict: "endpoint" })
+    // the phone's timezone rides along, so check-ins land at their local morning
+    const tz = /^[A-Za-z_]+\/[A-Za-z_\/+-]+$|^UTC$/.test(String(req.body?.tz || "")) ? req.body.tz : null
+    const { data: prev } = await db.from("push_subs").select("keys").eq("endpoint", endpoint).maybeSingle()
+    await db.from("push_subs").upsert({ endpoint, member_no: me.memberNo, keys: { ...(prev?.keys || {}), p256dh: sub.keys.p256dh, auth: sub.keys.auth, tz } }, { onConflict: "endpoint" })
     return res.status(200).json({ ok: true })
   }
   if (req.method === "DELETE") {

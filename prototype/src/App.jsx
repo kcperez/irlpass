@@ -49,7 +49,7 @@ const savedToken = (() => {
 // (?home=1 still shows the homepage, for us.)
 // a shared plan link (?go=spot-12) opens that plan: right away for members,
 // and after signup for everyone else
-const goParam = /^(spot|dm)-\d+$/.test(params.get("go") || "") ? params.get("go") : ""
+const goParam = /^((spot|dm)-\d+|now-[a-z]+)$/.test(params.get("go") || "") ? params.get("go") : ""
 if (goParam && !savedToken) { try { localStorage.setItem("irl:go", goParam) } catch { /* private mode */ } }
 if (savedToken && initialScreen === "welcome" && !inviteFromUrl && !params.get("home") && !params.get("by")) {
   window.location.replace(`/?screen=app&t=${savedToken}${goParam ? `&go=${goParam}` : ""}`)
