@@ -110,6 +110,8 @@ export default async function handler(req, res) {
           reactions: m.reactions || {},
           edited: !!m.edited,
           deleted: !!m.deleted,
+          // read receipts (✓✓) on what i sent
+          read: m.from_no === me.memberNo ? !!m.read_at : undefined,
         })),
       })
     }

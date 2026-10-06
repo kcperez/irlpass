@@ -62,7 +62,9 @@ async function claude(body, model = "claude-haiku-4-5-20251001") {
   try { return m ? JSON.parse(m[0]) : null } catch { return null }
 }
 
-const VOICE = "write like a friend who lives there: lowercase, plain, specific, max 14 words. no em dashes, no hype words, no 'not x but y'."
+// fun and useful, never fluff: the one thing that makes it worth going, said
+// like a friend who's been, plus a tip you'd actually use
+const VOICE = "voice: a friend who lives there texting you. lowercase, a little playful, specific (the dish, the view, the crowd, the song), to the point. why: max 12 words. tip: max 10 words, practical (what to order, where to sit, when it fills up). no em dashes, no hype words like amazing/vibrant/hidden gem, no 'not x but y'."
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
@@ -158,7 +160,11 @@ export default async function handler(req, res) {
       note: x.s.blurb || "",
       review: x.s.quote || "",
     }))
-    const card = (c, x, slot, why) => ({
+    const card = (c, x, slot, why, tip) => ({
+      tip: tip || "",
+      quote: x.s.quote || "",
+      address: x.s.address || "",
+      hoursToday: (Array.isArray(x.s.hours) ? x.s.hours : []).find((h) => h.day?.toLowerCase() === DAYS[day])?.hours || "",
       id: city === "medellin" ? c.id : null,
       ref: c.id,
       name: c.name,
@@ -179,7 +185,7 @@ export default async function handler(req, res) {
         system: `you curate a short list of places for a traveler on irlpass, a social travel app. ${VOICE}`,
         messages: [{
           role: "user",
-          content: `${when} in ${cityName}. they feel: ${f.label}.${useHere || aheadTrip ? "" : " we don't know exactly where they are."}\ncandidates (json):\n${JSON.stringify(cands)}\n\nmake a list of up to ${PICKS}, each a different reason to go, using these labels once each when they fit: ${SLOTS.join(", ")}. prefer open now, close, well reviewed, and places other irlpass people are going. reply only json: {"picks":[{"id":number,"label":"...","why":"..."}]}`,
+          content: `${when} in ${cityName}. they feel: ${f.label}.${useHere || aheadTrip ? "" : " we don't know exactly where they are."}\ncandidates (json):\n${JSON.stringify(cands)}\n\nmake a list of up to ${PICKS}, each a different reason to go, using these labels once each when they fit: ${SLOTS.join(", ")}. prefer open now, close, well reviewed, and places other irlpass people are going. reply only json: {"picks":[{"id":number,"label":"...","why":"...","tip":"..."}]}`,
         }],
       })
       const chosen = (Array.isArray(out?.picks) ? out.picks : []).filter((p, i, a) => cands.some((c) => c.id === p.id) && a.findIndex((q) => q.id === p.id) === i).slice(0, PICKS)
@@ -193,7 +199,7 @@ export default async function handler(req, res) {
           label === "closest" && c.km == null ? "" : label
         picks = chosen.map((p) => {
           const c = cands.find((x) => x.id === p.id)
-          return card(c, scored.find((x) => x.s.id === p.id), honest(p.label, c), p.why)
+          return card(c, scored.find((x) => x.s.id === p.id), honest(p.label, c), p.why, p.tip)
         })
       } else {
         // no claude: fill the slots by rule
@@ -221,7 +227,7 @@ export default async function handler(req, res) {
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }],
         messages: [{
           role: "user",
-          content: `${when} in ${cityName}${useHere ? ` near ${useHere.lat.toFixed(3)},${useHere.lng.toFixed(3)}` : ""}. they feel: ${f.label}. skip: ${[...seen].join(", ") || "nothing"}${picks.length ? `, ${picks.map((p) => p.name).join(", ")}` : ""}.\nfind ${PICKS - picks.length} well-reviewed places, each a different reason to go, using these labels once each when they fit: ${SLOTS.filter((s) => s !== "where irlpass is going").join(", ")}. reply only json: {"picks":[{"name":"...","area":"neighborhood","label":"...","why":"...","rating":4.6,"price":"$$"}]}`,
+          content: `${when} in ${cityName}${useHere ? ` near ${useHere.lat.toFixed(3)},${useHere.lng.toFixed(3)}` : ""}. they feel: ${f.label}. skip: ${[...seen].join(", ") || "nothing"}${picks.length ? `, ${picks.map((p) => p.name).join(", ")}` : ""}.\nfind ${PICKS - picks.length} well-reviewed places, each a different reason to go, using these labels once each when they fit: ${SLOTS.filter((s) => s !== "where irlpass is going").join(", ")}. reply only json: {"picks":[{"name":"...","area":"neighborhood","label":"...","why":"...","tip":"...","rating":4.6,"price":"$$"}]}`,
         }],
       })
       const web = (out?.picks || [])
@@ -261,6 +267,7 @@ export default async function handler(req, res) {
             label: SLOTS.includes(p.label) && p.label !== "where irlpass is going" ? p.label : "",
             photo: (id && hasPhoto.get(id)) || null,
             why: String(p.why || "").slice(0, 160),
+            tip: String(p.tip || "").slice(0, 120),
             facts: [p.rating && `${p.rating}★`, p.price].filter(Boolean).join(" · "),
             going: 0,
             mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${cityName}`)}`,

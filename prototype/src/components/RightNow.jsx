@@ -107,6 +107,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
   const clock = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()
 
   const [aheadCity, setAheadCity] = useState(null) // planning a trip you haven't started yet
+  const [lastHere, setLastHere] = useState(null)
   const ask = async (key, more = false, cityOverride) => {
     const planCity = cityOverride !== undefined ? cityOverride : aheadCity
     setFeeling(key)
@@ -114,6 +115,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
     setErr("")
     if (!more) setRes((r) => (r ? { ahead: r.ahead, cityName: r.cityName } : null))
     const here = await whereAmI()
+    setLastHere(here)
     const now = new Date()
     const skip = more ? seen : []
     const r = await fetch("/api/now", {
@@ -160,6 +162,33 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
     }, 3000)
     return () => clearInterval(id)
   }, [res?.picks?.length, res?.cityName, token]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [openCard, setOpenCard] = useState(null)
+  const [going, setGoing] = useState({})
+  const [swapping, setSwapping] = useState(null)
+  // "i'm going" right from the pick: you're on that spot's board tonight
+  const goTo = async (p) => {
+    setGoing((g) => ({ ...g, [p.id]: true }))
+    navigator.vibrate?.(12)
+    await fetch("/api/mood", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, action: "going", spotId: p.id, on: true }) }).catch(() => {})
+  }
+  // don't like one? swap just that card
+  const swap = async (i) => {
+    setSwapping(i)
+    const now = new Date()
+    const skip = [...seen, ...(res?.picks || []).map((p) => String(p.ref ?? p.name))]
+    const r = await fetch("/api/now", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: token, feeling, day: now.getDay(), minute: now.getHours() * 60 + now.getMinutes(), seen: skip, city: aheadCity || undefined, ...(lastHere ? { lat: lastHere.lat, lng: lastHere.lng } : {}) }),
+    }).then(async (x) => ({ status: x.status, d: await x.json().catch(() => ({})) })).catch(() => ({ status: 0, d: {} }))
+    setSwapping(null)
+    if (r.status === 402) { onPaywall?.({ reason: "shuffle" }); return }
+    const next = r.d?.picks?.find((p) => !skip.includes(String(p.ref ?? p.name)))
+    if (!next) return
+    setSeen((x) => [...x, String(next.ref ?? next.name)])
+    setRes((x) => x && { ...x, picks: x.picks.map((p, k) => (k === i ? { ...next, label: p.label || next.label } : p)) })
+  }
 
   const close = () => { setFeeling(null); setRes(null); setSeen([]); setErr(""); setAheadCity(null) }
   const [lastCity, setLastCity] = useState(() => { try { return sessionStorage.getItem("irl:now-city") || "" } catch { return "" } })
@@ -299,19 +328,46 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                       )}
                     </div>
                     <div className="p-4">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{[p.category, p.area].filter(Boolean).join(" · ")}</p>
-                      <h4 className="display text-[22px] font-bold leading-tight">{p.name}</h4>
-                      {p.why && <p className="mt-1 text-[14px] leading-snug">{p.why}</p>}
-                      {p.facts && <p className="mt-1 text-[12.5px] font-semibold text-ink-soft">{p.facts}</p>}
+                      {/* tap the text to open the details */}
+                      <button onClick={() => setOpenCard((k) => (k === (p.ref ?? p.name) ? null : p.ref ?? p.name))} className="block w-full text-left">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{[p.category, p.area].filter(Boolean).join(" · ")}</p>
+                        <h4 className="display text-[22px] font-bold leading-tight">{p.name}</h4>
+                        {p.why && <p className="mt-1 text-[14.5px] leading-snug">{p.why}</p>}
+                        {p.tip && <p className="mt-1.5 rounded-xl bg-cream-deep/70 px-2.5 py-1.5 text-[13px] leading-snug">💡 {p.tip}</p>}
+                        {p.facts && <p className="mt-1.5 text-[12.5px] font-semibold text-ink-soft">{p.facts}</p>}
+                        <AnimatePresence initial={false}>
+                          {openCard === (p.ref ?? p.name) && (p.quote || p.address || p.hoursToday) && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                              <div className="mt-2 space-y-1 border-t border-line/70 pt-2 text-[12.5px] text-ink-soft">
+                                {p.quote && <p className="italic">“{p.quote}”</p>}
+                                {p.hoursToday && <p>🕒 {t("today")}: {p.hoursToday.replace(/\u202f/g, " ").toLowerCase()}</p>}
+                                {p.address && <p>📍 {p.address}</p>}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        {(p.quote || p.address || p.hoursToday) && openCard !== (p.ref ?? p.name) && (
+                          <p className="mt-1 text-[11.5px] font-bold text-ink-soft">{t("more about it")} ▾</p>
+                        )}
+                      </button>
                       <div className="mt-3 flex gap-2">
                         {p.id ? (
-                          <motion.button whileTap={{ scale: 0.96 }} onClick={() => { close(); openSpot(p.id) }} className="flex-1 rounded-full bg-ink py-2.5 text-[13.5px] font-bold text-cream">
-                            {t("see who's going")}
-                          </motion.button>
+                          going[p.id] ? (
+                            <motion.button initial={{ scale: 0.9 }} animate={{ scale: 1 }} onClick={() => { close(); openSpot(p.id) }} className="flex-1 rounded-full bg-lime py-2.5 text-[13.5px] font-bold">
+                              ✓ {t("you're going")} · {t("see who")}
+                            </motion.button>
+                          ) : (
+                            <motion.button whileTap={{ scale: 0.94 }} onClick={() => goTo(p)} className="flex-1 rounded-full bg-ink py-2.5 text-[13.5px] font-bold text-cream">
+                              {t("i'm going")}
+                            </motion.button>
+                          )
                         ) : null}
-                        <a href={p.mapsUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-center gap-1 rounded-full border-2 border-ink py-2.5 text-[13.5px] font-bold ${p.id ? "px-4" : "flex-1"}`}>
-                          {t("maps")} <ArrowUpRight size={14} weight="bold" />
+                        <a href={p.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label={t("maps")} className={`flex items-center justify-center gap-1 rounded-full border-2 border-ink py-2.5 text-[13.5px] font-bold ${p.id ? "px-3.5" : "flex-1"}`}>
+                          {p.id ? "📍" : <>{t("maps")} <ArrowUpRight size={14} weight="bold" /></>}
                         </a>
+                        <motion.button whileTap={{ rotate: 180 }} onClick={() => swap(i)} disabled={swapping === i} aria-label={t("swap this one")} className="flex items-center justify-center rounded-full border-2 border-line px-3.5 text-[15px] disabled:opacity-50">
+                          {swapping === i ? <CircleNotch size={14} className="animate-spin" /> : "🔀"}
+                        </motion.button>
                         <button onClick={() => share(p)} aria-label={t("share")} className="flex items-center justify-center rounded-full border-2 border-line px-3.5 text-[15px]">↗️</button>
                       </div>
                     </div>

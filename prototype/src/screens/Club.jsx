@@ -24,6 +24,7 @@ import Mood from "./Mood"
 import PersonSheet from "../components/PersonSheet"
 import World from "../components/World"
 import WhatsNew, { WHATS_NEW } from "../components/WhatsNew"
+import { MessageMenu, SwipeToReply, hiddenMsgs, hideMsg, hiddenChats, hideChat, useStickToBottom } from "../components/MessageMenu"
 import RideCard from "../components/RideCard"
 import TonightPin from "../components/TonightPin"
 import NightPrompt from "../components/NightPrompt"
@@ -777,7 +778,7 @@ const msgTime = (at) => {
 
 // tap or long-press a bubble to open its action bar. a long press doesn't also
 // fire the tap, and the bubble css turns off the ios copy/lookup callout.
-function useLongPress(onOpen, ms = 420) {
+function useLongPress(onOpen, ms = 420, onTap = null) {
   const timer = useRef(null)
   const fired = useRef(false)
   return (m) => ({
@@ -793,7 +794,7 @@ function useLongPress(onOpen, ms = 420) {
     onClick: (e) => {
       e.stopPropagation()
       if (fired.current) { fired.current = false; return }
-      onOpen(m)
+      ;(onTap || onOpen)(m)
     },
   })
 }
@@ -925,6 +926,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
   }, [server, onSeen])
   // optimistic sends live separately so a stale poll can't wipe them off screen
   const [pending, setPending] = useState([])
+  const [hiddenRoom, setHiddenRoom] = useState(() => hiddenMsgs()) // "delete for me"
   const [text, setText] = useState("")
   const [focused, setFocused] = useState(null) // message key with the action bar open
   const [replyTo, setReplyTo] = useState(null) // message object being replied to
@@ -950,11 +952,9 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
     return () => { alive = false; clearInterval(iv) }
   }, [token, channel])
 
-  const msgs = server === null ? null : [...server, ...pending]
+  const msgs = server === null ? null : [...server, ...pending].filter((m) => !hiddenRoom.has(String(m.key)))
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" })
-  }, [msgs?.length])
+  const stick = useStickToBottom(msgs?.length || 0, !!msgs?.length && msgs[msgs.length - 1].from?.memberNo === me.memberNo)
 
   const api = async (body) => {
     try {
@@ -1029,7 +1029,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
     await api({ action: "react", id: m.key, emoji })
   }
 
-  const pressFor = useLongPress((m) => !m.deleted && setFocused((k) => (k === m.key ? null : m.key)))
+  const [menu, setMenu] = useState(null) // whatsapp-style long-press sheet
+  const pressFor = useLongPress((m) => !m.deleted && !String(m.key).startsWith("local-") && setMenu(m))
 
   const translate = async (m) => {
     setFocused(null)
@@ -1101,7 +1102,9 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
         </div>
       )}
 
-      <div className="flex flex-1 flex-col overflow-y-auto px-4 py-4" onClick={() => setFocused(null)}>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      <stick.Pill />
+      <div ref={stick.box} onScroll={stick.onScroll} className="flex flex-1 flex-col overflow-y-auto px-4 py-4" onClick={() => setFocused(null)}>
         {/* mt-auto pins the conversation to the bottom, like every messenger */}
         <div className="mt-auto space-y-3">
           {!msgs ? (
@@ -1145,6 +1148,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               return (
                 <div key={m.key} className={first ? "pt-2" : "-mt-2"}>
                 {dayLine}
+                <SwipeToReply onReply={() => { if (!m.deleted && !String(m.key).startsWith("local-")) { setReplyTo(m); setEditing(null); document.getElementById("room-composer")?.focus() } }}>
                 <div id={`msg-${m.key}`} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                   {!mine && (last
                     ? (
@@ -1228,50 +1232,9 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       </div>
                     )}
 
-                    <AnimatePresence>
-                      {focused === m.key && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 6, scale: 0.9 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 6, scale: 0.9 }}
-                          transition={{ type: "spring", stiffness: 380, damping: 24 }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-1.5 flex items-center gap-1 rounded-full border border-line bg-white px-2 py-1.5 shadow-[0_10px_24px_-12px_rgba(28,27,23,0.4)]"
-                        >
-                          {REACT_SET.map((em) => (
-                            <button key={em} onClick={() => react(m, em)} className="px-1 text-[16px] active:scale-125">{em}</button>
-                          ))}
-                          <span className="mx-0.5 h-4 w-px bg-line" />
-                          <button
-                            onClick={() => { setReplyTo(m); setEditing(null); setFocused(null) }}
-                            className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
-                          >
-                            {t("reply")}
-                          </button>
-                          <button
-                            onClick={() => translate(m)}
-                            className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
-                          >
-                            {translated[m.key] && translated[m.key] !== "error" ? t("original") : t("translate")}
-                          </button>
-                          {mine && (
-                            <>
-                              <button
-                                onClick={() => { setEditing(m); setReplyTo(null); setText(m.text); setFocused(null) }}
-                                className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
-                              >
-                                {t("edit")}
-                              </button>
-                              <button onClick={() => remove(m)} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b3461f]">
-                                {t("delete")}
-                              </button>
-                            </>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 </div>
+                </SwipeToReply>
                 </div>
               )
             })
@@ -1279,6 +1242,24 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
           <div ref={bottomRef} />
         </div>
       </div>
+      </div>
+        <AnimatePresence>
+          {menu && (
+            <MessageMenu
+              m={menu}
+              mine={menu.from.memberNo === me.memberNo}
+              onReact={(em) => react(menu, em)}
+              onReply={() => { setReplyTo(menu); setEditing(null); document.getElementById("room-composer")?.focus() }}
+              onCopy={() => navigator.clipboard?.writeText(menu.text).catch(() => {})}
+              onTranslate={menu.from.memberNo !== me.memberNo ? () => translate(menu) : null}
+              translated={!!translated[menu.key] && translated[menu.key] !== "error"}
+              onEdit={() => { setEditing(menu); setReplyTo(null); setText(menu.text); document.getElementById("room-composer")?.focus() }}
+              onDeleteAll={() => remove(menu)}
+              onDeleteMe={() => { hideMsg(menu.key); setHiddenRoom(hiddenMsgs()) }}
+              onClose={() => setMenu(null)}
+            />
+          )}
+        </AnimatePresence>
 
         {needsDates && (
           <button
@@ -1487,9 +1468,13 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
     go()
   }, [token])
   const [inboxQ, setInboxQ] = useState("")
+  // long-press a conversation for "delete chat" (tap still opens it)
+  const [chatMenu, setChatMenu] = useState(null)
+  const [, bumpChats] = useState(0)
+  const chatPress = useLongPress((th) => setChatMenu(th), 420, (th) => setOpenWith(th.with))
 
   const loadConvo = useCallback((no) => {
-    fetch(`/api/dm?t=${token}&with=${no}`)
+    return fetch(`/api/dm?t=${token}&with=${no}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((d) => setConvo((prev) => (d?.messages ? d : prev)))
       .catch(() => setConvo((prev) => prev || { with: null, messages: [], failed: true }))
@@ -1504,9 +1489,6 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
     return () => clearInterval(id)
   }, [openWith, loadConvo, loadInbox])
 
-  // only jump to the bottom when a message actually arrives, not on every poll
-  const convoLen = convo?.messages?.length || 0
-  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }) }, [convoLen])
 
   const [dmTranslated, setDmTranslated] = useState({}) // key -> text | "loading" | "error"
   const translateDm = async (m) => {
@@ -1525,10 +1507,22 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
 
   // the same action bar as the group chat: react, reply, translate, edit, delete.
   // tap a bubble or long-press it (long-press is what people try first on a phone)
-  const [dmFocused, setDmFocused] = useState(null)
+  const [dmMenu, setDmMenu] = useState(null) // the message whose long-press menu is open
+  const setDmFocused = () => setDmMenu(null)
   const [dmReply, setDmReply] = useState(null)
   const [dmEditing, setDmEditing] = useState(null)
-  const pressFor = useLongPress((m) => !m.deleted && setDmFocused((k) => (k === m.key ? null : m.key)))
+  const pressFor = useLongPress((m) => !m.deleted && setDmMenu(m))
+  // sent-but-not-confirmed bubbles show right away (🕓), failed ones offer a retry
+  const [outbox, setOutbox] = useState([])
+  // only jump to the bottom when a message actually arrives (and you're at the bottom)
+  const convoLen = (convo?.messages?.length || 0) + outbox.length
+  const dmStick = useStickToBottom(convoLen, outbox.length > 0 || !!convo?.messages?.[convo.messages.length - 1]?.fromMe)
+  const [hidden, setHidden] = useState(() => hiddenMsgs())
+  const chatHiddenAt = openWith ? hiddenChats()[openWith.memberNo] || "" : ""
+  const shownMsgs = [
+    ...(convo?.messages || []).filter((m) => !hidden.has(String(m.key)) && (!chatHiddenAt || m.at > chatHiddenAt)),
+    ...outbox.filter((o) => o.to === openWith?.memberNo),
+  ]
 
   const dmAct = async (m, action, extra = {}) => {
     setDmFocused(null)
@@ -1564,23 +1558,35 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
     }
     const reply = typeof override === "string" ? null : dmReply
     setDmReply(null)
-    setBusy(true)
+    if (typeof override !== "string") setText("")
+    // the bubble shows instantly; the server catches up
+    const local = { key: `p-${Date.now()}`, to: openWith.memberNo, text: body, at: new Date().toISOString(), fromMe: true, pending: true, replyTo: reply?.key ?? null, reactions: {} }
+    setOutbox((o) => [...o, local])
     const r = await fetch("/api/dm", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ t: token, to: openWith.memberNo, text: body, replyTo: reply?.key ?? null }),
     }).then((x) => x.json()).catch(() => null)
-    setBusy(false)
+    if (!r?.ok) {
+      if (r?.gate) setOutbox((o) => o.filter((x) => x.key !== local.key))
+      else setOutbox((o) => o.map((x) => (x.key === local.key ? { ...x, failed: true } : x)))
+      if (r?.gate && typeof override !== "string") setText(body)
+    }
     if (r?.gate === "deliver") {
       // keep what they wrote: it sends itself once they're in
       try { localStorage.setItem("irl:pending-dm", JSON.stringify({ to: openWith.memberNo, text: body, replyTo: reply?.key ?? null, name: openWith.name, photo: openWith.photo })) } catch { /* private mode */ }
       return onPaywall({ reason: "deliver", next: `deliver-${openWith.memberNo}`, draft: body })
     }
     if (r?.gate === "dm" || r?.gate === "unlock") return onPaywall(r.gate)
-    if (r?.error) return alert(r.error)
-    if (typeof override !== "string") setText("")
-    loadConvo(openWith.memberNo)
+    if (!r?.ok) return
+    await loadConvo(openWith.memberNo)
+    setOutbox((o) => o.filter((x) => x.key !== local.key))
     askPush(t("they reply"))
+  }
+  const retry = (m) => {
+    setOutbox((o) => o.filter((x) => x.key !== m.key))
+    setDmReply(m.replyTo ? convo?.messages?.find((x) => x.key === m.replyTo) || null : null)
+    send(m.text)
   }
 
   // trust before meeting: one tap asks for a short video call first
@@ -1606,17 +1612,20 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             <p className="font-mono text-[10px] text-ink-soft">{other.ig}</p>
           </div>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-4">
+        <div className="relative flex min-h-0 flex-1 flex-col">
+        <dmStick.Pill />
+        <div ref={dmStick.box} onScroll={dmStick.onScroll} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-4">
           {!convo ? (
             <div className="flex flex-1 items-center justify-center"><CircleNotch size={20} className="animate-spin text-ink-soft" /></div>
-          ) : convo.messages.length === 0 ? (
+          ) : shownMsgs.length === 0 ? (
             <p className="mt-6 text-center font-mono text-[11px] text-ink-soft">{t("say hi. you're in the same city on the same days.")}</p>
           ) : (
-            convo.messages.map((m, i) => {
-              const prev = convo.messages[i - 1]
+            shownMsgs.map((m, i) => {
+              const prev = shownMsgs[i - 1]
               const quoted = m.replyTo ? convo.messages.find((x) => x.key === m.replyTo) : null
               const reactions = Object.entries(m.reactions || {})
               const tr = dmTranslated[m.key]
+              const lastMine = m.fromMe && !shownMsgs.slice(i + 1).some((x) => x.fromMe)
               return (
                 <div key={m.key} className="flex flex-col">
                   {(!prev || dayKey(prev.at) !== dayKey(m.at)) && (
@@ -1626,90 +1635,86 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                       <span className="h-px flex-1 bg-line" />
                     </div>
                   )}
-                  <div id={`dm-${m.key}`} className={`flex max-w-[78%] flex-col ${m.fromMe ? "items-end self-end" : "items-start self-start"}`}>
+                  <SwipeToReply
+                    onReply={() => { if (!m.deleted && !m.pending) { setDmReply(m); setDmEditing(null); document.getElementById("dm-composer")?.focus() } }}
+                    className={`flex max-w-[80%] flex-col ${m.fromMe ? "items-end self-end" : "items-start self-start"}`}
+                  >
+                  <div id={`dm-${m.key}`} className={`flex flex-col ${m.fromMe ? "items-end" : "items-start"}`}>
                     <div
-                      {...pressFor(m)}
-                      className={`bubble max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[13.5px] [overflow-wrap:anywhere] ${
-                        m.deleted ? "border border-dashed border-line bg-transparent italic text-ink-soft/60" : m.fromMe ? "bg-lime text-ink" : "bg-white text-ink shadow-[0_1px_2px_rgba(58,50,44,0.08)]"
+                      {...(m.pending ? {} : pressFor(m))}
+                      onClick={m.failed ? () => retry(m) : (m.pending ? undefined : pressFor(m).onClick)}
+                      className={`bubble max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] leading-snug [overflow-wrap:anywhere] ${
+                        m.deleted ? "border border-dashed border-line bg-transparent italic text-ink-soft/60" : m.fromMe ? `bg-lime text-ink ${m.pending && !m.failed ? "opacity-70" : ""}` : "bg-white text-ink shadow-[0_1px_2px_rgba(58,50,44,0.08)]"
                       }`}
                     >
                       {quoted && !m.deleted && (
                         <button
                           onClick={(e) => { e.stopPropagation(); document.getElementById(`dm-${quoted.key}`)?.scrollIntoView({ behavior: "smooth", block: "center" }) }}
-                          className={`mb-1 w-full border-l-2 pl-2 text-left text-[11.5px] leading-snug line-clamp-2 ${m.fromMe ? "border-ink/30 text-ink/60" : "border-lime-deep text-ink-soft"}`}
+                          className={`mb-1 w-full rounded-lg border-l-[3px] bg-ink/5 px-2 py-1 text-left text-[12px] leading-snug line-clamp-2 ${m.fromMe ? "border-ink/40 text-ink/70" : "border-lime-deep text-ink-soft"}`}
                         >
-                          {quoted.deleted ? t("deleted message") : `${quoted.fromMe ? t("you") : (other.name || "").split(" ")[0].toLowerCase()}: ${quoted.text}`}
+                          <span className="block font-bold">{quoted.fromMe ? t("you") : (other.name || other.first || "").split(" ")[0].toLowerCase()}</span>
+                          {quoted.deleted ? t("deleted message") : quoted.text}
                         </button>
                       )}
                       {m.deleted ? t("message deleted") : <WithMentions text={m.text} />}
-                      {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
-                      <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>
+                      <span className="float-right ml-2 mt-1.5 flex items-center gap-1 whitespace-nowrap font-mono text-[9.5px] leading-none text-ink/45">
+                        {m.edited && !m.deleted && t("edited")}
+                        {m.failed ? <span className="font-bold text-[#b3461f]">{t("not sent · tap to retry")}</span> : msgTime(m.at)}
+                        {m.fromMe && !m.deleted && !m.failed && (
+                          m.pending ? <span>🕓</span> : <span className={m.read ? "font-bold text-[#5b8a2b]" : ""}>{m.read ? "✓✓" : "✓"}</span>
+                        )}
+                      </span>
                       {tr && tr !== "same" && !m.deleted && (
-                        <p className="mt-1 border-t border-ink/10 pt-1 italic">
+                        <p className="mt-1 clear-both border-t border-ink/10 pt-1 italic">
                           {tr === "loading" ? t("translating…") : tr === "error" ? t("couldn't translate that right now") : tr}
                         </p>
                       )}
                     </div>
+                    {lastMine && m.read && <span className="mt-0.5 px-1 font-mono text-[9.5px] text-ink-soft">{t("seen")}</span>}
                     {!m.fromMe && !m.deleted && !tr && looksForeign(m.text) && (
                       <button onClick={() => translateDm(m)} className="mt-0.5 px-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
                         {t("translate")}
                       </button>
                     )}
                     {reactions.length > 0 && (
-                      <div className={`mt-1 flex gap-1 ${m.fromMe ? "flex-row-reverse" : ""}`}>
+                      <div className={`-mt-1.5 flex gap-1 ${m.fromMe ? "mr-2 flex-row-reverse" : "ml-2"}`}>
                         {reactions.map(([em, who]) => (
                           <button
                             key={em}
                             onClick={() => dmAct(m, "react", { emoji: em })}
-                            className={`rounded-full border px-1.5 py-0.5 text-[11px] ${who.includes(me.memberNo) ? "border-lime-deep bg-lime/40" : "border-line bg-white/70"}`}
+                            className={`rounded-full border bg-white px-1.5 py-0.5 text-[11px] shadow-sm ${who.includes(me.memberNo) ? "border-lime-deep" : "border-line"}`}
                           >
                             {em} {who.length > 1 ? who.length : ""}
                           </button>
                         ))}
                       </div>
                     )}
-                    <AnimatePresence>
-                      {dmFocused === m.key && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 6, scale: 0.9 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 6, scale: 0.9 }}
-                          transition={{ type: "spring", stiffness: 380, damping: 24 }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-1.5 flex items-center gap-1 rounded-full border border-line bg-white px-2 py-1.5 shadow-[0_10px_24px_-12px_rgba(28,27,23,0.4)]"
-                        >
-                          {REACT_SET.map((em) => (
-                            <button key={em} onClick={() => dmAct(m, "react", { emoji: em })} className="px-1 text-[16px] active:scale-125">{em}</button>
-                          ))}
-                          <span className="mx-0.5 h-4 w-px bg-line" />
-                          <button onClick={() => { setDmReply(m); setDmEditing(null); setDmFocused(null); document.getElementById("dm-composer")?.focus() }} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
-                            {t("reply")}
-                          </button>
-                          {!m.fromMe && (
-                            <button onClick={() => { setDmFocused(null); translateDm(m) }} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
-                              {tr && tr !== "error" ? t("original") : t("translate")}
-                            </button>
-                          )}
-                          {m.fromMe && (
-                            <>
-                              <button onClick={() => { setDmEditing(m); setDmReply(null); setText(m.text); setDmFocused(null); document.getElementById("dm-composer")?.focus() }} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
-                                {t("edit")}
-                              </button>
-                              <button onClick={() => dmAct(m, "delete")} className="px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b3461f]">
-                                {t("delete")}
-                              </button>
-                            </>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
+                  </SwipeToReply>
                 </div>
               )
             })
           )}
           <div ref={endRef} />
         </div>
+        </div>
+        <AnimatePresence>
+          {dmMenu && (
+            <MessageMenu
+              m={dmMenu}
+              mine={dmMenu.fromMe}
+              onReact={(em) => dmAct(dmMenu, "react", { emoji: em })}
+              onReply={() => { setDmReply(dmMenu); setDmEditing(null); document.getElementById("dm-composer")?.focus() }}
+              onCopy={() => navigator.clipboard?.writeText(dmMenu.text).catch(() => {})}
+              onTranslate={!dmMenu.fromMe ? () => translateDm(dmMenu) : null}
+              translated={!!dmTranslated[dmMenu.key] && dmTranslated[dmMenu.key] !== "error"}
+              onEdit={() => { setDmEditing(dmMenu); setDmReply(null); setText(dmMenu.text); document.getElementById("dm-composer")?.focus() }}
+              onDeleteAll={() => dmAct(dmMenu, "delete")}
+              onDeleteMe={() => { hideMsg(dmMenu.key); setHidden(hiddenMsgs()) }}
+              onClose={() => setDmMenu(null)}
+            />
+          )}
+        </AnimatePresence>
         {convo && other.memberNo !== "002" && convo.messages.some((m) => m.fromMe) && convo.messages.some((m) => !m.fromMe) && !convo.messages.some((m) => m.text.startsWith("📹")) && (
           <button
             onClick={askVideo}
@@ -1856,11 +1861,11 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         )}
         <div className="mt-3 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
           <MoreList
-            items={threads.filter((th) => !inboxQ.trim() || `${th.with.name} ${th.with.ig} ${th.last}`.toLowerCase().includes(inboxQ.trim().toLowerCase()))}
+            items={threads.filter((th) => !(hiddenChats()[th.with.memberNo] >= th.at)).filter((th) => !inboxQ.trim() || `${th.with.name} ${th.with.ig} ${th.last}`.toLowerCase().includes(inboxQ.trim().toLowerCase()))}
             step={15}
             resetKey={inboxQ}
             render={(th) => (
-            <button key={th.with.memberNo} onClick={() => setOpenWith(th.with)} className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/30">
+            <button key={th.with.memberNo} {...chatPress(th)} className="bubble flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/30">
               <Avatar member={th.with} photo={photoMap[th.with.memberNo]} />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{th.with.name.toLowerCase()} <RepBadge score={th.with.repScore} verified={th.with.verified} /></p>
@@ -1876,6 +1881,26 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         </div>
         </>
       )}
+      <AnimatePresence>
+        {chatMenu && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setChatMenu(null)} className="fixed inset-0 z-[55] bg-ink/40 backdrop-blur-[2px]" />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 420, damping: 36 }}
+              className="fixed inset-x-0 bottom-0 z-[56] mx-auto max-w-[460px] rounded-t-[1.75rem] bg-cream pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5"
+            >
+              <div className="mx-auto h-1.5 w-10 rounded-full bg-line" />
+              <p className="mt-3 px-5 text-[15px] font-bold">{chatMenu.with.name?.toLowerCase()}</p>
+              <div className="mt-2 divide-y divide-line/60 border-t border-line/60">
+                <button onClick={() => { setOpenWith(chatMenu.with); setChatMenu(null) }} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold">💬 {t("open chat")}</button>
+                <button onClick={() => { hideChat(chatMenu.with.memberNo); setChatMenu(null); bumpChats((x) => x + 1) }} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold text-[#b3461f]">🗑 {t("delete chat")}</button>
+                <button onClick={() => setChatMenu(null)} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold text-ink-soft">{t("cancel")}</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
