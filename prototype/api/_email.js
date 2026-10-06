@@ -250,3 +250,46 @@ export const edcEmail = ({ name, memberNo, url, unsub }) => ({
       <a href="${unsub || "https://irlpass.xyz"}" style="color:#b8afa5">turn off these emails</a>
     </p>`,
 })
+
+// v3 announcement: the shuffle, the starter kit for wherever they're headed,
+// edc for medellín people, and the one step that makes pings work (home screen)
+const P = "font:400 16px/1.6 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#655c53;margin:12px 0 0"
+export const shuffleEmail = ({ name, memberNo, url, kitUrl, city, edc, unsub }) => ({
+  subject: "new on irlpass: what should you do right now?",
+  html: `
+    <p style="font:700 11px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#837a70;margin:0">new on irlpass</p>
+    <h1 style="font:800 34px/0.98 Archivo,'Helvetica Neue',Arial,sans-serif;letter-spacing:-1.1px;margin:10px 0 0;color:#3a322c">
+      what should<br>i do right<br>now? 🎲
+    </h1>
+    <p style="${P.replace("margin:12px", "margin:16px")}">
+      hey ${name ? String(name).toLowerCase() : "there"}, irlpass answers that now. tap how you feel
+      (hungry, coffee, drinks, dance) and get six spots that are open near you right now,
+      with who from irlpass is going. no typing where you are or what time it is.
+    </p>
+    <a href="${url}" style="display:block;background:#3a322c;color:#fdfaf6;text-decoration:none;font:700 17px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;text-align:center;border-radius:999px;padding:17px;margin-top:20px">
+      🎲 shuffle me
+    </a>
+    ${city ? `
+    <div style="background:#f2ecfc;border-radius:18px;padding:16px;margin-top:20px">
+      <p style="font:700 16px/1.4 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#3a322c;margin:0">🎒 your starter kit for ${String(city).toLowerCase()}</p>
+      <p style="font:400 14.5px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#655c53;margin:6px 0 0">
+        the apps to download, how to get around, money, what to watch out for, and your first night.
+        <a href="${kitUrl}" style="color:#3a322c;font-weight:700">open it</a>
+      </p>
+    </div>` : ""}
+    ${edc ? `
+    <p style="${P}">
+      edc lands in medellín october 10 and 11. on the mood tab, pick a spot and a night,
+      tap i'm going, and a group chat forms with everyone else headed there.
+    </p>` : ""}
+    <p style="${P}"><strong style="color:#3a322c">one step so you don't miss anyone:</strong>
+      on iphone, open the link in safari, tap share, then "add to home screen". open irlpass from there
+      and turn on pings when it asks. that's how you hear the second someone wants to meet.
+    </p>
+    <p style="font:400 13px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#837a70;text-align:center;margin:16px 0 0">
+      the link opens your account · nº ${memberNo}
+    </p>
+    <p style="font:400 11px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#b8afa5;text-align:center;margin:12px 0 0">
+      ${edc ? "irlpass is independent and has no connection to the festival or its organizers · " : ""}<a href="${unsub || "https://irlpass.xyz"}" style="color:#b8afa5">turn off these emails</a>
+    </p>`,
+})
