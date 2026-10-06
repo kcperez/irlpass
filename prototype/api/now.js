@@ -185,7 +185,16 @@ export default async function handler(req, res) {
       const chosen = (Array.isArray(out?.picks) ? out.picks : []).filter((p, i, a) => cands.some((c) => c.id === p.id) && a.findIndex((q) => q.id === p.id) === i).slice(0, PICKS)
       if (chosen.length) {
         source = "claude"
-        picks = chosen.map((p) => card(cands.find((c) => c.id === p.id), scored.find((x) => x.s.id === p.id), SLOTS.includes(p.label) ? p.label : "", p.why))
+        // a label has to be true: "where irlpass is going" needs people going,
+        // "closest" needs a distance
+        const honest = (label, c) =>
+          !SLOTS.includes(label) ? "" :
+          label === "where irlpass is going" && !c.goingTonight ? "local favorite" :
+          label === "closest" && c.km == null ? "" : label
+        picks = chosen.map((p) => {
+          const c = cands.find((x) => x.id === p.id)
+          return card(c, scored.find((x) => x.s.id === p.id), honest(p.label, c), p.why)
+        })
       } else {
         // no claude: fill the slots by rule
         const used = new Set()
@@ -249,7 +258,7 @@ export default async function handler(req, res) {
             name: String(p.name).slice(0, 80),
             area: String(p.area || "").slice(0, 60),
             category: "",
-            label: SLOTS.includes(p.label) ? p.label : "",
+            label: SLOTS.includes(p.label) && p.label !== "where irlpass is going" ? p.label : "",
             photo: (id && hasPhoto.get(id)) || null,
             why: String(p.why || "").slice(0, 160),
             facts: [p.rating && `${p.rating}★`, p.price].filter(Boolean).join(" · "),

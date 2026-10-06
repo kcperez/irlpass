@@ -532,6 +532,7 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "replying to": "respondiendo a",
   "editing your message": "editando tu mensaje",
   "cancel": "cancelar",
+  "local favorite": "favorito local",
   "show": "ver",
   "left": "restantes",
   "your area": "tu zona",
