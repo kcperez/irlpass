@@ -267,21 +267,22 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                 <button onClick={close} aria-label={t("close")} className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><X size={18} weight="bold" /></button>
               </div>
 
+              {/* where to shuffle: your phone's location by default, or any of your trip cities */}
               {res?.ahead?.length > 0 && (
                 <div className="flex gap-1.5 overflow-x-auto px-5 pt-2">
                   <button
                     onClick={() => { setAheadCity(null); setSeen([]); ask(feeling, false, null) }}
                     className={`shrink-0 rounded-full border-2 px-3 py-1 text-[12px] font-bold ${!aheadCity ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
                   >
-                    📍 {t("where i am")}
+                    📍 {t("here")}{!aheadCity && res?.cityName ? ` · ${res.cityName.toLowerCase()}` : ""}
                   </button>
-                  {res.ahead.map((a) => (
+                  {res.ahead.filter((a) => aheadCity === a.city || a.name.toLowerCase() !== (res?.cityName || "").toLowerCase() || aheadCity).map((a) => (
                     <button
                       key={a.city}
                       onClick={() => { setAheadCity(a.city); setSeen([]); ask(feeling, false, a.city) }}
                       className={`shrink-0 rounded-full border-2 px-3 py-1 text-[12px] font-bold ${aheadCity === a.city ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
                     >
-                      ✈️ {a.name.toLowerCase()} · {new Date(`${a.starts}T12:00:00Z`).toLocaleDateString([], { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}
+                      {a.now ? "🧳" : "✈️"} {a.name.toLowerCase()}{a.now ? "" : ` · ${new Date(`${a.starts}T12:00:00Z`).toLocaleDateString([], { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}`}
                     </button>
                   ))}
                 </div>

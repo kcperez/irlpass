@@ -83,12 +83,15 @@ export default async function handler(req, res) {
     // actually in singapore: the phone wins.)
     const { data: trips } = await db.from("trips").select("city, starts, ends").eq("member_no", me.memberNo).gte("ends", today()).eq("hidden", false).order("starts")
     const current = (trips || []).find((tr) => tr.starts <= today())
-    const aheadTrip = req.body?.city ? (trips || []).find((tr) => tr.city === req.body.city && tr.starts > today()) : null
+    // they picked one of their trip cities: there now (no distances, the phone is
+    // elsewhere) or planning ahead if that trip hasn't started
+    const chosen = req.body?.city ? (trips || []).find((tr) => tr.city === req.body.city) : null
+    const aheadTrip = chosen && chosen.starts > today() ? chosen : null
     let city = current?.city || me.homeCity || me.city || "medellin"
     let cityName = cityLabel(city)
     let useHere = here
-    if (aheadTrip) {
-      city = aheadTrip.city
+    if (chosen) {
+      city = chosen.city
       cityName = cityLabel(city)
       useHere = null
     } else if (here) {
@@ -294,12 +297,18 @@ export default async function handler(req, res) {
     for (let d = new Date(); days.has(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() - 1)) streak++
 
     // upcoming trips, so the app can offer "plan ahead for lisbon"
-    const ahead = (trips || []).filter((tr) => tr.starts > today() && tr.city !== city).slice(0, 3).map((tr) => ({ city: tr.city, name: cityLabel(tr.city), starts: tr.starts }))
+    // every city they could shuffle: their trips (current first, then upcoming)
+    const seenCity = new Set()
+    const ahead = (trips || [])
+      .filter((tr) => !seenCity.has(tr.city) && seenCity.add(tr.city))
+      .slice(0, 5)
+      .map((tr) => ({ city: tr.city, name: cityLabel(tr.city), starts: tr.starts, now: tr.starts <= today() }))
 
     return res.status(200).json({
       city,
       cityName,
       planningAhead: !!aheadTrip,
+      chosenCity: chosen?.city || null,
       feeling,
       picks,
       source,
