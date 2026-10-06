@@ -13,6 +13,17 @@ export default function CityBrief({ token, city, starts }) {
   const [d, setD] = useState(null)
   const [err, setErr] = useState("")
   const c = cityChip(city)
+  // tick things off as you go (per city, on this phone)
+  const ckey = `irl:kit:${city}`
+  const [ticked, setTicked] = useState(() => { try { return JSON.parse(localStorage.getItem(ckey) || "{}") } catch { return {} } })
+  useEffect(() => { try { setTicked(JSON.parse(localStorage.getItem(ckey) || "{}")) } catch { setTicked({}) } }, [ckey])
+  const tick = (id) => setTicked((x) => {
+    const n = { ...x, [id]: !x[id] }
+    try { localStorage.setItem(ckey, JSON.stringify(n)) } catch { /* private mode */ }
+    return n
+  })
+  const total = (d?.brief?.sections || []).reduce((n, sec) => n + (sec.items || []).length, 0)
+  const done = Object.values(ticked).filter(Boolean).length
   const here = starts && starts <= new Date().toISOString().slice(0, 10)
 
   // warm it up quietly so it's ready when they tap (the first one per city takes a bit)
@@ -35,10 +46,11 @@ export default function CityBrief({ token, city, starts }) {
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[24px]">{c.emoji}</span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold leading-tight">{here ? `${t("in")} ${c.name.toLowerCase()}? ${t("stuff you should know")}` : `${t("heading to")} ${c.name.toLowerCase()}? ${t("stuff you should know")}`}</span>
+          <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{here ? t("you're in") : t("next level")} · {c.name.toLowerCase()}</span>
+          <span className="block text-[15px] font-bold leading-tight">🎒 {t("your starter kit")}</span>
           <span className="block truncate text-[12px] text-ink-soft">{d?.brief?.headline || t("apps, getting around, money, what to watch out for")}</span>
         </span>
-        <span className="shrink-0 text-[18px]">🧳</span>
+        {total > 0 && <span className="shrink-0 rounded-full bg-lime px-2.5 py-1 font-mono text-[11px] font-bold">{done}/{total}</span>}
       </motion.button>
 
       <AnimatePresence>
@@ -52,7 +64,7 @@ export default function CityBrief({ token, city, starts }) {
             >
               <div className="flex items-start justify-between px-5 pb-2 pt-5">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{c.emoji} {c.name.toLowerCase()} · {t("before you land")}</p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">🎒 {t("starter kit")} · {c.emoji} {c.name.toLowerCase()}{total ? ` · ${done}/${total}` : ""}</p>
                   <h2 className="display text-[26px] font-bold leading-tight">{d?.brief?.headline || t("stuff you should know")}</h2>
                 </div>
                 <button onClick={() => setOpen(false)} aria-label={t("close")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm"><X size={18} weight="bold" /></button>
@@ -73,12 +85,25 @@ export default function CityBrief({ token, city, starts }) {
                   >
                     <p className="text-[15px] font-bold">{ICON[sec.key] || "✦"} {sec.title}</p>
                     <ul className="mt-2 space-y-2">
-                      {(sec.items || []).map((it, j) => (
-                        <li key={j} className="text-[13.5px] leading-snug">
-                          {it.name && <span className="font-bold">{it.name}: </span>}
-                          {it.text}
-                        </li>
-                      ))}
+                      {(sec.items || []).map((it, j) => {
+                        const id = `${sec.key || i}-${j}`
+                        return (
+                          <li key={j}>
+                            <button onClick={() => tick(id)} className="flex w-full items-start gap-2.5 text-left">
+                              <motion.span
+                                animate={{ scale: ticked[id] ? [1, 1.25, 1] : 1 }}
+                                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-[11px] font-bold ${ticked[id] ? "border-ink bg-lime" : "border-line bg-white"}`}
+                              >
+                                {ticked[id] ? "✓" : ""}
+                              </motion.span>
+                              <span className={`text-[13.5px] leading-snug ${ticked[id] ? "text-ink-soft line-through decoration-ink/30" : ""}`}>
+                                {it.name && <span className="font-bold">{it.name}: </span>}
+                                {it.text}
+                              </span>
+                            </button>
+                          </li>
+                        )
+                      })}
                     </ul>
                   </motion.section>
                 ))}

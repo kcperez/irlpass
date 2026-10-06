@@ -1,3 +1,5 @@
+import { waitUntil } from "@vercel/functions"
+import { ensureBrief } from "./_brief.js"
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { isValidCity, cityLabel, OPEN_AT, cityBySlug, canonicalCity } from "./_cities.js"
@@ -13,6 +15,8 @@ const MAX_NIGHTS = 120
 // POST { t, city, starts, ends, flexible, note }  -> post dates (claims a founding slot)
 // PATCH { t, id, city, starts, ends, flexible, note, local } -> edit one of my trips
 // DELETE ?t=&id=               -> remove one of my trips
+export const config = { maxDuration: 120 }
+
 export default async function handler(req, res) {
   const token = req.method === "POST" || req.method === "PATCH" ? req.body?.t : req.query?.t
   const me = await getUser(token)
@@ -114,6 +118,8 @@ export default async function handler(req, res) {
       notifyOverlap(me, trip).catch((e) => console.error("match email error:", e))
       // did this trip just tip the city over the line? tell everyone waiting on it
       maybeOpenCity(trip.city).catch((e) => console.error("city open error:", e))
+      // the starter kit for that city, ready before they open it
+      waitUntil(ensureBrief(trip.city).catch((e) => console.error("brief error:", e)))
 
       return res.status(200).json({
         trip: shape(trip),
@@ -177,6 +183,7 @@ export default async function handler(req, res) {
       if (trip.city !== prev.city || trip.starts !== prev.starts || trip.ends !== prev.ends) {
         notifyOverlap(me, trip).catch((e) => console.error("match email error:", e))
         maybeOpenCity(trip.city).catch((e) => console.error("city open error:", e))
+        waitUntil(ensureBrief(trip.city).catch((e) => console.error("brief error:", e)))
       }
       return res.status(200).json({ trip: shape(trip) })
     }
