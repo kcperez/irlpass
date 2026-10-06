@@ -8,6 +8,7 @@ import { CITY_INDEX, cityChip, rememberCity } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
 import { t } from "../lib/i18n"
 import RightNow from "../components/RightNow"
+import CityBrief from "../components/CityBrief"
 import RangePicker from "../components/RangePicker"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
@@ -551,6 +552,8 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
 
         {/* the daily reason to open the app: what should i do right now? */}
         <RightNow token={token} me={me} onPaywall={onPaywall} />
+        {/* before you land: the stuff you should know about where you're headed */}
+        {trips[0] && <CityBrief token={token} city={trips[0].city} starts={trips[0].starts} />}
 
         {/* my trips */}
         <div className="mb-4">

@@ -75,11 +75,13 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
   const city = cityChip(me?.city || "medellin")
   const clock = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()
 
-  const ask = async (key, more = false) => {
+  const [aheadCity, setAheadCity] = useState(null) // planning a trip you haven't started yet
+  const ask = async (key, more = false, cityOverride) => {
+    const planCity = cityOverride !== undefined ? cityOverride : aheadCity
     setFeeling(key)
     setBusy(true)
     setErr("")
-    if (!more) setRes(null)
+    if (!more) setRes((r) => (r ? { ahead: r.ahead, cityName: r.cityName } : null))
     const here = await whereAmI()
     const now = new Date()
     const skip = more ? seen : []
@@ -94,6 +96,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
         lat: here?.lat,
         lng: here?.lng,
         seen: skip,
+        city: planCity || undefined,
       }),
     }).then(async (x) => ({ status: x.status, d: await x.json().catch(() => ({})) })).catch(() => ({ status: 0, d: {} }))
     setBusy(false)
@@ -110,7 +113,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
     window.addEventListener("irl:now", on)
     return () => window.removeEventListener("irl:now", on)
   })
-  const close = () => { setFeeling(null); setRes(null); setSeen([]); setErr("") }
+  const close = () => { setFeeling(null); setRes(null); setSeen([]); setErr(""); setAheadCity(null) }
   const [lastCity, setLastCity] = useState(() => { try { return sessionStorage.getItem("irl:now-city") || "" } catch { return "" } })
   // the loop: "irlpass sent me to oni nikkei 🎲" goes to the group chat or the story
   const share = async (p) => {
@@ -166,15 +169,34 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                     {f?.emoji} {t(f?.label || "")} · {res?.cityName?.toLowerCase() || t("near you")} · {clock}
                     {res?.streak > 1 ? ` · 🔥 ${res.streak} ${t("days")}` : ""}
                   </p>
-                  <h2 className="display text-[26px] font-bold leading-tight">{t("go here right now")}</h2>
+                  <h2 className="display text-[26px] font-bold leading-tight">{res?.planningAhead ? `${t("for your trip to")} ${res.cityName.toLowerCase()}` : t("go here right now")}</h2>
                 </div>
                 <button onClick={close} aria-label={t("close")} className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><X size={18} weight="bold" /></button>
               </div>
 
+              {res?.ahead?.length > 0 && (
+                <div className="flex gap-1.5 overflow-x-auto px-5 pt-2">
+                  <button
+                    onClick={() => { setAheadCity(null); setSeen([]); ask(feeling, false, null) }}
+                    className={`shrink-0 rounded-full border-2 px-3 py-1 text-[12px] font-bold ${!aheadCity ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
+                  >
+                    📍 {t("where i am")}
+                  </button>
+                  {res.ahead.map((a) => (
+                    <button
+                      key={a.city}
+                      onClick={() => { setAheadCity(a.city); setSeen([]); ask(feeling, false, a.city) }}
+                      className={`shrink-0 rounded-full border-2 px-3 py-1 text-[12px] font-bold ${aheadCity === a.city ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
+                    >
+                      ✈️ {a.name.toLowerCase()} · {new Date(`${a.starts}T12:00:00Z`).toLocaleDateString([], { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-3">
                 {busy && <Spinner emoji={f?.emoji} />}
                 {err && <p className="py-8 text-center text-[14px] font-semibold text-ink-soft">{err}</p>}
-                {res?.empty && (
+                {!busy && res?.empty && (
                   <p className="py-8 text-center text-[14px] text-ink-soft">{t("nothing open for that right now. try another mood, or shuffle in a bit.")}</p>
                 )}
                 {!busy && res?.others?.length > 0 && (
@@ -203,7 +225,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#d9cdf3] via-cream-deep to-[#f4d9c4] text-[52px]">{f?.emoji}</div>
                       )}
-                      <span className="absolute left-3 top-3 rounded-full bg-ink px-2.5 py-1 font-mono text-[10px] font-bold text-cream">#{i + 1}</span>
+                      <span className="absolute left-3 top-3 rounded-full bg-ink px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-cream">{p.label ? t(p.label) : `#${i + 1}`}</span>
                       {p.going > 0 && (
                         <span className="absolute right-3 top-3 rounded-full bg-lime px-2.5 py-1 text-[11px] font-bold">🔥 {p.going} {t("from irlpass tonight")}</span>
                       )}
