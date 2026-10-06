@@ -1,4 +1,4 @@
-import { getUser } from "./_lib.js"
+import { getUser, forgetUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { isMod } from "./_mods.js"
 
@@ -42,6 +42,7 @@ export default async function handler(req, res) {
 
   try {
     const { error } = await db.from("members").update(patch).eq("token", me.token)
+    forgetUser(me.token)
     if (error) throw error
     return res.status(200).json({ ok: true, ...patch })
   } catch (e) {

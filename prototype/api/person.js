@@ -17,13 +17,15 @@ export default async function handler(req, res) {
   if (!/^\d{3}$/.test(no)) return res.status(400).json({ error: "who?" })
 
   try {
-    const { data: row } = await db.from("members").select("*").eq("member_no", no).maybeSingle()
+    const self = no === me.memberNo
+    // three lookups at once instead of one after another
+    const [{ data: row }, dms, reach] = await Promise.all([
+      db.from("members").select("*").eq("member_no", no).maybeSingle(),
+      dmState(me.memberNo),
+      self ? { ok: true } : canReachMember(me, no).catch(() => ({ ok: false })),
+    ])
     const m = rowToMember(row)
     if (!m || m.banned) return res.status(404).json({ error: "not found" })
-
-    const self = no === me.memberNo
-    const dms = await dmState(me.memberNo)
-    const reach = self ? { ok: true } : await canReachMember(me, no).catch(() => ({ ok: false }))
     const open = self || actsAsMod(me) || reach.ok || dms.get(no)?.talked
     const blocked = me.gender === "man" && m.allowDmFromMen === false
 

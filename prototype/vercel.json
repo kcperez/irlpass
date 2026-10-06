@@ -22,5 +22,6 @@
       "path": "/api/cron-announce",
       "schedule": "0 16 * * *"
     }
-  ]
+  ],
+  "fluid": true
 }

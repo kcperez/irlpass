@@ -1,4 +1,4 @@
-import { getUser } from "./_lib.js"
+import { getUser, forgetUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { isValidCity, cityLabel, canonicalCity } from "./_cities.js"
 import { isDate, today } from "./_access.js"
@@ -70,6 +70,7 @@ export default async function handler(req, res) {
 
 // shared with unlock-activate: write the purchased window (or flip the pass on)
 export async function grantFromSession(me, session) {
+  forgetUser(me.token)
   const { city, starts, ends, plan } = session.metadata || {}
   if (plan === "pass") {
     await db

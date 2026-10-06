@@ -57,7 +57,22 @@ export async function getAccepted(token) {
 
 // a USER = accepted + not banned. paid is optional. this is the free tier — use
 // this everywhere a non-paying member should still get in (the app is free locally).
+// every request starts with "who is this token": remember the answer for 20s
+// per warm server (bans and settings changes land within that window)
+const userCache = new Map()
 export async function getUser(token) {
+  const hit = token && userCache.get(token)
+  if (hit && Date.now() - hit.at < 20000) return hit.user
+  const user = await getUserFresh(token)
+  if (token) {
+    if (userCache.size > 2000) userCache.clear()
+    userCache.set(token, { at: Date.now(), user })
+  }
+  return user
+}
+export const forgetUser = (token) => userCache.delete(token)
+
+async function getUserFresh(token) {
   const m = await getAccepted(token)
   if (!m || m.banned) return null
   // member view: a mod testing as a regular free member loses the pass, the

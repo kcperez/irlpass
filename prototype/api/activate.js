@@ -1,4 +1,4 @@
-import { getAccepted } from "./_lib.js"
+import { getAccepted, forgetUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { rewardReferrals } from "./_referrals.js"
 
@@ -30,6 +30,7 @@ export default async function handler(req, res) {
         .eq("token", t)
       if (error) throw error
     }
+    forgetUser(t)
     // invite a friend: once both are on the plan, both get a free month
     await rewardReferrals(member.memberNo).catch((e) => console.error("referral reward error:", e))
     return res.status(200).json({ ok: true })

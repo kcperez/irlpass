@@ -1,4 +1,4 @@
-import { getUser } from "./_lib.js"
+import { getUser, forgetUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { today } from "./_access.js"
 
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
     const from = me.compUntil && me.compUntil > today() ? me.compUntil : today()
     const until = addDays(from, 30 * Math.max(1, row.months))
     await db.from("members").update({ comp_until: until }).eq("member_no", me.memberNo)
+    forgetUser(req.body.t)
     return res.status(200).json({ ok: true, until, months: row.months })
   } catch (e) {
     console.error("code error:", e)

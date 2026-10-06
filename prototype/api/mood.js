@@ -78,16 +78,16 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const city = String(req.query?.city || "medellin")
-      const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }] = await Promise.all([
+      const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }, { data: roomMsgs }] = await Promise.all([
         db.from("spots").select("*").eq("city", city).eq("active", true).order("sort").order("id"),
         db.from("spot_going").select("spot_id, member_no").eq("night", night),
         db.from("moods").select("mood").eq("member_no", me.memberNo).eq("night", night).maybeSingle(),
         db.from("presence").select("*").eq("city", city).gt("expires_at", new Date().toISOString()),
         canReach(me, city, night, night),
         db.from("dm_threads").select("a_no, b_no").or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`),
+        // which plans have a live group chat this night
+        db.from("messages").select("channel").like("channel", `spot-%-${night.replace(/-/g, "")}`).eq("deleted", false),
       ])
-      // which plans have a live group chat this night
-      const { data: roomMsgs } = await db.from("messages").select("channel").like("channel", `spot-%-${night.replace(/-/g, "")}`).eq("deleted", false)
       const chatCount = {}
       for (const m of roomMsgs || []) {
         const id = Number(m.channel.split("-")[1])
