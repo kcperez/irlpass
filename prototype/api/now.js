@@ -1,4 +1,4 @@
-import { getUser } from "./_lib.js"
+import { getUser, safeFirstName, lockedPhoto } from "./_lib.js"
 import { db } from "./_db.js"
 import { today, hasComp } from "./_access.js"
 import { actsAsMod } from "./_mods.js"
@@ -61,9 +61,25 @@ export default async function handler(req, res) {
   const seen = new Set((Array.isArray(req.body?.seen) ? req.body.seen : []).map(String).slice(0, 60))
 
   try {
-    // where you are: the trip you're on now, else your next one, else home
+    // where you are. your phone's location wins (dates can say medellín while
+    // you're actually in singapore); without it, the trip you're on, else home
     const { data: trip } = await db.from("trips").select("city").eq("member_no", me.memberNo).gte("ends", today()).lte("starts", today()).limit(1).maybeSingle()
-    const city = trip?.city || me.homeCity || me.city || "medellin"
+    let city = trip?.city || me.homeCity || me.city || "medellin"
+    let cityName = cityLabel(city)
+    if (here) {
+      const { data: known } = await db.from("cities").select("slug, name, lat, lng").not("lat", "is", null)
+      const near = (known || []).map((c) => ({ c, d: km(here, c) })).sort((a, b) => a.d - b.d)[0]
+      if (near && near.d < 80) {
+        city = near.c.slug
+        cityName = near.c.name
+      } else {
+        // somewhere we've never had anyone: name it from the map
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=${here.lat}&lon=${here.lng}`, { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }).catch(() => null)
+        const a = r?.ok ? (await r.json().catch(() => ({})))?.address || {} : {}
+        cityName = a.city || a.town || a.state || a.country || "where you are"
+        city = `near-${cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`.slice(0, 40)
+      }
+    }
 
     // free members get a few check-ins a day; the pass makes it unlimited
     const member = isMember(me)
@@ -127,7 +143,7 @@ export default async function handler(req, res) {
           system: `you pick places for a traveler on irlpass, a social travel app. ${VOICE}`,
           messages: [{
             role: "user",
-            content: `it's ${["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][day]} ${fmtMin(minute)} in ${cityLabel(city)}. they feel: ${f.label}.${here ? "" : " we don't know exactly where they are."}\ncandidates (json):\n${JSON.stringify(cands)}\n\npick the 3 best for right now. prefer open, close, well reviewed, and places other irlpass people are going. reply only json: {"picks":[{"id":number,"why":"..."}]}`,
+            content: `it's ${["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][day]} ${fmtMin(minute)} in ${cityName}. they feel: ${f.label}.${here ? "" : " we don't know exactly where they are."}\ncandidates (json):\n${JSON.stringify(cands)}\n\npick the 3 best for right now. prefer open, close, well reviewed, and places other irlpass people are going. reply only json: {"picks":[{"id":number,"why":"..."}]}`,
           }],
         })
         if (Array.isArray(out?.picks)) chosen = out.picks.filter((p) => cands.some((c) => c.id === p.id)).slice(0, 3)
@@ -148,7 +164,7 @@ export default async function handler(req, res) {
           why: p.why || c.note || "",
           facts,
           going: c.goingTonight,
-          mapsUrl: x.s.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${c.name} ${cityLabel(city)}`)}`,
+          mapsUrl: x.s.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${c.name} ${cityName}`)}`,
         }
       })
     }
@@ -161,7 +177,7 @@ export default async function handler(req, res) {
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
         messages: [{
           role: "user",
-          content: `it's ${["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][day]} ${fmtMin(minute)} in ${cityLabel(city)}${here ? ` near ${here.lat.toFixed(3)},${here.lng.toFixed(3)}` : ""}. they feel: ${f.label}. skip: ${[...seen].join(", ") || "nothing"}.\nfind 3 well-reviewed places open now. reply only json: {"picks":[{"name":"...","area":"neighborhood","why":"...","rating":4.6}]}`,
+          content: `it's ${["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][day]} ${fmtMin(minute)} in ${cityName}${here ? ` near ${here.lat.toFixed(3)},${here.lng.toFixed(3)}` : ""}. they feel: ${f.label}. skip: ${[...seen].join(", ") || "nothing"}.\nfind 3 well-reviewed places open now. reply only json: {"picks":[{"name":"...","area":"neighborhood","why":"...","rating":4.6}]}`,
         }],
       })
       picks = (out?.picks || []).slice(0, 3).map((p) => ({
@@ -172,18 +188,37 @@ export default async function handler(req, res) {
         facts: p.rating ? `${p.rating}★` : "",
         photo: null,
         going: 0,
-        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${cityLabel(city)}`)}`,
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${cityName}`)}`,
       })).filter((p) => p.name)
     }
 
     await db.from("now_checks").insert({ member_no: me.memberNo, feeling, city, picks }).then(() => {}, () => {})
+
+    // the social part: who else here feels the same in the last few hours
+    // (that's a plan waiting to happen), and your check-in streak
+    const [{ data: same }, { data: mine }] = await Promise.all([
+      db.from("now_checks").select("member_no, created_at").eq("city", city).eq("feeling", feeling).neq("member_no", me.memberNo).gte("created_at", new Date(Date.now() - 3 * 3600e3).toISOString()).lt("member_no", "900"),
+      db.from("now_checks").select("created_at").eq("member_no", me.memberNo).gte("created_at", new Date(Date.now() - 30 * 864e5).toISOString()),
+    ])
+    const otherNos = [...new Set((same || []).map((x) => x.member_no))].slice(0, 12)
+    const { data: rows } = otherNos.length ? await db.from("members").select("member_no, name, photo_url, banned").in("member_no", otherNos) : { data: [] }
+    const others = (rows || []).filter((r) => !r.banned).map((r) => ({
+      memberNo: r.member_no,
+      first: safeFirstName(r.name, ""),
+      photo: lockedPhoto(r.photo_url),
+    }))
+    const days = new Set((mine || []).map((x) => x.created_at.slice(0, 10)))
+    let streak = 0
+    for (let d = new Date(); days.has(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() - 1)) streak++
     return res.status(200).json({
       city,
-      cityName: cityLabel(city),
+      cityName,
       feeling,
       picks,
       source,
       left: member ? null : Math.max(0, FREE_PER_DAY - (used || 0) - 1),
+      others,
+      streak,
       empty: !picks.length,
     })
   } catch (e) {
