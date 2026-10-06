@@ -36,16 +36,22 @@ export async function ensureBrief(city) {
   const job = (async () => {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return null
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
+    const call = () => fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-5",
-        max_tokens: 3000,
+        max_tokens: 4000,
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }],
         messages: [{ role: "user", content: PROMPT(cityLabel(city)) }],
       }),
     })
+    let r = await call()
+    // busy (lots of new cities at once): wait a beat and try once more
+    if (r.status === 429 || r.status === 529 || r.status === 503) {
+      await new Promise((ok) => setTimeout(ok, 15000))
+      r = await call()
+    }
     if (!r.ok) throw new Error(`claude ${r.status}`)
     const d = await r.json()
     // the json is the last text block (search citations come before it)
