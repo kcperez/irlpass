@@ -69,7 +69,7 @@ export default function Offer({ token }) {
     <div className="flex min-h-[var(--app-h)] flex-col bg-ink px-6 text-cream">
       <header className="flex items-center justify-between pt-[max(1.5rem,env(safe-area-inset-top))] md:pt-12">
         <Logo size="text-[19px]" />
-        <span className="rounded-full border border-cream/15 px-3 py-1 font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-cream/55">
+        <span className="rounded-full border border-cream/15 px-3 py-1 text-[12px] font-medium text-cream/55">
           private offer
         </span>
       </header>
@@ -78,7 +78,7 @@ export default function Offer({ token }) {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-lime"
+          className="text-[12px] font-medium text-lime"
         >
           {t("application approved")}
         </motion.p>
@@ -123,26 +123,22 @@ export default function Offer({ token }) {
         >
           <button
             onClick={() => setPlan("monthly")}
-            className={`rounded-2xl border p-4 text-left transition-colors ${
-              plan === "monthly" ? "border-lime bg-cream/[0.06]" : "border-cream/12 bg-cream/[0.03]"
-            }`}
+            className={`rounded-2xl border p-4 text-left transition-colors ${ plan === "monthly" ? "border-lime bg-cream/[0.06]" : "border-cream/12 bg-cream/[0.03]" }`}
           >
             <p className="display text-[26px] font-bold leading-none">$9.99</p>
-            <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-cream/55">{t("per month")}</p>
-            <p className="mt-2 font-mono text-[9.5px] text-cream/45">{t("cancel anytime")}</p>
+            <p className="mt-1 text-[12px] text-cream/55 font-semibold">{t("per month")}</p>
+            <p className="mt-2 tabular-nums text-[9.5px] text-cream/45">{t("cancel anytime")}</p>
           </button>
           <button
             onClick={() => setPlan("yearly")}
-            className={`relative rounded-2xl border p-4 text-left transition-colors ${
-              plan === "yearly" ? "border-lime bg-cream/[0.06]" : "border-cream/12 bg-cream/[0.03]"
-            }`}
+            className={`relative rounded-2xl border p-4 text-left transition-colors ${ plan === "yearly" ? "border-lime bg-cream/[0.06]" : "border-cream/12 bg-cream/[0.03]" }`}
           >
-            <span className="absolute -top-2 right-3 rounded-full bg-lime px-2 py-0.5 font-mono text-[8.5px] font-semibold uppercase tracking-[0.1em] text-ink">
+            <span className="absolute -top-2 right-3 rounded-full bg-lime px-2 py-0.5 text-[12px] font-semibold text-ink">
               {t("save 42%")}
             </span>
             <p className="display text-[26px] font-bold leading-none">$69.99</p>
-            <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-cream/55">{t("per year")}</p>
-            <p className="mt-2 font-mono text-[9.5px] text-cream/45">≈ $5.83/mo</p>
+            <p className="mt-1 text-[12px] text-cream/55 font-semibold">{t("per year")}</p>
+            <p className="mt-2 tabular-nums text-[9.5px] text-cream/45">≈ $5.83/mo</p>
           </button>
         </motion.div>
       </main>
@@ -161,7 +157,7 @@ export default function Offer({ token }) {
         >
           {state === "paying" ? t("opening checkout…") : t("claim spot nº {n} · {price}", { n: member.memberNo, price: plan === "yearly" ? "$69.99/yr" : "$9.99/mo" })}
         </motion.button>
-        <p className="mt-2.5 flex items-center justify-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-cream/40">
+        <p className="mt-2.5 flex items-center justify-center gap-1.5 text-[12px] text-cream/40 font-semibold">
           <LockSimple size={11} weight="bold" /> {t("secure checkout by stripe")}
         </p>
       </footer>

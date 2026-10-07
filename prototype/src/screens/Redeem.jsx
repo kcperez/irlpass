@@ -61,7 +61,7 @@ export default function Redeem({ code, onJoined }) {
     <div className="flex min-h-[var(--app-h)] flex-col bg-ink px-6 text-cream">
       <header className="pt-[max(1.5rem,env(safe-area-inset-top))] md:pt-12"><Logo h="h-10" /></header>
       <main className="flex flex-1 flex-col justify-center pb-8">
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-lime">
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] font-medium text-lime">
           {t("you've been invited in")}
         </motion.p>
         <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="display mt-1.5 text-[34px] font-bold leading-[1.05]">

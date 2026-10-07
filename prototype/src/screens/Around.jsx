@@ -147,13 +147,9 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
           {mapNew && <NewDot className="-right-0.5 -top-0.5" />}
         </button>
       </div>
-      <p className="mt-0.5 text-[13px] font-semibold text-ink-soft">
-        {data.total} {data.total === 1 ? t("person with dates") : t("people with dates")}
-      </p>
       <p className="mt-1 text-[14px] text-ink-soft">
-        {data.iHaveDates
-          ? t("people here on your dates. say hi to join them.")
-          : t("post your dates for this city to see who you'd overlap with.")}
+        {data.total} {data.total === 1 ? t("person with dates") : t("people with dates")}
+        {!data.iHaveDates && ` · ${t("post yours to see who overlaps")}`}
       </p>
       {!data.iHaveDates && (
         <button onClick={() => onNeedDates?.(city)} className="mt-2 rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-cream active:scale-95">
@@ -167,9 +163,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
             <button
               key={c}
               onClick={() => { setCity(c); onViewCity?.(c); setWeek(0); setData(null) }}
-              className={`rounded-full border-2 px-3 py-1.5 text-[12.5px] font-bold ${
-                city === c ? "border-ink bg-lime" : "border-line bg-white/60 text-ink-soft"
-              }`}
+              className={`rounded-full border px-3 py-1.5 text-[12.5px] font-bold ${ city === c ? "border-transparent bg-ink text-cream" : "border-line bg-white/60 text-ink-soft" }`}
             >
               {cityChip(c).emoji} {cityChip(c).name}
             </button>
@@ -178,14 +172,14 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
       )}
 
       {picking && (
-        <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/80 p-3">
+        <div className="mt-3 rounded-[1.5rem] border border-line bg-white/80 p-3">
           <input
             id="around-city"
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             autoComplete="off"
             placeholder={t("look at another city")}
-            className="w-full rounded-[1.1rem] border-2 border-line bg-white px-3 py-2.5 text-[15px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+            className="w-full rounded-[1.1rem] border border-line bg-white px-3 py-2.5 text-[15px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
             {(typed.trim() ? found.results : CITY_INDEX.slice(0, 6)).map((c) => (
@@ -203,7 +197,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                   }
                   setCity(c.slug); onViewCity?.(c.slug); setTyped(""); setPicking(false); setWeek(0); setData(null)
                 }}
-                className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12.5px] font-bold"
+                className="rounded-full border border-line bg-white px-3 py-1.5 text-[12.5px] font-bold"
               >
                 {c.emoji} {c.name}
               </button>
@@ -239,10 +233,10 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
             <div className="flex -space-x-2.5">
               {out.slice(0, 4).map((p) => (
                 <span key={p.memberNo} className="relative h-9 w-9 shrink-0">
-                  <span className="block h-9 w-9 overflow-hidden rounded-full border-2 border-ink bg-cream-deep">
+                  <span className="block h-9 w-9 overflow-hidden rounded-full bg-cream-deep-deep">
                     {p.photo && <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked ? "blur-[2px]" : ""}`} />}
                   </span>
-                  {p.out.now && <span className="out-dot absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-ink bg-[#5fd35f]" />}
+                  {p.out.now && <span className="out-dot absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-line bg-[#5fd35f]" />}
                 </span>
               ))}
             </div>
@@ -257,7 +251,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
 
       {view === "weeks" && (<>
       {/* one cell per day: the number is people here that day. tap to filter. */}
-      <div className={`mt-3 rounded-[1.75rem] border-2 border-line bg-white/70 p-4 ${sparse ? "hidden" : ""}`}>
+      <div className={`mt-3 rounded-[1.75rem] border border-line bg-white/70 p-4 ${sparse ? "hidden" : ""}`}>
         <div className="flex items-baseline justify-between">
           <p className="text-[13px] font-bold">{t("people here each day")}</p>
           <span className="text-[11.5px] text-ink-soft">{fmt(from)} – {fmt(addDays(from, 13))}</span>
@@ -270,11 +264,9 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
               <button
                 key={s2.d}
                 onClick={() => setSelectedDay(on ? null : s2.d)}
-                className={`flex flex-col items-center rounded-[0.9rem] border-2 py-1.5 ${
-                  on ? "border-ink bg-lime" : s2.n ? "border-line bg-lime/30" : "border-line bg-cream-deep/40"
-                }`}
+                className={`flex flex-col items-center rounded-[0.9rem] py-1.5 transition-colors ${ on ? "bg-ink text-cream" : s2.n ? "bg-cream-deep/70" : "bg-cream-deep/30 text-ink-soft/60" }`}
               >
-                <span className="text-[9px] font-bold uppercase text-ink-soft">{dayLetter(s2.d)}</span>
+                <span className="text-[9px] font-bold uppercase opacity-60">{dayLetter(s2.d)}</span>
                 <span className="text-[12px] font-bold leading-tight">{Number(s2.d.slice(8))}</span>
                 <span className={`mt-0.5 text-[12px] font-bold ${s2.n ? "" : "text-ink-soft/40"}`}>
                   {s2.n || "·"}
@@ -294,7 +286,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                 .sort((a, b) => (b.shared?.length || 0) - (a.shared?.length || 0))
                 .slice(0, 3)
                 .map((p) => (
-                  <div key={p.memberNo} className="h-9 w-9 overflow-hidden rounded-full border-2 border-cream bg-cream-deep">
+                  <div key={p.memberNo} className="h-9 w-9 overflow-hidden rounded-full border border-cream bg-cream-deep">
                     {p.photo && (
                       <img
                         src={p.photo}
@@ -322,7 +314,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
           <button
             onClick={() => { setWeek((w) => Math.max(0, w - 1)); setSelectedDay(null) }}
             disabled={week === 0}
-            className="rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold disabled:opacity-35"
+            className="rounded-full border border-line px-3 py-1.5 text-[12px] font-bold disabled:opacity-35"
           >
             ← {t("earlier")}
           </button>
@@ -333,7 +325,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
           </span>
           <button
             onClick={() => { setWeek((w) => w + 1); setSelectedDay(null) }}
-            className="rounded-full border-2 border-line px-3 py-1.5 text-[12px] font-bold"
+            className="rounded-full border border-line px-3 py-1.5 text-[12px] font-bold"
           >
             {t("later")} →
           </button>
@@ -350,7 +342,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
         </div>
       )}
       {visible.length === 0 ? (
-        <div className="mt-4 rounded-[1.75rem] border-2 border-dashed border-line bg-white/50 px-5 py-7 text-center">
+        <div className="mt-4 rounded-[1.75rem] border border-line bg-white/50 px-5 py-7 text-center">
           <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
           <p className="display mt-1 text-[20px] font-bold">
             {selectedDay ? `${t("nobody on")} ${fmt(selectedDay)}` : t("nobody in these two weeks")}
@@ -432,12 +424,12 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                 {p.canMessage ? (
                   <button
                     onClick={() => (p.unread > 0 ? onOpenDM(p) : onMakePlan ? onMakePlan(p) : onOpenDM(p))}
-                    className={`w-full rounded-full py-2 text-[12.5px] font-bold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
+                    className={`w-full rounded-full py-2 text-[12.5px] font-bold ${p.talked ? "border border-line bg-white" : "bg-ink text-cream"}`}
                   >
                     {p.unread > 0 ? `${p.unread} ${t("new")} · ${t("open chat")}` : t("make a plan")}
                   </button>
                 ) : p.womenOnly ? (
-                  <span className="flex justify-center py-2 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">
+                  <span className="flex justify-center py-2 text-[12px] text-ink-soft/60 font-semibold">
                     {t("women only")}
                   </span>
                 ) : (
@@ -455,7 +447,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
         />
       )}
       {!showAll && hiddenCount > 0 && (
-        <button onClick={() => setShowAll(true)} className="mt-3 w-full rounded-full border-2 border-ink bg-white py-3 text-[13.5px] font-bold">
+        <button onClick={() => setShowAll(true)} className="mt-3 w-full rounded-full border border-line bg-white py-3 text-[13.5px] font-bold">
           {t("see everyone here")} ({everyone.length})
         </button>
       )}
@@ -495,7 +487,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
           {data.others.length > othersShown && (
             <button
               onClick={() => setOthersShown((n) => n + 24)}
-              className="mt-3 w-full rounded-full border-2 border-line bg-white/70 py-2.5 text-[13px] font-bold"
+              className="mt-3 w-full rounded-full border border-line bg-white/70 py-2.5 text-[13px] font-bold"
             >
               {t("show more")} · {data.others.length - othersShown}
             </button>

@@ -24,7 +24,7 @@ export default function WhatsNew({ onGo, onClose }) {
         className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[460px] rounded-t-[2rem] bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-20px_60px_-20px_rgba(58,50,44,0.45)]"
       >
         <div className="mx-auto h-1.5 w-11 rounded-full bg-line" />
-        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">{t("new on irlpass")}</p>
+        <p className="mt-4 text-[12px] text-ink-soft font-semibold">{t("new on irlpass")}</p>
         <h2 className="display text-[28px] font-bold leading-tight">{t("your trip, planned in a tap")}</h2>
         <div className="mt-4 space-y-2">
           {ITEMS.map((it, i) => (

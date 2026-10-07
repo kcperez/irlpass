@@ -85,7 +85,7 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
       >
         <div className="flex items-center justify-between px-5 pb-2 pt-4">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">{t("right now")}</p>
+            <p className="text-[12px] text-ink-soft font-semibold">{t("right now")}</p>
             <h2 className="display text-[26px] font-bold leading-tight">{t("where irlpass is")}</h2>
           </div>
           <button onClick={onClose} aria-label={t("close")} className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><X size={18} weight="bold" /></button>
@@ -117,7 +117,7 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
               {city.faces.length > 0 && (
                 <div className="mt-3 flex -space-x-2.5">
                   {city.faces.map((f) => (
-                    <img key={f} src={f} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className="h-11 w-11 rounded-full border-2 border-white object-cover blur-[1.5px]" />
+                    <img key={f} src={f} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className="h-11 w-11 rounded-full border border-white object-cover blur-[1.5px]" />
                   ))}
                 </div>
               )}
@@ -126,7 +126,7 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
                 {city.chatWeek > 0 ? `💬 ${city.chatWeek} ${t("messages this week")} · ${t("last")} ${ago(city.chatLast)}` : t("the chat is quiet. be the one who starts it.")}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <button onClick={() => onBrowse?.(city.slug)} className="flex items-center justify-center gap-1.5 rounded-full border-2 border-ink bg-white py-3 text-[13.5px] font-bold">
+                <button onClick={() => onBrowse?.(city.slug)} className="flex items-center justify-center gap-1.5 rounded-full border border-line bg-white py-3 text-[13.5px] font-bold">
                   <UsersThree size={16} weight="fill" /> {t("see who's there")}
                 </button>
                 <button
@@ -145,7 +145,7 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
               {/* the travel map: where the people you've met are headed */}
               {data?.friends?.length > 0 ? (
                 <section className="mb-3 rounded-[1.6rem] bg-ink p-4 text-cream">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-cream/60">{t("travel map")}</p>
+                  <p className="text-[12px] text-cream/60 font-semibold">{t("travel map")}</p>
                   <p className="display mt-0.5 text-[19px] font-bold leading-tight">
                     {data.friends.length} {data.friends.length === 1 ? t("trip coming up from your people") : t("trips coming up from your people")}
                   </p>
@@ -157,7 +157,7 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
                         onClick={() => { mapRef.current?.flyTo({ center: [f.lng, f.lat], zoom: 4.5, speed: 1.4 }); onOpenPerson?.(f.memberNo) }}
                         className="flex w-full items-center gap-3 rounded-[1.1rem] bg-cream/10 px-3 py-2 text-left active:scale-[0.99]"
                       >
-                        <img src={f.photo} alt="" onError={(e) => { e.currentTarget.style.visibility = "hidden" }} className={`h-10 w-10 shrink-0 rounded-full border-2 border-cream object-cover ${f.locked ? "blur-[1.5px]" : ""}`} />
+                        <img src={f.photo} alt="" onError={(e) => { e.currentTarget.style.visibility = "hidden" }} className={`h-10 w-10 shrink-0 rounded-full border border-cream object-cover ${f.locked ? "blur-[1.5px]" : ""}`} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[14.5px] font-bold">{f.first} {t("in")} {f.cityName} {f.emoji}</p>
                           <p className="truncate text-[12px] text-cream/70">
@@ -170,7 +170,7 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
                   </div>
                 </section>
               ) : data && (
-                <p className="mb-2 rounded-[1.3rem] border-2 border-dashed border-line px-4 py-3 text-[12.5px] text-ink-soft">
+                <p className="mb-2 rounded-[1.3rem] border border-line px-4 py-3 text-[12.5px] text-ink-soft">
                   {t("people you talk to or go out with show up here, with where they're headed next.")}
                 </p>
               )}
@@ -195,7 +195,7 @@ export default function World({ token, onClose, onBrowse, onOpenRoom, onPaywall,
                     </p>
                   </div>
                   <div className="flex -space-x-2">
-                    {c.faces.slice(0, 3).map((f) => <img key={f} src={f} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className="h-8 w-8 rounded-full border-2 border-white object-cover blur-[1px]" />)}
+                    {c.faces.slice(0, 3).map((f) => <img key={f} src={f} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className="h-8 w-8 rounded-full border border-white object-cover blur-[1px]" />)}
                   </div>
                 </motion.button>
               )}

@@ -82,7 +82,7 @@ export const LiveCounter = memo(function LiveCounter({ start }) {
   }, [])
   const digits = String(count).split("")
   return (
-    <span className="inline-flex font-mono font-semibold tabular-nums">
+    <span className="inline-flex tabular-nums font-semibold tabular-nums">
       {digits.map((d, i) => (
         <span key={i} className="relative inline-block w-[0.62em] overflow-hidden">
           <AnimatePresence mode="popLayout" initial={false}>
@@ -112,7 +112,7 @@ export function AvatarStack({ size = "h-9 w-9", count = 5, extra }) {
             key={m.name}
             src={avatarUrl(m.img)}
             alt={m.name}
-            className={`${size} rounded-full border-2 border-cream object-cover`}
+            className={`${size} rounded-full border border-cream object-cover`}
             initial={{ opacity: 0, scale: 0.5, x: -8 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             transition={{ type: "spring", stiffness: 240, damping: 18, delay: 0.15 + i * 0.07 }}
@@ -120,7 +120,7 @@ export function AvatarStack({ size = "h-9 w-9", count = 5, extra }) {
         ))}
       </div>
       {extra && (
-        <span className="ml-2.5 font-mono text-[11px] font-medium text-ink-soft">{extra}</span>
+        <span className="ml-2.5 tabular-nums text-[11px] font-medium text-ink-soft">{extra}</span>
       )}
     </div>
   )
@@ -134,7 +134,7 @@ export function Marquee({ items }) {
         {row.map((it, i) => (
           <span
             key={i}
-            className="mx-3 flex items-center gap-3 whitespace-nowrap font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-ink-soft"
+            className="mx-3 flex items-center gap-3 whitespace-nowrap text-[12px] font-medium text-ink-soft"
           >
             {it}
             <svg width="5" height="5" viewBox="0 0 5 5" aria-hidden>
@@ -154,11 +154,7 @@ export function BigButton({ children, onClick, disabled, dark }) {
       onClick={onClick}
       disabled={disabled}
       whileTap={{ scale: 0.97 }}
-      className={`w-full rounded-full px-6 py-4 text-[15px] font-semibold transition-colors duration-200 disabled:opacity-35 ${
-        dark
-          ? "bg-ink text-cream"
-          : "bg-lime text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18),0_10px_24px_-12px_rgba(124,150,20,0.55)]"
-      }`}
+      className={`w-full rounded-full px-6 py-4 text-[15px] font-semibold transition-colors duration-200 disabled:opacity-35 ${ dark ? "bg-ink text-cream" : "bg-lime text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18),0_10px_24px_-12px_rgba(124,150,20,0.55)]" }`}
     >
       {children}
     </motion.button>

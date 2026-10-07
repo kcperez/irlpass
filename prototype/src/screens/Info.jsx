@@ -49,13 +49,13 @@ export default function Info({ onBack }) {
       <div className="mt-7 space-y-7">
         {SECTIONS.map((s) => (
           <section key={s.h}>
-            <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-ink">{s.h}</h2>
+            <h2 className="text-[12px] font-semibold text-ink">{s.h}</h2>
             <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">{s.p}</p>
           </section>
         ))}
       </div>
 
-      <p className="mt-10 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft/70">
+      <p className="mt-10 text-[12px] text-ink-soft/70 font-semibold">
         © 2026 irlpass · medellín is city one
       </p>
     </div>

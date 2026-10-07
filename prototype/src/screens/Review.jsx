@@ -25,7 +25,7 @@ export default function Review({ applicant, onAccepted }) {
       <motion.p
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-soft"
+        className="text-[12px] font-medium text-ink-soft"
       >
         application · {applicant.ig}
       </motion.p>

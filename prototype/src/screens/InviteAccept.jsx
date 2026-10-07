@@ -34,7 +34,7 @@ export default function InviteAccept({ token, invite, invitedBy }) {
 
   return (
     <div className="flex min-h-[var(--app-h)] flex-col justify-center px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
-      <div className="flex w-fit items-center gap-2 rounded-full border-2 border-ink bg-lime px-3.5 py-1.5">
+      <div className="flex w-fit items-center gap-2 rounded-full bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-3.5 py-1.5">
         <img src="/art/icon-people.png" alt="" className="h-5 w-5 object-contain" draggable="false" />
         <span className="text-[12.5px] font-bold">@{invitedBy} {t("invited you")}</span>
       </div>

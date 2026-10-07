@@ -70,9 +70,7 @@ function Bubble({ active, children, onClick, className = "" }) {
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className={`rounded-[1.4rem] border-2 px-4 py-3 text-[16px] font-bold transition-colors ${
-        active ? "border-ink bg-lime" : "border-line bg-white/70 text-ink-soft"
-      } ${className}`}
+      className={`rounded-[1.4rem] border px-4 py-3 text-[16px] font-bold transition-colors ${ active ? "border-transparent bg-ink text-cream" : "border-line bg-white/70 text-ink-soft" } ${className}`}
     >
       {children}
     </motion.button>
@@ -202,7 +200,7 @@ export default function Join({ ig, onBack, onDone }) {
             onChange={(e) => setCustomCity(e.target.value)}
             autoComplete="off"
             placeholder={t("search a city")}
-            className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+            className="w-full rounded-[1.4rem] border border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
 
           <div className="flex flex-wrap gap-2">
@@ -255,9 +253,7 @@ export default function Join({ ig, onBack, onDone }) {
                   setMode("exact"); setStarts(null); setEnds(null); setFlexible(false); setLocal(false)
                 }
               }}
-              className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[1.6rem] border-2 p-3 text-center ${
-                stay === k ? "border-ink bg-lime" : "border-line bg-white/70"
-              }`}
+              className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[1.6rem] border p-3 text-center ${ stay === k ? "border-transparent bg-ink text-cream" : "border-line bg-white/70" }`}
             >
               <span className="text-[40px] leading-none">{emoji}</span>
               <span className="text-[18px] font-bold leading-tight">{label}</span>
@@ -297,7 +293,7 @@ export default function Join({ ig, onBack, onDone }) {
           )}
 
           {mode === "local" && (
-            <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+            <div className="rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
               <p className="text-[15px] font-bold">{t("you live here")}</p>
               <p className="mt-0.5 text-[13px] text-ink">
                 {t("you'll show up for anyone landing here through")} {fmtShort(ends)}. {t("we'll check in before then.")}
@@ -309,7 +305,7 @@ export default function Join({ ig, onBack, onDone }) {
             {mode !== "exact" && (
               <button
                 onClick={() => { setMode("exact"); setStarts(null); setEnds(null); setFlexible(false); setLocal(false); setMonth(null) }}
-                className="rounded-full border-2 border-ink bg-white/80 px-3.5 py-2 text-[13px] font-bold"
+                className="rounded-full border border-line bg-white/80 px-3.5 py-2 text-[13px] font-bold"
               >
                 📅 {t("pick exact dates")}
               </button>
@@ -317,7 +313,7 @@ export default function Join({ ig, onBack, onDone }) {
             {mode === "exact" && (
               <button
                 onClick={() => { setStarts(todayIso()); setEnds(null) }}
-                className="rounded-full border-2 border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
+                className="rounded-full border border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
               >
                 {t("i'm here now")}
               </button>
@@ -325,7 +321,7 @@ export default function Join({ ig, onBack, onDone }) {
             {mode !== "month" && (
               <button
                 onClick={() => { setMode("month"); setStarts(null); setEnds(null); setMonth(null); setLocal(false) }}
-                className="rounded-full border-2 border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
+                className="rounded-full border border-line bg-white/70 px-3.5 py-2 text-[13px] font-bold text-ink-soft"
               >
                 {t("not sure of the days? just the month")}
               </button>
@@ -353,7 +349,7 @@ export default function Join({ ig, onBack, onDone }) {
             {t("you'll show up for travelers landing in your city, and meet the locals when you travel.")}
           </p>
           {home && home !== "nomad" ? (
-            <div className="flex items-center justify-between rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+            <div className="flex items-center justify-between rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
               <span className="text-[17px] font-bold">{home.emoji} {home.name}</span>
               <button onClick={() => { setHome(null); setHomeTyped("") }} className="text-[13px] font-semibold underline">{t("change")}</button>
             </div>
@@ -365,7 +361,7 @@ export default function Join({ ig, onBack, onDone }) {
                 onChange={(e) => { setHomeTyped(e.target.value); if (home === "nomad") setHome(null) }}
                 autoComplete="off"
                 placeholder={t("search a city")}
-                className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+                className="w-full rounded-[1.4rem] border border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
               />
               <div className="flex flex-wrap gap-2">
                 {homeFound.results.map((c) => (
@@ -379,7 +375,7 @@ export default function Join({ ig, onBack, onDone }) {
               )}
               <button
                 onClick={() => setHome("nomad")}
-                className={`w-fit rounded-full border-2 px-3.5 py-2 text-[13px] font-bold ${home === "nomad" ? "border-ink bg-lime" : "border-line bg-white/70 text-ink-soft"}`}
+                className={`w-fit rounded-full border px-3.5 py-2 text-[13px] font-bold ${home === "nomad" ? "border-transparent bg-ink text-cream" : "border-line bg-white/70 text-ink-soft"}`}
               >
                 🎒 {t("i travel full-time")}
               </button>
@@ -406,9 +402,7 @@ export default function Join({ ig, onBack, onDone }) {
                   key={v.key}
                   whileTap={{ scale: 0.94 }}
                   onClick={() => setVibes((l) => (on ? l.filter((x) => x !== v.key) : [...l, v.key]))}
-                  className={`flex aspect-[1/0.9] flex-col items-center justify-center gap-1 rounded-[1.2rem] border-2 px-1 text-center transition-colors ${
-                    on ? "border-ink bg-lime" : "border-line bg-white/70"
-                  }`}
+                  className={`flex aspect-[1/0.9] flex-col items-center justify-center gap-1 rounded-[1.2rem] border px-1 text-center transition-colors ${ on ? "border-transparent bg-ink text-cream" : "border-line bg-white/70" }`}
                 >
                   <span className="text-[26px] leading-none">{v.emoji}</span>
                   <span className={`text-[12px] font-bold leading-tight ${on ? "text-ink" : "text-ink-soft"}`}>{vibeLabel(v.key)}</span>
@@ -464,7 +458,7 @@ export default function Join({ ig, onBack, onDone }) {
               </div>
 
               {preview.vibeMatches > 0 && (
-                <div className="w-fit rounded-full border-2 border-ink bg-lime px-3.5 py-1.5 text-[13px] font-bold">
+                <div className="w-fit rounded-full bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-3.5 py-1.5 text-[13px] font-bold">
                   {preview.vibeMatches} {preview.vibeMatches === 1 ? t("of them is into") : t("of them are into")} {joinVibes(preview.topShared || [])}
                 </div>
               )}
@@ -527,21 +521,19 @@ export default function Join({ ig, onBack, onDone }) {
             id="join-name" value={firstName} onChange={(e) => setFirstName(e.target.value.slice(0, 30))}
             autoComplete="given-name"
             placeholder={t("your first name")}
-            className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+            className="w-full rounded-[1.4rem] border border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
           <input
             id="join-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             autoCapitalize="none" autoCorrect="off" spellCheck="false"
             placeholder={t("your email")}
-            className="w-full rounded-[1.4rem] border-2 border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+            className="w-full rounded-[1.4rem] border border-line bg-white/70 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
           />
           <button
             onClick={() => setAdult((a) => !a)}
-            className={`flex items-center gap-3 rounded-[1.4rem] border-2 px-4 py-3 text-left text-[15px] font-semibold ${
-              adult ? "border-ink bg-lime" : "border-line bg-white/70 text-ink-soft"
-            }`}
+            className={`flex items-center gap-3 rounded-[1.4rem] border px-4 py-3 text-left text-[15px] font-semibold ${ adult ? "border-transparent bg-ink text-cream" : "border-line bg-white/70 text-ink-soft" }`}
           >
-            <span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${adult ? "border-ink bg-ink text-cream" : "border-line"}`}>
+            <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${adult ? "border-ink bg-ink text-cream" : "border-line"}`}>
               {adult ? "✓" : ""}
             </span>
             {t("i'm 18 or older")}
@@ -581,11 +573,11 @@ export default function Join({ ig, onBack, onDone }) {
             <span key={s.key} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-ink" : "bg-line"}`} />
           ))}
         </div>
-        <span className="font-mono text-[11px] text-ink-soft">{step > 0 ? `${chip.emoji} ${chip.name}` : `@${ig}`}</span>
+        <span className="tabular-nums text-[11px] text-ink-soft">{step > 0 ? `${chip.emoji} ${chip.name}` : `@${ig}`}</span>
       </div>
 
       {params.get("by") && step === 0 && (
-        <div className="relative mt-4 flex items-center gap-2 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+        <div className="relative mt-4 flex items-center gap-2 rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
           <img src="/art/icon-people.png" alt="" className="h-9 w-9 shrink-0 object-contain" draggable="false" />
           <p className="text-[13.5px] font-bold leading-tight">
             @{params.get("by")} {t("invited you. their dates are already in.")}

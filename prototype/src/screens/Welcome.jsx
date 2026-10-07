@@ -100,7 +100,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
         ) : (
           <button
             onClick={() => setLoginOpen(true)}
-            className="rounded-full border-2 border-line bg-white/70 px-4 py-2 text-[12px] font-bold"
+            className="rounded-full border border-line bg-white/70 px-4 py-2 text-[12px] font-bold"
           >
             {t("log in")}
           </button>
@@ -111,7 +111,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
       <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-10 lg:px-10">
         <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col lg:flex-none lg:order-1">
           {invitedBy && (
-            <div className="mx-5 mb-3 flex w-fit items-center gap-2 rounded-full border-2 border-ink bg-lime px-3.5 py-1.5 lg:mx-0">
+            <div className="mx-5 mb-3 flex w-fit items-center gap-2 rounded-full bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-3.5 py-1.5 lg:mx-0">
               <img src="/art/icon-people.png" alt="" className="h-5 w-5 object-contain" draggable="false" />
               <span className="text-[12.5px] font-bold">@{invitedBy} {t("invited you")}</span>
             </div>
@@ -149,7 +149,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
             transition={{ delay: 0.2, type: "spring", stiffness: 140, damping: 20 }}
             className="mt-auto flex flex-col gap-2 px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))] lg:mt-7 lg:max-w-[440px] lg:px-0 lg:pb-0"
           >
-            <div className="flex items-center gap-2 rounded-[1.6rem] border-2 border-ink bg-white/85 px-4 py-3 shadow-[0_18px_40px_-24px_rgba(58,50,44,0.7)]">
+            <div className="flex items-center gap-2 rounded-[1.6rem] border border-line bg-white/85 px-4 py-3 shadow-[0_18px_40px_-24px_rgba(58,50,44,0.7)]">
               <InstagramLogo size={22} weight="duotone" className="shrink-0" />
               <span className="text-[17px] font-semibold text-ink-soft">@</span>
               <input
@@ -164,7 +164,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
             </div>
 
             {welcomeBack ? (
-              <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+              <div className="rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
                 <p className="text-[15px] font-bold">{t("welcome back")} @{handle}</p>
                 <p className="mt-0.5 text-[13px]">
                   {t("you're already a member. we emailed a link that opens your account to")} {welcomeBack}.
@@ -184,7 +184,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
             {!memberToken && (
               <button
                 onClick={() => setLoginOpen(true)}
-                className="rounded-full border-2 border-ink bg-white/70 py-3 text-center text-[14px] font-bold"
+                className="rounded-full border border-line bg-white/70 py-3 text-center text-[14px] font-bold"
               >
                 {t("already a member? log in")}
               </button>
@@ -227,7 +227,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
             onClick={() => setLoginOpen(false)}
             className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-[2px]"
           />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[460px] rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[460px] rounded-t-[1.75rem] border-t border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
             <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
             <h2 className="display text-[22px] font-bold">{t("welcome back")}</h2>
             <p className="mt-1 text-[13.5px] text-ink-soft">
@@ -236,7 +236,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
 
             {sent ? (
               <div className="mt-4">
-                <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3.5">
+                <div className="rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3.5">
                   <p className="text-[14px] font-bold">{t("check your email")}</p>
                   <p className="mt-0.5 text-[12.5px]">{t("type the 6-digit code here, or tap the link in the email. check spam if it's not there.")}</p>
                 </div>
@@ -247,14 +247,14 @@ export default function Welcome({ onStart, invitedBy, invite }) {
                   value={code}
                   onChange={(e) => useCode(e.target.value)}
                   placeholder="000000"
-                  className="mt-3 w-full rounded-[1.4rem] border-2 border-line bg-white px-4 py-3.5 text-center text-[26px] font-bold tracking-[0.4em] outline-none focus:border-ink placeholder:text-ink-soft/30"
+                  className="mt-3 w-full rounded-[1.4rem] border border-line bg-white px-4 py-3.5 text-center text-[26px] font-bold tracking-[0.4em] outline-none focus:border-ink placeholder:text-ink-soft/30"
                 />
                 {codeBusy && <p className="mt-2 text-center text-[13px] text-ink-soft">{t("checking…")}</p>}
                 {codeErr && <p className="mt-2 text-center text-[13px] font-semibold text-[#8f2b2b]">{codeErr}</p>}
                 <button
                   onClick={sendLink}
                   disabled={wait > 0 || sending}
-                  className="mt-3 w-full rounded-full border-2 border-line bg-white/70 py-3 text-[14px] font-bold disabled:opacity-50"
+                  className="mt-3 w-full rounded-full border border-line bg-white/70 py-3 text-[14px] font-bold disabled:opacity-50"
                 >
                   {wait > 0 ? `${t("resend in")} ${wait}s` : t("resend the email")}
                 </button>
@@ -270,7 +270,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
                   autoCapitalize="none"
                   autoCorrect="off"
                   placeholder={t("the email you signed up with")}
-                  className="mt-4 w-full rounded-[1.4rem] border-2 border-line bg-white/80 px-4 py-3.5 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+                  className="mt-4 w-full rounded-[1.4rem] border border-line bg-white/80 px-4 py-3.5 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
                 />
                 {sendErr && <p className="mt-2 text-[13px] font-semibold text-[#8f2b2b]">{sendErr}</p>}
                 <button
@@ -283,7 +283,7 @@ export default function Welcome({ onStart, invitedBy, invite }) {
                 </button>
                 <button
                   onClick={() => signInWithGoogle()}
-                  className="mt-2 w-full rounded-full border-2 border-line bg-white/70 py-3.5 text-[15px] font-bold"
+                  className="mt-2 w-full rounded-full border border-line bg-white/70 py-3.5 text-[15px] font-bold"
                 >
                   {t("continue with google")}
                 </button>

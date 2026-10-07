@@ -25,7 +25,7 @@ export default function RideCard({ token, city = "medellin", onBuy, compact = fa
           className="relative overflow-hidden rounded-[1.5rem] bg-ink p-4 text-cream shadow-[0_14px_34px_-16px_rgba(58,50,44,0.8)]"
         >
           <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-lime/30 blur-2xl" />
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-cream/60">🚐 {t("members only")} · {fmtNight(r.night)}</p>
+          <p className="text-[12px] text-cream/60 font-semibold">🚐 {t("members only")} · {fmtNight(r.night)}</p>
           <p className="display mt-0.5 text-[21px] font-bold leading-tight">{r.title}</p>
           {r.depart && <p className="text-[13px] text-cream/80">{r.depart}</p>}
           <div className="mt-3 flex items-center justify-between gap-3">

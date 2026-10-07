@@ -45,7 +45,7 @@ export default function HomeScreenCard() {
   }
 
   return (
-    <div className="relative mt-3 rounded-[1.5rem] border-2 border-line bg-white/70 px-4 py-3.5">
+    <div className="relative mt-3 rounded-[1.5rem] border border-line bg-white/70 px-4 py-3.5">
       <button onClick={dismiss} aria-label={t("close")} className="absolute right-3 top-3 text-ink-soft">
         <X size={15} weight="bold" />
       </button>

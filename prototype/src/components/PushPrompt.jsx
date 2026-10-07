@@ -46,12 +46,12 @@ export default function PushPrompt({ token }) {
           {state === "needs-install" ? (
             <>
               <p className="mt-1 text-[12.5px] text-ink-soft">{t("on iphone: tap share, then “add to home screen”, and open irlpass from there. pings work from the app.")}</p>
-              <button onClick={() => setWhy(null)} className="mt-3 w-full rounded-full border-2 border-ink py-2.5 text-[13.5px] font-bold">{t("got it")}</button>
+              <button onClick={() => setWhy(null)} className="mt-3 w-full rounded-full border border-line bg-white py-2.5 text-[13.5px] font-bold">{t("got it")}</button>
             </>
           ) : (
             <div className="mt-3 flex gap-2">
               <button onClick={turnOn} disabled={busy} className="flex-1 rounded-full bg-ink py-2.5 text-[13.5px] font-bold text-cream disabled:opacity-60">{t("turn on")}</button>
-              <button onClick={() => setWhy(null)} className="rounded-full border-2 border-line px-4 text-[13px] font-bold text-ink-soft">{t("not now")}</button>
+              <button onClick={() => setWhy(null)} className="rounded-full border border-line px-4 text-[13px] font-bold text-ink-soft">{t("not now")}</button>
             </div>
           )}
         </motion.div>

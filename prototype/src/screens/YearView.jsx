@@ -116,7 +116,7 @@ export default function YearView({ token, city, onPosted }) {
             <button
               key={x.day}
               onClick={() => { setA(x.day); setB(addDays(x.day, 6)) }}
-              className="rounded-full border-2 border-line bg-white/70 px-3 py-1.5 text-[12px] font-bold"
+              className="rounded-full border border-line bg-white/70 px-3 py-1.5 text-[12px] font-bold"
             >
               {fmt(x.day)} · {x.people} {x.people === 1 ? t("person") : t("people")}
             </button>
@@ -127,7 +127,7 @@ export default function YearView({ token, city, onPosted }) {
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {months.map((m) => (
           <div key={m.key}>
-            <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-soft">{m.label}</p>
+            <p className="mb-1 text-[12px] text-ink-soft font-semibold">{m.label}</p>
             <div className="grid grid-cols-7 gap-[2px]">
               {Array.from({ length: m.pad }).map((_, i) => <span key={`p${i}`} />)}
               {m.days.map((day) => {
@@ -139,9 +139,7 @@ export default function YearView({ token, city, onPosted }) {
                     key={day}
                     onClick={() => pick(day)}
                     title={`${fmt(day)} · ${n} ${n === 1 ? "person" : "people"}`}
-                    className={`aspect-square rounded-[3px] ${past ? "bg-cream-deep/40" : shade(n)} ${
-                      inRange(day) || day === a ? "ring-2 ring-ink" : ""
-                    } ${isMine ? "ring-1 ring-ink/40" : ""}`}
+                    className={`aspect-square rounded-[3px] ${past ? "bg-cream-deep/40" : shade(n)} ${ inRange(day) || day === a ? "ring-2 ring-ink" : "" } ${isMine ? "ring-1 ring-ink/40" : ""}`}
                   />
                 )
               })}
@@ -157,7 +155,7 @@ export default function YearView({ token, city, onPosted }) {
       </div>
 
       {a && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
           <p className="text-[14px] font-bold">
             {cityChip(city).name} · {fmt(a)}{b ? ` – ${fmt(b)}` : ""}
           </p>
@@ -178,7 +176,7 @@ export default function YearView({ token, city, onPosted }) {
               <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
                 {who.people.slice(0, 12).map((p) => (
                   <div key={p.memberNo} className="flex w-14 shrink-0 flex-col items-center gap-1">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-ink/20 bg-cream-deep">
+                    <div className="relative h-14 w-14 overflow-hidden rounded-full border border-line/20 bg-cream-deep">
                       {p.photo ? (
                         <img src={p.photo} alt="" className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[2.5px]" : ""}`} />
                       ) : (
@@ -213,7 +211,7 @@ export default function YearView({ token, city, onPosted }) {
             >
               {busy ? t("saving…") : who?.count > 0 ? t("post these dates to meet them") : t("post these dates")}
             </button>
-            <button onClick={() => { setA(null); setB(null) }} className="rounded-full border-2 border-ink px-4 py-2.5 text-[13px] font-bold">
+            <button onClick={() => { setA(null); setB(null) }} className="rounded-full border border-line px-4 py-2.5 text-[13px] font-bold">
               {t("clear")}
             </button>
           </div>

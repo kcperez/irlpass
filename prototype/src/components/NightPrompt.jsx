@@ -52,7 +52,7 @@ export default function NightPrompt({ token, city, hold, onAnswered }) {
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => send([q.tonight], "out")} className="flex-1 rounded-full bg-lime py-3 text-[14px] font-bold text-ink">
                   🙌 {t("i'm out")}
                 </motion.button>
-                <button onClick={() => send([q.tonight], "skip")} className="rounded-full border-2 border-cream/25 px-5 text-[13px] font-bold text-cream/80">
+                <button onClick={() => send([q.tonight], "skip")} className="rounded-full border border-cream/25 px-5 text-[13px] font-bold text-cream/80">
                   {t("skip")}
                 </button>
               </div>
@@ -84,7 +84,7 @@ export default function NightPrompt({ token, city, hold, onAnswered }) {
                 >
                   {t("done")}
                 </button>
-                <button onClick={() => send(q.week, "pass")} className="rounded-full border-2 border-cream/25 px-5 text-[13px] font-bold text-cream/80">
+                <button onClick={() => send(q.week, "pass")} className="rounded-full border border-cream/25 px-5 text-[13px] font-bold text-cream/80">
                   {t("skip")}
                 </button>
               </div>

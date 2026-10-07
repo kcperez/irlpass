@@ -91,7 +91,7 @@ export default function Pass({ applicant }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-cream/50"
+          className="text-[12px] font-medium text-cream/50"
         >
           {t("application approved")}
         </motion.p>
@@ -114,25 +114,25 @@ export default function Pass({ applicant }) {
       >
         <div className="flex items-center justify-between px-6 pt-5">
           <Logo text size="text-[18px]" pill="bg-ink text-lime" />
-          <span className="rounded-full bg-ink px-3 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.16em] text-lime">
+          <span className="rounded-full bg-ink px-3 py-1 text-[12px] font-semibold text-lime">
             {parseInt(memberNo, 10) <= 52 ? t("founding member") : t("member")}
           </span>
         </div>
 
         <div className="px-6 pb-5 pt-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">{t("member")}</p>
+          <p className="text-[12px] text-ink/55 font-semibold">{t("member")}</p>
           <p className="display text-[32px] leading-tight">{applicant.name.toLowerCase()}</p>
-          <p className="mt-0.5 font-mono text-[12px] text-ink/65">{applicant.ig}</p>
+          <p className="mt-0.5 tabular-nums text-[12px] text-ink/65">{applicant.ig}</p>
 
           <div className="mt-6 flex items-end justify-between">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">{t("access")}</p>
-              <p className="font-mono text-[26px] font-semibold tracking-tight">{t("all cities")}</p>
+              <p className="text-[12px] text-ink/55 font-semibold">{t("access")}</p>
+              <p className="tabular-nums text-[26px] font-semibold tracking-tight">{t("all cities")}</p>
             </div>
             <AirplaneTakeoff size={24} weight="duotone" className="mb-1 text-ink/70" />
             <div className="text-right">
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">nº</p>
-              <p className="font-mono text-[26px] font-semibold tracking-tight">{memberNo}</p>
+              <p className="text-[12px] text-ink/55 font-semibold">nº</p>
+              <p className="tabular-nums text-[26px] font-semibold tracking-tight">{memberNo}</p>
             </div>
           </div>
         </div>
@@ -140,13 +140,13 @@ export default function Pass({ applicant }) {
         {/* perforation */}
         <div className="relative flex items-center" aria-hidden>
           <span className="absolute -left-3 h-6 w-6 rounded-full bg-ink" />
-          <span className="mx-5 w-full border-t-2 border-dashed border-ink/25" />
+          <span className="mx-5 w-full border-t border-ink/25" />
           <span className="absolute -right-3 h-6 w-6 rounded-full bg-ink" />
         </div>
 
         <div className="px-6 pb-6 pt-4">
           <Barcode />
-          <p className="mt-2 text-center font-mono text-[9.5px] uppercase tracking-[0.22em] text-ink/55">
+          <p className="mt-2 text-center text-[12px] text-ink/55 font-semibold">
             {t("membership verified · valid in every irlpass city")}
           </p>
         </div>

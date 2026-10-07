@@ -50,9 +50,7 @@ function Chip({ label, active, onClick, disabled }) {
       onClick={onClick}
       disabled={disabled}
       whileTap={{ scale: 0.96 }}
-      className={`rounded-full border px-4 py-2.5 text-left text-[14px] font-medium transition-colors duration-150 disabled:opacity-35 ${
-        active ? "border-ink bg-lime text-ink" : "border-line bg-white/60 text-ink-soft"
-      }`}
+      className={`rounded-full border px-4 py-2.5 text-left text-[14px] font-medium transition-colors duration-150 disabled:opacity-35 ${ active ? "border-transparent bg-ink text-cream text-ink" : "border-line bg-white/60 text-ink-soft" }`}
     >
       {label}
     </motion.button>
@@ -234,9 +232,7 @@ export default function Apply({ onBack, onSubmit }) {
                 <button
                   key={c.name}
                   onClick={() => setCountry(c.name)}
-                  className={`rounded-full border px-3.5 py-2 text-[13.5px] transition-colors ${
-                    country === c.name ? "border-ink bg-lime font-semibold text-ink" : "border-line bg-white/60 text-ink-soft"
-                  }`}
+                  className={`rounded-full border px-3.5 py-2 text-[13.5px] transition-colors ${ country === c.name ? "border-transparent bg-ink text-cream font-semibold text-ink" : "border-line bg-white/60 text-ink-soft" }`}
                 >
                   {c.flag} {c.name}
                 </button>
@@ -272,7 +268,7 @@ export default function Apply({ onBack, onSubmit }) {
         <div className="flex flex-col items-center pt-2">
           <label className="cursor-pointer">
             <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
-            <div className="relative flex h-44 w-44 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-line bg-white/60">
+            <div className="relative flex h-44 w-44 items-center justify-center overflow-hidden rounded-full border border-line bg-white/60">
               {photo ? (
                 <img src={photo} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -300,9 +296,7 @@ export default function Apply({ onBack, onSubmit }) {
       body: (
         <div className="flex flex-col items-center pt-2">
           <motion.div
-            className={`flex h-44 w-44 items-center justify-center rounded-full border-2 ${
-              selfieState === "verified" ? "border-lime-deep bg-lime/30" : "border-dashed border-line bg-white/60"
-            }`}
+            className={`flex h-44 w-44 items-center justify-center rounded-full border ${ selfieState === "verified" ? "border-lime-deep bg-lime/30" : "border-line bg-white/60" }`}
             animate={selfieState === "checking" ? { scale: [1, 1.04, 1] } : { scale: 1 }}
             transition={{ duration: 1, repeat: selfieState === "checking" ? Infinity : 0 }}
           >
@@ -315,7 +309,7 @@ export default function Apply({ onBack, onSubmit }) {
           <button
             onClick={runSelfieCheck}
             disabled={selfieState !== "idle"}
-            className="mt-6 rounded-full border border-ink bg-lime px-6 py-3 text-[14px] font-semibold text-ink disabled:opacity-50"
+            className="mt-6 rounded-full bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-6 py-3 text-[14px] font-semibold text-ink disabled:opacity-50"
           >
             {selfieState === "idle" && t("strike a pose ✌️")}
             {selfieState === "checking" && t("checking…")}
@@ -338,7 +332,7 @@ export default function Apply({ onBack, onSubmit }) {
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
-              <label htmlFor="apply-start" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">arrive</label>
+              <label htmlFor="apply-start" className="text-[12px] text-ink-soft font-semibold">arrive</label>
               <input
                 id="apply-start" type="date" value={tripStart} min={todayIso()}
                 onChange={(e) => { setTripStart(e.target.value); if (tripEnd < e.target.value) setTripEnd(e.target.value) }}
@@ -346,7 +340,7 @@ export default function Apply({ onBack, onSubmit }) {
               />
             </div>
             <div className="flex-1">
-              <label htmlFor="apply-end" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">leave</label>
+              <label htmlFor="apply-end" className="text-[12px] text-ink-soft font-semibold">leave</label>
               <input
                 id="apply-end" type="date" value={tripEnd} min={tripStart}
                 onChange={(e) => setTripEnd(e.target.value)}
@@ -463,7 +457,7 @@ export default function Apply({ onBack, onSubmit }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-cream/50"
+          className="text-[12px] font-medium text-cream/50"
         >
           {t("auto-accepted")}
         </motion.p>
@@ -487,7 +481,7 @@ export default function Apply({ onBack, onSubmit }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.45 }}
-          className="mt-1.5 font-mono text-[12px] uppercase tracking-[0.18em] text-lime"
+          className="mt-1.5 text-[12px] text-lime font-semibold"
         >
           {t("member")} nº {memberNo}
         </motion.p>
@@ -528,13 +522,13 @@ export default function Apply({ onBack, onSubmit }) {
             />
           ))}
         </div>
-        <span className="w-10 text-right font-mono text-[11px] text-ink-soft">
+        <span className="w-10 text-right tabular-nums text-[11px] text-ink-soft">
           {step + 1}/{steps.length}
         </span>
       </header>
 
       {/* live "travelers active now" counter — NomadTable energy */}
-      <div className="mt-3 flex items-center justify-center gap-2 font-mono text-[11px] font-medium text-ink-soft">
+      <div className="mt-3 flex items-center justify-center gap-2 tabular-nums text-[11px] font-medium text-ink-soft">
         <LiveDot />
         <LiveCounter start={CITY.travelersNow} /> {t("travelers active now")}
       </div>

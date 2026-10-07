@@ -58,12 +58,12 @@ function FounderNotes() {
               <img src={f.img} alt={`${f.name}, co-founder`} className="h-9 w-9 rounded-full object-cover object-top" />
               <div className="min-w-0">
                 <p className="text-[13.5px] font-semibold leading-tight">
-                  {f.name} <span className="font-mono text-[10.5px] font-medium text-ink-soft">@{f.ig}</span>
+                  {f.name} <span className="tabular-nums text-[10.5px] font-medium text-ink-soft">@{f.ig}</span>
                 </p>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{f.title}</p>
+                <p className="text-[12px] text-ink-soft font-semibold">{f.title}</p>
               </div>
             </a>
-            <span className="ml-auto rounded-full bg-lime px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-ink">
+            <span className="ml-auto rounded-full bg-lime px-2.5 py-1 text-[12px] font-semibold text-ink">
               day one
             </span>
           </div>
@@ -89,14 +89,14 @@ export default function CityPage({ onApply }) {
         {memberToken ? (
           <a
             href={`/?screen=app&t=${memberToken}`}
-            className="rounded-full bg-ink px-3.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-lime"
+            className="rounded-full bg-ink px-3.5 py-1.5 text-[12px] font-semibold text-lime"
           >
             {t("open the club →")}
           </a>
         ) : (
           <button
             onClick={() => signInWithGoogle()}
-            className="rounded-full border border-line bg-cream-deep/70 px-3.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft active:scale-95"
+            className="rounded-full border border-line bg-cream-deep/70 px-3.5 py-1.5 text-[12px] font-semibold text-ink-soft active:scale-95"
           >
             {t("member sign in")}
           </button>
@@ -105,7 +105,7 @@ export default function CityPage({ onApply }) {
 
       {/* brand-led hero — global value prop, then social proof */}
       <motion.section variants={rise} className="px-5 pt-6">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-soft">
+        <p className="text-[12px] font-medium text-ink-soft">
           {t("post your dates. see who's there.")}
         </p>
         <h1 className="display mt-2 max-w-[9ch] text-[52px] font-bold leading-[0.95]">
@@ -134,14 +134,14 @@ export default function CityPage({ onApply }) {
             c.status === "live" ? (
               <span
                 key={c.name}
-                className="flex shrink-0 items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-ink"
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 text-[12px] font-semibold text-ink"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-ink" /> {c.name} · {t("live")}
               </span>
             ) : (
               <span
                 key={c.name}
-                className="shrink-0 rounded-full border border-line bg-cream-deep/50 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft/60"
+                className="shrink-0 rounded-full border border-line bg-cream-deep/50 px-3 py-1.5 text-[12px] text-ink-soft/60 font-semibold"
               >
                 {c.name} · {t("soon")}
               </span>
@@ -152,13 +152,13 @@ export default function CityPage({ onApply }) {
 
       {/* what the calendar actually looks like, city-agnostic */}
       <motion.section variants={rise} className="mt-7 px-5">
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
+        <p className="mb-3 text-[12px] text-ink-soft font-semibold">
           {t("what you see when you post dates")}
         </p>
         <div className="overflow-hidden rounded-3xl border border-line bg-white/70">
           <div className="flex items-center justify-between border-b border-line/70 px-4 py-3">
             <span className="text-[14px] font-semibold">Medellín · mar 12 – 18</span>
-            <span className="rounded-full bg-lime px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em]">
+            <span className="rounded-full bg-lime px-2.5 py-1 text-[12px] font-semibold">
               {t("9 here")}
             </span>
           </div>
@@ -176,12 +176,12 @@ export default function CityPage({ onApply }) {
               {r.open ? (
                 <span className="rounded-full bg-ink px-3 py-1.5 text-[11px] font-semibold text-cream">{t("say hi")}</span>
               ) : (
-                <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">{t("locked")}</span>
+                <span className="text-[12px] text-ink-soft/60 font-semibold">{t("locked")}</span>
               )}
             </div>
           ))}
         </div>
-        <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+        <p className="mt-2 text-center text-[12px] text-ink-soft font-semibold">
           {t("first 40 members message everyone free")}
         </p>
       </motion.section>
@@ -213,7 +213,7 @@ export default function CityPage({ onApply }) {
 
       {/* compliance footer — pricing, contact, legal (stripe reviewers read this) */}
       <motion.footer variants={rise} className="px-5 py-5 text-center">
-        <p className="font-mono text-[10px] text-ink-soft">
+        <p className="tabular-nums text-[10px] text-ink-soft">
           free to join and post dates · $19 per trip or $19.99/mo to message ·{" "}
           <a href="/?screen=info" className="underline underline-offset-2">terms</a> ·{" "}
           <a href="mailto:kevincastroperez@gmail.com" className="underline underline-offset-2">contact</a>{" "}
@@ -228,7 +228,7 @@ export default function CityPage({ onApply }) {
             {t("post your dates")} <ArrowRight size={18} weight="bold" />
           </span>
         </BigButton>
-        <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+        <p className="mt-2.5 text-center text-[12px] text-ink-soft font-semibold">
           {t("free to join · first 40 members message free")}
         </p>
       </div>

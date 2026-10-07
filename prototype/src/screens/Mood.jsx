@@ -32,7 +32,7 @@ const fmtCount = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k
 
 function Face({ p, size = "h-9 w-9" }) {
   return (
-    <div className={`relative ${size} shrink-0 overflow-hidden rounded-full border-2 border-cream bg-cream-deep`}>
+    <div className={`relative ${size} shrink-0 overflow-hidden rounded-full border border-cream bg-cream-deep`}>
       {p.photo ? (
         <img
           src={p.photo}
@@ -78,9 +78,7 @@ function GoingButton({ s, busy, onToggle, full = false }) {
       transition={{ type: "spring", stiffness: 520, damping: 16 }}
       onClick={(e) => { e.stopPropagation(); onToggle(s) }}
       disabled={busy}
-      className={`shrink-0 rounded-full px-4 py-2.5 text-[13px] font-bold disabled:opacity-50 ${full ? "w-full" : ""} ${
-        s.imGoing ? "border-2 border-ink bg-white text-ink" : "bg-ink text-cream"
-      }`}
+      className={`shrink-0 rounded-full px-4 py-2.5 text-[13px] font-bold disabled:opacity-50 ${full ? "w-full" : ""} ${ s.imGoing ? "border border-line bg-white text-ink" : "bg-ink text-cream" }`}
     >
       {s.imGoing ? <span className="flex items-center justify-center gap-1"><CheckCircle size={15} weight="fill" /> {t("you're going")}</span> : t("i'm going")}
     </motion.button>
@@ -98,7 +96,7 @@ function WhoGoing({ s }) {
         {s.people.slice(0, 5).map((p) => (
           <span key={p.memberNo} className="relative">
             <Face p={p} />
-            {p.outNow && <span className="out-dot absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-cream bg-[#5fd35f]" />}
+            {p.outNow && <span className="out-dot absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-cream bg-[#5fd35f]" />}
           </span>
         ))}
       </div>
@@ -150,7 +148,7 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
         </div>
 
         <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
+          <p className="text-[12px] text-ink-soft font-semibold">
             {[s.category || s.kind, s.area].filter(Boolean).join(" · ")}
           </p>
           <h2 className="display mt-1 text-[32px] font-bold leading-[0.95] tracking-tight">{s.name}</h2>
@@ -163,7 +161,7 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
             <p className="mt-3 text-[13.5px] italic leading-snug text-ink-soft">“{s.quote}” <span className="not-italic">· {t("a google review")}</span></p>
           )}
 
-          <div className="mt-5 rounded-[1.5rem] border-2 border-line bg-white/80 p-4">
+          <div className="mt-5 rounded-[1.5rem] border border-line bg-white/80 p-4">
             <WhoGoing s={s} />
             <div className="mt-3 flex gap-2">
               <GoingButton s={s} busy={busy} onToggle={onToggle} full />
@@ -171,7 +169,7 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
             {s.imGoing && (
               <button
                 onClick={() => onOpenRoom?.({ channel: s.room, title: `${s.name} ${t("tonight")}` })}
-                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border-2 border-ink bg-white py-2.5 text-[13px] font-bold"
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border border-line bg-white py-2.5 text-[13px] font-bold"
               >
                 <ChatsCircle size={15} weight="fill" /> {t("chat with who's going")}
               </button>
@@ -188,12 +186,12 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
           </div>
           <div className="mt-4 flex gap-2">
             {s.mapsUrl && (
-              <a href={s.mapsUrl} target="_blank" rel="noreferrer" className="flex flex-1 items-center justify-center gap-1 rounded-full border-2 border-line bg-white py-2.5 text-[13px] font-bold">
+              <a href={s.mapsUrl} target="_blank" rel="noreferrer" className="flex flex-1 items-center justify-center gap-1 rounded-full border border-line bg-white py-2.5 text-[13px] font-bold">
                 {t("open in maps")} <ArrowUpRight size={13} weight="bold" />
               </a>
             )}
             {s.website && (
-              <a href={s.website} target="_blank" rel="noreferrer" className="flex flex-1 items-center justify-center gap-1 rounded-full border-2 border-line bg-white py-2.5 text-[13px] font-bold">
+              <a href={s.website} target="_blank" rel="noreferrer" className="flex flex-1 items-center justify-center gap-1 rounded-full border border-line bg-white py-2.5 text-[13px] font-bold">
                 {t("website")} <ArrowUpRight size={13} weight="bold" />
               </a>
             )}
@@ -360,12 +358,12 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
 
   return (
     <div className="relative px-4 pb-28 pt-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">{t("the guide")} · medellín{inMde ? ` · ${dateLine}` : ""}</p>
+      <p className="text-[12px] text-ink-soft font-semibold">{t("the guide")} · medellín{inMde ? ` · ${dateLine}` : ""}</p>
       <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{inMde ? t(meta?.title || "tonight") : t("medellín, city one")}</h2>
       {/* content follows where you are: somewhere else, the guide says plainly
           that it's medellín's, instead of acting like it's your city */}
       {!inMde && (
-        <div className="mt-3 rounded-[1.4rem] border-2 border-dashed border-line bg-white/70 px-4 py-3">
+        <div className="mt-3 rounded-[1.4rem] border border-line bg-white/70 px-4 py-3">
           <p className="text-[14px] font-bold leading-snug">
             {cityChip(myCity).emoji} {t("no guide for")} {cityChip(myCity).name.toLowerCase()} {t("yet")}
           </p>
@@ -377,7 +375,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       {/* making a plan with someone: pick the night, then the spot */}
       {planWith && (
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 flex items-center gap-3 rounded-[1.4rem] bg-ink px-4 py-3 text-cream">
-          {planWith.photo && <img src={planWith.photo} alt="" className="h-10 w-10 shrink-0 rounded-full border-2 border-cream object-cover" />}
+          {planWith.photo && <img src={planWith.photo} alt="" className="h-10 w-10 shrink-0 rounded-full border border-cream object-cover" />}
           <div className="min-w-0 flex-1">
             <p className="text-[14.5px] font-bold leading-tight">{t("making a plan with")} {planWith.first}</p>
             <p className="text-[12px] text-cream/70">{t("pick a spot and tap i'm going. we'll ask them along.")}</p>
@@ -398,7 +396,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
               <button
                 key={d}
                 onClick={() => setNight(d === data.tonight ? null : d)}
-                className={`shrink-0 rounded-full border-2 px-3.5 py-1.5 text-[12.5px] font-bold ${on ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
+                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${on ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
               >
                 {d === data.tonight ? t("tonight") : new Date(`${d}T12:00:00Z`).toLocaleDateString([], { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}
               </button>
@@ -412,9 +410,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           <button
             key={m.key}
             onClick={() => pickMood(m.key)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5 py-2 text-[13px] font-bold ${
-              mood === m.key ? "border-ink bg-ink text-cream" : "border-line bg-white/70 text-ink"
-            }`}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] font-bold ${ mood === m.key ? "border-ink bg-ink text-cream" : "border-line bg-white/70 text-ink" }`}
           >
             <span>{m.emoji}</span> {t(m.label)}
           </button>
@@ -435,19 +431,19 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={t("search spots, like rooftop or sushi")}
-        className="mt-2 w-full rounded-full border-2 border-line bg-white/80 px-4 py-2.5 text-[14px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50 focus:border-ink"
+        className="mt-2 w-full rounded-full border border-line bg-white/80 px-4 py-2.5 text-[14px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50 focus:border-ink"
       />
 
       {/* who's out right now: neighborhood only, gone after a few hours */}
       {inMde && (!night || night === data.tonight) && (
-      <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/70 p-3">
+      <div className="mt-3 rounded-[1.5rem] border border-line bg-white/70 p-3">
         {data.myOut ? (
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13.5px] font-bold">
               <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" />
               {t("you're out in")} {data.myOut.area} · {t("until")} {outEnds}
             </p>
-            <button onClick={async () => { await post({ action: "out", off: true }); load() }} className="shrink-0 rounded-full border-2 border-line px-3 py-1 text-[12px] font-bold text-ink-soft">
+            <button onClick={async () => { await post({ action: "out", off: true }); load() }} className="shrink-0 rounded-full border border-line px-3 py-1 text-[12px] font-bold text-ink-soft">
               {t("stop")}
             </button>
           </div>
@@ -465,7 +461,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
               autoFocus
               maxLength={40}
               placeholder={t("neighborhood, like provenza")}
-              className="w-full rounded-full border-2 border-line bg-white px-3.5 py-2 text-[14px] font-semibold outline-none focus:border-ink"
+              className="w-full rounded-full border border-line bg-white px-3.5 py-2 text-[14px] font-semibold outline-none focus:border-ink"
             />
             <button onClick={goOut} disabled={busy === "out"} className="shrink-0 rounded-full bg-ink px-4 text-[13px] font-bold text-cream disabled:opacity-50">{t("go")}</button>
             <button onClick={() => setOutOpen(false)} aria-label={t("close")} className="shrink-0 text-ink-soft"><X size={18} /></button>
@@ -477,7 +473,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
               <button
                 key={k}
                 onClick={() => setUntil(k)}
-                className={`rounded-full border-2 px-3 py-1 text-[12px] font-bold ${until === k ? "border-ink bg-lime" : "border-line bg-white text-ink-soft"}`}
+                className={`rounded-full border px-3 py-1 text-[12px] font-bold ${until === k ? "border-transparent bg-ink text-cream" : "border-line bg-white text-ink-soft"}`}
               >
                 {label}
               </button>
@@ -507,7 +503,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       {sections.map((sec) => (
       <div key={sec.key}>
       {sec.label && sec.list.length > 0 && (
-        <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft">{sec.label}</p>
+        <p className="mt-6 text-[12px] text-ink-soft font-semibold">{sec.label}</p>
       )}
       <MoreList
         items={sec.list}
@@ -538,7 +534,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
                 </span>
               )}
               <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-cream/80">
+                <p className="text-[12px] text-cream/80 font-semibold">
                   {[s.category || s.kind, s.area].filter(Boolean).join(" · ")}
                 </p>
                 <h3 className="display mt-0.5 text-[27px] font-bold leading-[0.95] tracking-tight">{s.name}</h3>
@@ -564,7 +560,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       {/* not on the guide? any bar, club or cafe in town, straight from the map */}
       {needle && (extra.length > 0 || gPlaces?.length > 0) && (
         <section className="mt-6">
-          <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft">{t("anywhere else in medellín")}</p>
+          <p className="text-[12px] text-ink-soft font-semibold">{t("anywhere else in medellín")}</p>
           <div className="mt-2 space-y-2">
             {[...(gPlaces || []), ...extra.filter((p) => !(gPlaces || []).some((g) => g.name.toLowerCase() === p.name.toLowerCase()))].map((p) => (
               <motion.div
@@ -595,7 +591,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
         <button
           onClick={searchGoogle}
           disabled={gBusy}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border-2 border-dashed border-line bg-white/70 py-3 text-[13px] font-bold text-ink-soft disabled:opacity-70"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-line bg-white/70 py-3 text-[13px] font-bold text-ink-soft disabled:opacity-70"
         >
           {gBusy ? <><CircleNotch size={15} className="animate-spin" /> {t("searching google maps…")}</> : <>🔎 {t("not here? search google maps")}</>}
         </button>

@@ -22,7 +22,7 @@ export default function InvitePrompt({ me, spot, when, onClose }) {
         className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[460px] rounded-t-[2rem] bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3"
       >
         <div className="mx-auto h-1.5 w-11 rounded-full bg-line" />
-        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">✓ {t("you're going")} · {when}</p>
+        <p className="mt-4 text-[12px] text-ink-soft font-semibold">✓ {t("you're going")} · {when}</p>
         <h2 className="display text-[26px] font-bold leading-tight">{t("who else should come to")} {spot.name}?</h2>
         <div className="mt-4 grid grid-cols-4 gap-2">
           <a href={`https://wa.me/?text=${enc}`} target="_blank" rel="noopener noreferrer" className={btn}><span className="text-[24px]">💬</span>whatsapp</a>

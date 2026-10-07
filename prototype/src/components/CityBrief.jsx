@@ -42,15 +42,15 @@ export default function CityBrief({ token, city, starts }) {
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={() => setOpen(true)}
-        className="mb-4 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-white px-4 py-3 text-left"
+        className="mb-4 flex w-full items-center gap-3 rounded-[1.5rem] border border-line bg-white px-4 py-3 text-left"
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[24px]">{c.emoji}</span>
         <span className="min-w-0 flex-1">
-          <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{here ? t("you're in") : t("next level")} · {c.name.toLowerCase()}</span>
-          <span className="block text-[15px] font-bold leading-tight">🎒 {t("your starter kit")}</span>
+          <span className="block text-[12px] text-ink-soft font-semibold">{here ? t("you're in") : t("next level")} · {c.name.toLowerCase()}</span>
+          <span className="block text-[15px] font-bold leading-tight">{t("your starter kit")}</span>
           <span className="block truncate text-[12px] text-ink-soft">{d?.brief?.headline || t("apps, getting around, money, what to watch out for")}</span>
         </span>
-        {total > 0 && <span className="shrink-0 rounded-full bg-lime px-2.5 py-1 font-mono text-[11px] font-bold">{done}/{total}</span>}
+        {total > 0 && <span className="shrink-0 rounded-full bg-lime px-2.5 py-1 tabular-nums text-[11px] font-bold">{done}/{total}</span>}
       </motion.button>
 
       <AnimatePresence>
@@ -64,7 +64,7 @@ export default function CityBrief({ token, city, starts }) {
             >
               <div className="flex items-start justify-between px-5 pb-2 pt-5">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">🎒 {t("starter kit")} · {c.emoji} {c.name.toLowerCase()}{total ? ` · ${done}/${total}` : ""}</p>
+                  <p className="text-[12px] text-ink-soft font-semibold">🎒 {t("starter kit")} · {c.emoji} {c.name.toLowerCase()}{total ? ` · ${done}/${total}` : ""}</p>
                   <h2 className="display text-[26px] font-bold leading-tight">{d?.brief?.headline || t("stuff you should know")}</h2>
                 </div>
                 <button onClick={() => setOpen(false)} aria-label={t("close")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm"><X size={18} weight="bold" /></button>
@@ -92,7 +92,7 @@ export default function CityBrief({ token, city, starts }) {
                             <button onClick={() => tick(id)} className="flex w-full items-start gap-2.5 text-left">
                               <motion.span
                                 animate={{ scale: ticked[id] ? [1, 1.25, 1] : 1 }}
-                                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-[11px] font-bold ${ticked[id] ? "border-ink bg-lime" : "border-line bg-white"}`}
+                                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold ${ticked[id] ? "border-transparent bg-ink text-cream" : "border-line bg-white"}`}
                               >
                                 {ticked[id] ? "✓" : ""}
                               </motion.span>

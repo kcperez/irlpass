@@ -13,7 +13,7 @@ export function useMore(list, step = 12, resetKey) {
     left > 0 ? (
       <button
         onClick={() => setN((x) => x + step)}
-        className={`col-span-full mt-3 w-full rounded-full border-2 border-ink bg-white py-3 text-[13.5px] font-bold active:scale-[0.99] ${className}`}
+        className={`col-span-full mt-3 w-full rounded-full border border-line bg-white py-3 text-[13.5px] font-bold active:scale-[0.99] ${className}`}
       >
         {t("show")} {Math.min(step, left)} {t("more")} · {left} {t("left")}
       </button>

@@ -38,7 +38,7 @@ export default function Invite({ activityId, onApply }) {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-lime"
+              className="text-[12px] font-medium text-lime"
             >
               {t("you're invited")}
             </motion.p>
@@ -55,7 +55,7 @@ export default function Invite({ activityId, onApply }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.22 }}
-              className="mt-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream/60"
+              className="mt-3 text-[12px] text-cream/60 font-semibold"
             >
               {inv.when}{inv.place ? ` · ${inv.place}` : ""} · {inv.going} going
               {inv.spotsLeft !== null ? ` · ${inv.spotsLeft} spots left` : ""}
@@ -89,11 +89,11 @@ export default function Invite({ activityId, onApply }) {
         </motion.button>
         <button
           onClick={() => { localStorage.setItem("irlpass_member_token", ""); window.location.href = "/api/google-login" }}
-          className="mt-3 w-full text-center font-mono text-[11px] uppercase tracking-[0.12em] text-cream/55 underline underline-offset-2 active:scale-[0.98]"
+          className="mt-3 w-full text-center text-[12px] text-cream/55 underline underline-offset-2 active:scale-[0.98] font-semibold"
         >
           {t("already a member? sign in")}
         </button>
-        <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-cream/40">
+        <p className="mt-3 text-center text-[12px] text-cream/40 font-semibold">
           {t("members only · every application read by a founder")}
         </p>
       </footer>

@@ -85,12 +85,12 @@ function PersonRow({ p, onMessage, onOpen, cityLabel, viewerIsMan }) {
       {!(p.womenOnly && viewerIsMan) ? (
         <button
           onClick={() => onMessage(p)}
-          className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold ${p.talked ? "border-2 border-ink bg-white" : "bg-ink text-cream"}`}
+          className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold ${p.talked ? "border border-line bg-white" : "bg-ink text-cream"}`}
         >
           {p.unread > 0 ? `${p.unread} ${t("new")}` : t("join their trip")}
         </button>
       ) : (
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-soft/60">{t("women only")}</span>
+        <span className="shrink-0 text-[12px] text-ink-soft/60 font-semibold">{t("women only")}</span>
       )}
     </div>
   )
@@ -152,7 +152,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
   }
 
   const chip = (active) =>
-    `rounded-full border-2 px-3.5 py-2 text-[13px] font-bold ${active ? "border-ink bg-white/90 text-ink" : "border-line bg-white/60 text-ink-soft"}`
+    `rounded-full border px-3.5 py-2 text-[13px] font-bold ${active ? "border-ink bg-white/90 text-ink" : "border-line bg-white/60 text-ink-soft"}`
 
   return (
     <>
@@ -166,21 +166,21 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
-      className="absolute inset-x-0 bottom-0 z-40 max-h-[86%] overflow-y-auto rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+      className="absolute inset-x-0 bottom-0 z-40 max-h-[86%] overflow-y-auto rounded-t-[1.75rem] border-t border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="display text-[20px]">{editing ? t("edit your dates") : t("your dates")}</h2>
         <button onClick={onClose} aria-label="close"><X size={20} className="text-ink-soft" /></button>
       </div>
 
-      <label htmlFor="trip-city" className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">city</label>
+      <label htmlFor="trip-city" className="text-[12px] text-ink-soft font-semibold">city</label>
       <input
         id="trip-city"
         value={typed}
         onChange={(e) => setTyped(e.target.value)}
         autoComplete="off"
         placeholder={t("search a city")}
-        className="mb-2 mt-1.5 w-full rounded-[1.2rem] border-2 border-line bg-white/70 px-4 py-3 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
+        className="mb-2 mt-1.5 w-full rounded-[1.2rem] border border-line bg-white/70 px-4 py-3 text-[16px] font-semibold outline-none focus:border-ink placeholder:font-medium placeholder:text-ink-soft/50"
       />
       <button
         onClick={() => {
@@ -198,7 +198,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
             { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
           )
         }}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[1.2rem] border-2 border-dashed border-line py-2.5 text-[13px] font-bold text-ink-soft"
+        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[1.2rem] border border-line py-2.5 text-[13px] font-bold text-ink-soft"
       >
         {locating ? t("finding you…") : t("📍 use my location")}
       </button>
@@ -208,9 +208,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
           <button
             key={c.slug}
             onClick={() => { rememberCity(c); setCity(c.slug); setTyped(c.name) }}
-            className={`rounded-full border-2 px-3.5 py-2 text-[13px] font-semibold ${
-              city === c.slug ? "border-ink bg-lime text-ink" : "border-line bg-white/60 text-ink-soft"
-            }`}
+            className={`rounded-full border px-3.5 py-2 text-[13px] font-semibold ${ city === c.slug ? "border-transparent bg-ink text-cream text-ink" : "border-line bg-white/60 text-ink-soft" }`}
           >
             {c.emoji} {c.name}
           </button>
@@ -234,7 +232,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
             <button
               key={m.key}
               onClick={() => { setMonth(m.key); setStarts(m.s); setEnds(m.e); setFlexible(true) }}
-              className={`rounded-[1.2rem] border-2 px-4 py-3 text-[15px] font-bold ${month === m.key ? "border-ink bg-lime" : "border-line bg-white/70 text-ink-soft"}`}
+              className={`rounded-[1.2rem] border px-4 py-3 text-[15px] font-bold ${month === m.key ? "border-transparent bg-ink text-cream" : "border-line bg-white/70 text-ink-soft"}`}
             >
               {m.label}
             </button>
@@ -243,7 +241,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
       )}
 
       {mode === "local" && (
-        <div className="rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3">
+        <div className="rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
           <p className="text-[14.5px] font-bold">{t("you live here")}</p>
           <p className="mt-0.5 text-[12.5px]">
             {t("you'll show up for anyone landing here through")} {fmt(ends)}. {t("we'll check in before then.")}
@@ -272,9 +270,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
       {mode === "exact" && ready && (
         <button
           onClick={() => setFlexible((f) => !f)}
-          className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[14px] font-medium ${
-            flexible ? "border-ink bg-lime/60" : "border-line bg-white/60 text-ink-soft"
-          }`}
+          className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[14px] font-medium ${ flexible ? "border-transparent bg-ink text-cream" : "border-line bg-white/60 text-ink-soft" }`}
         >
           {t("i'm flexible on these dates")}
           <span className={`h-5 w-9 rounded-full ${flexible ? "bg-ink" : "bg-line"} relative`}>
@@ -346,7 +342,7 @@ function InviteSheet({ me, trip, onClose }) {
       <motion.div
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
-        className="absolute inset-x-0 bottom-0 z-50 max-h-[88%] overflow-y-auto rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+        className="absolute inset-x-0 bottom-0 z-50 max-h-[88%] overflow-y-auto rounded-t-[1.75rem] border-t border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
       >
         <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
         <h2 className="display text-[22px] font-bold leading-tight">{t("invite someone to these dates")}</h2>
@@ -354,14 +350,14 @@ function InviteSheet({ me, trip, onClose }) {
           {t("they get your dates already filled in, so they're on the calendar in two taps.")}
         </p>
 
-        <div className="mt-4 rounded-[1.4rem] border-2 border-line bg-white/80 p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{t("what they'll get")}</p>
+        <div className="mt-4 rounded-[1.4rem] border border-line bg-white/80 p-4">
+          <p className="text-[12px] text-ink-soft font-semibold">{t("what they'll get")}</p>
           <p className="mt-2 text-[14px] leading-snug">{text}</p>
           <p className="mt-2 break-all text-[12px] text-ink-soft">{url}</p>
         </div>
 
         <div className="mt-4 flex gap-2">
-          <button onClick={copy} className="flex-1 rounded-full border-2 border-line py-3.5 text-[14px] font-bold">
+          <button onClick={copy} className="flex-1 rounded-full border border-line py-3.5 text-[14px] font-bold">
             {copied ? t("link copied") : t("copy link")}
           </button>
           <button onClick={share} className="flex-1 rounded-full bg-ink py-3.5 text-[14px] font-bold text-cream">
@@ -560,7 +556,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
         {/* my trips */}
         <div className="mb-4">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">your dates</h2>
+            <h2 className="text-[12px] text-ink-soft font-semibold">your dates</h2>
             <button onClick={() => setFormOpen(true)} className="flex items-center gap-1 text-[13px] font-semibold">
               <Plus size={14} weight="bold" /> add
             </button>
@@ -570,7 +566,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => setFormOpen(true)}
-              className="flex w-full items-center gap-3 rounded-[1.75rem] border-2 border-ink bg-lime px-5 py-5 text-left"
+              className="flex w-full items-center gap-3 rounded-[1.75rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-5 py-5 text-left"
             >
               <img src="/art/icon-dates.png" alt="" className="h-16 w-16 shrink-0 object-contain" draggable="false" />
               <span className="display text-[22px] font-bold leading-tight">post your dates</span>
@@ -581,9 +577,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                 <button
                   key={t.id}
                   onClick={() => setActive(i)}
-                  className={`shrink-0 rounded-[1.4rem] border-2 px-4 py-3 text-left ${
-                    i === active ? "border-ink bg-lime/60" : "border-line bg-white/60"
-                  }`}
+                  className={`shrink-0 rounded-[1.4rem] border px-4 py-3 text-left ${ i === active ? "border-transparent bg-ink text-cream" : "border-line bg-white/60" }`}
                 >
                   <span className="block text-[14px] font-semibold">{cityName(t.city)}</span>
                   <span className="block text-[12px] text-ink-soft">{fmtRange(t.starts, t.ends)}{t.hidden ? " · 🙈" : ""}</span>
@@ -597,13 +591,13 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
         {trip && (
           <>
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
+              <h2 className="text-[12px] text-ink-soft font-semibold">
                 {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}
               </h2>
               <div className="flex gap-1.5">
                 <button
                   onClick={() => setEditTrip(trip)}
-                  className="flex items-center gap-1.5 rounded-full border-2 border-ink px-3 py-1.5 text-[12px] font-bold"
+                  className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[12px] font-bold"
                 >
                   <PencilSimple size={13} weight="bold" /> {t("edit")}
                 </button>
@@ -618,14 +612,14 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                     load()
                   }}
                   aria-label={trip.hidden ? t("show this trip") : t("hide this trip")}
-                  className={`flex items-center gap-1.5 rounded-full border-2 px-2.5 py-1.5 text-[12px] font-bold ${trip.hidden ? "border-ink bg-ink text-cream" : "border-line text-ink-soft"}`}
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[12px] font-bold ${trip.hidden ? "border-ink bg-ink text-cream" : "border-line text-ink-soft"}`}
                 >
                   <EyeSlash size={13} weight="bold" />{trip.hidden ? ` ${t("hidden")}` : ""}
                 </button>
                 <button
                   onClick={() => { if (confirm(t("remove these dates?"))) removeTrip(trip.id) }}
                   aria-label={t("remove")}
-                  className="flex items-center gap-1.5 rounded-full border-2 border-line px-2.5 py-1.5 text-[12px] font-bold text-ink-soft"
+                  className="flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1.5 text-[12px] font-bold text-ink-soft"
                 >
                   <Trash size={13} weight="bold" />
                 </button>
@@ -640,7 +634,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
 
             {/* this trip came from an old quick-pick button: ask once if it's real */}
             {trip.guess && (
-              <div className="mb-3 rounded-[1.5rem] border-2 border-ink bg-peach px-4 py-3">
+              <div className="mb-3 rounded-[1.5rem] border border-line bg-peach px-4 py-3">
                 <p className="text-[14px] font-bold leading-snug">{t("are these your real dates?")}</p>
                 <p className="mt-0.5 text-[12.5px]">
                   {cityName(trip.city)} · {fmtRange(trip.starts, trip.ends)}. {t("they came from a quick-pick button, and matches are only as good as your dates.")}
@@ -659,7 +653,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                   >
                     {t("yes, these are right")}
                   </button>
-                  <button onClick={() => setEditTrip(trip)} className="flex-1 rounded-full border-2 border-ink bg-white py-2.5 text-[13px] font-bold">
+                  <button onClick={() => setEditTrip(trip)} className="flex-1 rounded-full border border-line bg-white py-2.5 text-[13px] font-bold">
                     {t("fix them")}
                   </button>
                 </div>
@@ -669,7 +663,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
             {!overlap ? (
               <div className="flex justify-center py-10"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
             ) : overlap.count === 0 ? (
-              <div className="rounded-[1.75rem] border-2 border-line bg-white/60 px-5 py-6 text-center">
+              <div className="rounded-[1.75rem] border border-line bg-white/60 px-5 py-6 text-center">
                 <img src="/art/icon-people.png" alt="" className="mx-auto h-20 w-20 object-contain" draggable="false" />
                 <p className="display mt-1 text-[20px] font-bold">{t("no travelers on these dates yet")}</p>
                 <p className="mt-1 text-[13px] text-ink-soft">{t("be the one who brings someone. we'll also ping you the second anyone lands on your dates.")}</p>
@@ -680,7 +674,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                     </p>
                     <div className="mt-2 flex justify-center -space-x-2">
                       {overlap.locals.slice(0, 7).map((p) => (
-                        <div key={p.memberNo} className="h-10 w-10 overflow-hidden rounded-full border-2 border-cream bg-cream-deep">
+                        <div key={p.memberNo} className="h-10 w-10 overflow-hidden rounded-full border border-cream bg-cream-deep">
                           {p.photo && (
                             <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[2px]" : ""}`} />
                           )}
@@ -751,9 +745,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
             {overlap && (
               <button
                 onClick={() => setInviteOpen(true)}
-                className={`mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 px-4 py-3.5 text-left ${
-                  overlap.count === 0 ? "border-ink bg-lime" : "border-dashed border-lime-deep bg-lime/25"
-                }`}
+                className={`mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border px-4 py-3.5 text-left ${ overlap.count === 0 ? "border-transparent bg-ink text-cream" : "border-lime-deep bg-lime/25" }`}
               >
                 <img src="/art/icon-people.png" alt="" className="h-11 w-11 shrink-0 object-contain" draggable="false" />
                 <div className="min-w-0 flex-1">

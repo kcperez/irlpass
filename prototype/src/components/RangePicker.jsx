@@ -65,13 +65,13 @@ export default function RangePicker({ starts, ends, onChange, busyDays = {} }) {
   }, [])
 
   return (
-    <div className="rounded-[1.4rem] border-2 border-line bg-white/80 p-3">
+    <div className="rounded-[1.4rem] border border-line bg-white/80 p-3">
       <div className="flex items-center justify-between">
         <button
           onClick={() => setYm(shiftMonth(ym, -1))}
           disabled={ym <= monthOf(today)}
           aria-label={t("earlier")}
-          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-line disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-line disabled:opacity-30"
         >
           <CaretLeft size={14} weight="bold" />
         </button>
@@ -79,7 +79,7 @@ export default function RangePicker({ starts, ends, onChange, busyDays = {} }) {
         <button
           onClick={() => setYm(shiftMonth(ym, 1))}
           aria-label={t("later")}
-          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-line"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-line"
         >
           <CaretRight size={14} weight="bold" />
         </button>
@@ -104,17 +104,7 @@ export default function RangePicker({ starts, ends, onChange, busyDays = {} }) {
               key={day}
               onClick={() => pick(day)}
               disabled={past}
-              className={`relative flex aspect-square items-center justify-center rounded-[0.7rem] text-[13px] font-bold transition-colors ${
-                isStart || isEnd
-                  ? "bg-ink text-cream"
-                  : between
-                    ? "bg-lime"
-                    : past
-                      ? "text-ink-soft/25"
-                      : busy
-                        ? "bg-lime/30"
-                        : "hover:bg-cream-deep"
-              }`}
+              className={`relative flex aspect-square items-center justify-center rounded-[0.7rem] text-[13px] font-bold transition-colors ${ isStart || isEnd ? "bg-ink text-cream" : between ? "bg-lime" : past ? "text-ink-soft/25" : busy ? "bg-lime/30" : "hover:bg-cream-deep" }`}
             >
               {Number(day.slice(8))}
               {busy > 0 && !isStart && !isEnd && (

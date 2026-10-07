@@ -206,7 +206,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
   return (
     <>
       <section className={`overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.06),0_14px_34px_-18px_rgba(58,50,44,0.45)] ${compact ? "" : "mb-4"}`}>
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#e6dcfa] via-[#f6efe6] to-[#fbe1cf] px-4 pb-4 pt-4">
+        <div className="relative overflow-hidden px-5 pb-4 pt-5">
           <motion.span
             aria-hidden
             animate={{ rotate: [0, 12, -8, 0], y: [0, -3, 0] }}
@@ -215,7 +215,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
           >
             🎲
           </motion.span>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
+          <p className="text-[12px] text-ink-soft font-semibold">
             {t("the shuffle")} · {lastCity || t("near you")} · {clock}
           </p>
           <h3 className="display mt-0.5 max-w-[78%] text-[26px] font-bold leading-[1.05]">{t("what should i do right now?")}</h3>
@@ -226,19 +226,19 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
           >
             🎲 {t("shuffle me")}
           </motion.button>
-          <p className="mt-2.5 text-[12px] font-semibold text-ink-soft">{t("or tell it how you feel")}</p>
+          <p className="mt-4 text-[12px] font-semibold text-ink-soft">{t("or tell it how you feel")}</p>
         </div>
-        <div className="grid grid-cols-4 gap-1.5 p-3">
+        <div className="-mt-1 flex gap-2 overflow-x-auto px-5 pb-5 [scrollbar-width:none]">
           {FEELINGS.filter((x) => x.key !== "surprise").map((x, i) => (
             <motion.button
               key={x.key}
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.025 }}
-              whileTap={{ scale: 0.92 }}
+              whileTap={{ scale: 0.94 }}
               onClick={() => ask(x.key)}
-              className="flex flex-col items-center gap-0.5 rounded-2xl bg-cream-deep/60 py-2.5 active:bg-lime"
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-cream-deep/70 px-3.5 py-2 text-[13px] font-semibold active:bg-ink active:text-cream"
             >
-              <span className="text-[22px] leading-none">{x.emoji}</span>
-              <span className="text-[11px] font-bold">{t(x.label)}</span>
+              <span className="text-[15px] leading-none">{x.emoji}</span>
+              {t(x.label)}
             </motion.button>
           ))}
         </div>
@@ -258,7 +258,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
               <div className="mx-auto mt-2.5 h-1.5 w-11 rounded-full bg-line" />
               <div className="flex items-start justify-between px-5 pt-3">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
+                  <p className="text-[12px] text-ink-soft font-semibold">
                     {f?.emoji} {t(f?.label || "")} · {res?.cityName?.toLowerCase() || t("near you")} · {clock}
                     {res?.streak > 1 ? ` · 🔥 ${res.streak} ${t("days")}` : ""}
                   </p>
@@ -272,7 +272,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                 <div className="flex gap-1.5 overflow-x-auto px-5 pt-2">
                   <button
                     onClick={() => { setAheadCity(null); setSeen([]); ask(feeling, false, null) }}
-                    className={`shrink-0 rounded-full border-2 px-3 py-1 text-[12px] font-bold ${!aheadCity ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
+                    className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-bold ${!aheadCity ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
                   >
                     📍 {t("here")}{!aheadCity && res?.cityName ? ` · ${res.cityName.toLowerCase()}` : ""}
                   </button>
@@ -280,7 +280,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                     <button
                       key={a.city}
                       onClick={() => { setAheadCity(a.city); setSeen([]); ask(feeling, false, a.city) }}
-                      className={`shrink-0 rounded-full border-2 px-3 py-1 text-[12px] font-bold ${aheadCity === a.city ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
+                      className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-bold ${aheadCity === a.city ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
                     >
                       {a.now ? "🧳" : "✈️"} {a.name.toLowerCase()}{a.now ? "" : ` · ${new Date(`${a.starts}T12:00:00Z`).toLocaleDateString([], { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}`}
                     </button>
@@ -297,7 +297,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 rounded-[1.4rem] bg-ink px-4 py-3 text-cream">
                     <div className="flex -space-x-2">
                       {res.others.slice(0, 4).map((o) => (
-                        <span key={o.memberNo} className="h-8 w-8 overflow-hidden rounded-full border-2 border-ink bg-cream-deep">
+                        <span key={o.memberNo} className="h-8 w-8 overflow-hidden rounded-full bg-cream-deep-deep">
                           {o.photo && <img src={o.photo} alt="" className="h-full w-full scale-110 object-cover blur-[1.5px]" />}
                         </span>
                       ))}
@@ -323,7 +323,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#d9cdf3] via-cream-deep to-[#f4d9c4] text-[52px]">{f?.emoji}</div>
                       )}
-                      <span className="absolute left-3 top-3 rounded-full bg-ink px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-cream">{p.label ? t(p.label) : `#${i + 1}`}</span>
+                      <span className="absolute left-3 top-3 rounded-full bg-ink px-2.5 py-1 text-[12px] font-bold text-cream">{p.label ? t(p.label) : `#${i + 1}`}</span>
                       {p.going > 0 && (
                         <span className="absolute right-3 top-3 rounded-full bg-lime px-2.5 py-1 text-[11px] font-bold">🔥 {p.going} {t("from irlpass tonight")}</span>
                       )}
@@ -331,7 +331,7 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                     <div className="p-4">
                       {/* tap the text to open the details */}
                       <button onClick={() => setOpenCard((k) => (k === (p.ref ?? p.name) ? null : p.ref ?? p.name))} className="block w-full text-left">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{[p.category, p.area].filter(Boolean).join(" · ")}</p>
+                        <p className="text-[12px] text-ink-soft font-semibold">{[p.category, p.area].filter(Boolean).join(" · ")}</p>
                         <h4 className="display text-[22px] font-bold leading-tight">{p.name}</h4>
                         {p.why && <p className="mt-1 text-[14.5px] leading-snug">{p.why}</p>}
                         {p.tip && <p className="mt-1.5 rounded-xl bg-cream-deep/70 px-2.5 py-1.5 text-[13px] leading-snug">💡 {p.tip}</p>}
@@ -363,13 +363,13 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
                             </motion.button>
                           )
                         ) : null}
-                        <a href={p.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label={t("maps")} className={`flex items-center justify-center gap-1 rounded-full border-2 border-ink py-2.5 text-[13.5px] font-bold ${p.id ? "px-3.5" : "flex-1"}`}>
+                        <a href={p.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label={t("maps")} className={`flex items-center justify-center gap-1 rounded-full border border-line bg-white py-2.5 text-[13.5px] font-bold ${p.id ? "px-3.5" : "flex-1"}`}>
                           {p.id ? "📍" : <>{t("maps")} <ArrowUpRight size={14} weight="bold" /></>}
                         </a>
-                        <motion.button whileTap={{ rotate: 180 }} onClick={() => swap(i)} disabled={swapping === i} aria-label={t("swap this one")} className="flex items-center justify-center rounded-full border-2 border-line px-3.5 text-[15px] disabled:opacity-50">
+                        <motion.button whileTap={{ rotate: 180 }} onClick={() => swap(i)} disabled={swapping === i} aria-label={t("swap this one")} className="flex items-center justify-center rounded-full border border-line px-3.5 text-[15px] disabled:opacity-50">
                           {swapping === i ? <CircleNotch size={14} className="animate-spin" /> : "🔀"}
                         </motion.button>
-                        <button onClick={() => share(p)} aria-label={t("share")} className="flex items-center justify-center rounded-full border-2 border-line px-3.5 text-[15px]">↗️</button>
+                        <button onClick={() => share(p)} aria-label={t("share")} className="flex items-center justify-center rounded-full border border-line px-3.5 text-[15px]">↗️</button>
                       </div>
                     </div>
                   </motion.article>

@@ -21,7 +21,7 @@ export function Stamp({ s, i = 0, small = false }) {
   return (
     <span
       style={{ color: ink, borderColor: ink, transform: `rotate(${[-4, 3, -2, 5][i % 4]}deg)` }}
-      className={`inline-flex shrink-0 flex-col items-center rounded-[0.6rem] border-2 border-dashed bg-white/60 font-mono font-bold uppercase leading-tight ${small ? "px-1.5 py-0.5 text-[8.5px]" : "px-2.5 py-1 text-[10.5px]"}`}
+      className={`inline-flex shrink-0 flex-col items-center rounded-[0.6rem] border bg-white/60 font-bold leading-tight ${small ? "px-1.5 py-0.5 text-[12px]" : "px-2.5 py-1 text-[12px]"}`}
     >
       <span>{cityChip(s.city).emoji} {s.cityName}</span>
       <span className="opacity-75">{monthLabel(s.month)}</span>
@@ -109,14 +109,14 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
               <div className="space-y-5 px-5 pb-6 pt-5">
                 {p.out?.spots?.length > 0 && (
                   <section className="rounded-[1.4rem] bg-ink px-4 py-3 text-cream">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-cream/60">{t("tonight")}</p>
+                    <p className="text-[12px] text-cream/60 font-semibold">{t("tonight")}</p>
                     <p className="mt-0.5 text-[15px] font-bold">{t("going to")} {p.out.spots.join(" + ")}</p>
                   </section>
                 )}
 
                 {p.trips.length > 0 && (
                   <section>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{p.self ? t("your dates") : t("their dates")}</p>
+                    <p className="text-[12px] text-ink-soft font-semibold">{p.self ? t("your dates") : t("their dates")}</p>
                     <div className="mt-2 space-y-2">
                       {p.trips.map((tr, i) => (
                         <motion.div
@@ -142,7 +142,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
 
                 {p.together && (
                   <section className="rounded-[1.4rem] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(58,50,44,0.06),0_8px_24px_-12px_rgba(58,50,44,0.25)]">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("you and")} {p.first}</p>
+                    <p className="text-[12px] text-ink-soft font-semibold">{t("you and")} {p.first}</p>
                     <p className="mt-0.5 text-[15px] font-bold">
                       {p.together.nights > 0
                         ? `${p.together.nights} ${p.together.nights === 1 ? t("night out together") : t("nights out together")}`
@@ -163,7 +163,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
 
                 {p.vibes.length > 0 && (
                   <section>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("into")}</p>
+                    <p className="text-[12px] text-ink-soft font-semibold">{t("into")}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {p.vibes.map((v) => {
                         const both = !p.self && sharedSet.has(String(v).toLowerCase())
@@ -180,7 +180,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
 
                 {p.stamps?.length > 0 && (
                   <section>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("stamps")}</p>
+                    <p className="text-[12px] text-ink-soft font-semibold">{t("stamps")}</p>
                     <div className="mt-2.5 flex flex-wrap gap-2.5">
                       {p.stamps.map((x, i) => (
                         <motion.span key={`${x.city}-${x.month}`} initial={{ opacity: 0, scale: 1.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 + i * 0.06, type: "spring", stiffness: 420, damping: 18 }}>
@@ -193,7 +193,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
 
                 {p.self && (
                   <section>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("your connections")}</p>
+                    <p className="text-[12px] text-ink-soft font-semibold">{t("your connections")}</p>
                     {p.connections.length === 0 ? (
                       <p className="mt-1.5 text-[13px] text-ink-soft">{t("everyone you talk to or go out with on irlpass shows up here.")}</p>
                     ) : (
@@ -227,7 +227,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
                         />
                       </div>
                     )}
-                    <button onClick={toggleHide} className="mt-3 flex w-full items-center justify-between rounded-[1.2rem] border-2 border-line bg-white/70 px-4 py-3 text-left">
+                    <button onClick={toggleHide} className="mt-3 flex w-full items-center justify-between rounded-[1.2rem] border border-line bg-white/70 px-4 py-3 text-left">
                       <span className="text-[13px] font-semibold">{t("show me in other people's connections")}</span>
                       <span className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${hideConn ? "bg-line" : "bg-ink"}`}>
                         <motion.span layout className={`absolute top-0.5 h-5 w-5 rounded-full bg-cream shadow ${hideConn ? "left-0.5" : "left-[18px]"}`} />
@@ -246,7 +246,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
             </div>
 
             {!p.self && p.blocked && (
-              <div className="border-t border-line/70 bg-cream/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft">
+              <div className="border-t border-line/70 bg-cream/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center text-[12px] text-ink-soft font-semibold">
                 {t("women only")}
               </div>
             )}

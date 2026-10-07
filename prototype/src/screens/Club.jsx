@@ -159,9 +159,9 @@ function ReviewSheet({ token, activity, onClose }) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/45 backdrop-blur-sm">
       <motion.div initial={{ y: 60 }} animate={{ y: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-[440px] rounded-t-3xl bg-cream p-6 pb-9">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("how was it?")}</p>
+        <p className="text-[12px] text-ink-soft font-semibold">{t("how was it?")}</p>
         <h3 className="display mt-1 text-[20px] font-bold leading-snug">{actEmojiOf(activity)} {activity.title}</h3>
-        <p className="mt-0.5 font-mono text-[11px] text-ink-soft">{t("by")} {activity.creator.name.toLowerCase()}</p>
+        <p className="mt-0.5 tabular-nums text-[11px] text-ink-soft">{t("by")} {activity.creator.name.toLowerCase()}</p>
         <div className="mt-4 flex justify-center gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} onClick={() => setRating(n)} className={`text-[30px] transition-transform active:scale-110 ${n <= rating ? "" : "opacity-25 grayscale"}`}>⭐</button>
@@ -177,7 +177,7 @@ function ReviewSheet({ token, activity, onClose }) {
           {sent ? t("thanks 🤝") : t("post review")}
         </button>
 
-        <button onClick={report} className="mt-2 w-full py-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#b3461f]/80">
+        <button onClick={report} className="mt-2 w-full py-2 text-[12px] text-[#b3461f]/80 font-semibold">
           {t("something felt off — report privately")}
         </button>
       </motion.div>
@@ -209,7 +209,7 @@ function VerifyCard({ token, me, onVerified }) {
 
   if (me.verified || state === "done") {
     return (
-      <div className="mt-4 flex items-center gap-2 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-3">
+      <div className="mt-4 flex items-center gap-2 rounded-[1.5rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
         <CheckCircle size={20} weight="fill" />
         <p className="text-[13.5px] font-bold">{t("instagram verified")}</p>
       </div>
@@ -217,8 +217,8 @@ function VerifyCard({ token, me, onVerified }) {
   }
 
   return (
-    <div className="mt-4 rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("verify your instagram")}</p>
+    <div className="mt-4 rounded-[1.5rem] border border-line bg-white/70 p-4">
+      <p className="text-[12px] text-ink-soft font-semibold">{t("verify your instagram")}</p>
       <p className="mt-1.5 text-[13.5px] leading-snug">
         {t("1. tap the code to copy it. 2. paste it anywhere in your instagram bio. 3. come back and tap check. it proves the account is yours, and you can leave it there.")}
       </p>
@@ -232,7 +232,7 @@ function VerifyCard({ token, me, onVerified }) {
             setTimeout(() => setCopied(false), 2000)
           } catch { /* clipboard blocked */ }
         }}
-        className={`mt-2.5 flex w-full items-center justify-between rounded-[1rem] border-2 border-dashed px-3 py-2.5 text-left ${copied ? "border-ink bg-lime" : "border-line bg-cream"}`}
+        className={`mt-2.5 flex w-full items-center justify-between rounded-[1rem] border px-3 py-2.5 text-left ${copied ? "border-transparent bg-ink text-cream" : "border-line bg-cream"}`}
       >
         <code className="text-[15px] font-bold tracking-wide">{code || "…"}</code>
         <span className="text-[12px] font-bold">{copied ? t("copied ✓") : t("tap to copy")}</span>
@@ -241,7 +241,7 @@ function VerifyCard({ token, me, onVerified }) {
         href="https://www.instagram.com/accounts/edit/"
         target="_blank"
         rel="noreferrer"
-        className="mt-2 flex w-full items-center justify-center rounded-full border-2 border-ink py-2.5 text-[13.5px] font-bold"
+        className="mt-2 flex w-full items-center justify-center rounded-full border border-line bg-white py-2.5 text-[13.5px] font-bold"
       >
         {t("open instagram to edit my bio")}
       </a>
@@ -368,18 +368,18 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
         </div>
         <button
           onClick={onOpenProfile}
-          className="mt-5 flex w-full items-center justify-between rounded-[1.3rem] border-2 border-ink bg-white px-4 py-3 text-left active:scale-[0.99]"
+          className="mt-5 flex w-full items-center justify-between rounded-[1.3rem] border border-line bg-white px-4 py-3 text-left active:scale-[0.99]"
         >
           <span>
             <span className="flex items-center gap-1.5 text-[14.5px] font-bold">
               {t("your profile & connections")}
-              {profileNew && <span className="rounded-full bg-[#8a5cf0] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-white">{t("new")}</span>}
+              {profileNew && <span className="rounded-full bg-[#8a5cf0] px-1.5 py-0.5 text-[12px] text-white font-semibold">{t("new")}</span>}
             </span>
             <span className="block text-[12px] text-ink-soft">{t("stamps, people you've met, what others see")}</span>
           </span>
           <span className="text-[20px]">🛂</span>
         </button>
-        <button onClick={onHost} className="mt-2 flex w-full items-center justify-between rounded-[1.3rem] border-2 border-line bg-white/70 px-4 py-3 text-left active:scale-[0.99]">
+        <button onClick={onHost} className="mt-2 flex w-full items-center justify-between rounded-[1.3rem] border border-line bg-white/70 px-4 py-3 text-left active:scale-[0.99]">
           <span className="text-[14px] font-bold">{t("want to host a night?")}</span>
           <span className="text-[18px]">🏠</span>
         </button>
@@ -388,7 +388,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
           <input type="file" accept="image/*" className="hidden" onChange={pick} disabled={busy} />
         </label>
         {error && <p className="mt-2.5 text-center text-[12.5px] font-medium text-[#b3461f]">{error}</p>}
-        <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft/70">
+        <p className="mt-3 text-center text-[12px] text-ink-soft/70 font-semibold">
           {t("your face shows next to your dates")}
         </p>
 
@@ -397,7 +397,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
             <img src={qr} alt="log in on another device" className="h-24 w-24 rounded-lg" />
             <div>
               <p className="text-[13.5px] font-semibold leading-snug">{t("log in on your phone")}</p>
-              <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-ink-soft">
+              <p className="mt-1 tabular-nums text-[10.5px] leading-relaxed text-ink-soft">
                 {t("scan with your camera. it opens the club, logged in as you.")}
               </p>
             </div>
@@ -408,7 +408,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
 
         <button
           onClick={onVibes}
-          className="mt-4 flex w-full items-center justify-between rounded-[1.5rem] border-2 border-line bg-white/70 px-4 py-3.5 text-left"
+          className="mt-4 flex w-full items-center justify-between rounded-[1.5rem] border border-line bg-white/70 px-4 py-3.5 text-left"
         >
           <span className="text-[14px] font-bold">{t("your vibes")}</span>
           <span className="truncate pl-3 text-[12.5px] font-semibold text-ink-soft">
@@ -419,7 +419,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
         {modOn(me) && (
           <a
             href={`/?screen=ops&t=${token}`}
-            className="mt-4 flex items-center justify-between rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-3.5"
+            className="mt-4 flex items-center justify-between rounded-[1.5rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3.5"
           >
             <span className="text-[14px] font-bold">{t("ops dashboard")}</span>
             <span className="text-[12px] font-semibold">{t("co-founder")}</span>
@@ -433,8 +433,8 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
         )}
 
         {/* who can reach you. everyone gets these, not only women */}
-        <div className="mt-4 rounded-[1.5rem] border-2 border-line bg-white/70 p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">{t("who can message you")}</p>
+        <div className="mt-4 rounded-[1.5rem] border border-line bg-white/70 p-4">
+          <p className="text-[12px] text-ink-soft font-semibold">{t("who can message you")}</p>
           <label className="mt-2.5 flex items-center justify-between">
             <span className="text-[13.5px] font-semibold">{t("people can message me")}</span>
             <button
@@ -464,7 +464,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
               try { localStorage.removeItem("irlpass_member_token") } catch { /* private mode */ }
               window.location.href = "/"
             }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-line py-3 text-[13px] font-bold text-ink-soft"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-line py-3 text-[13px] font-bold text-ink-soft"
           >
             <SignOut size={15} weight="bold" /> {t("sign out")}
           </button>
@@ -475,7 +475,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
               try { localStorage.removeItem("irlpass_member_token") } catch { /* private mode */ }
               window.location.href = "/"
             }}
-            className="flex-1 rounded-full border-2 border-line py-3 text-[13px] font-bold text-[#8f2b2b]"
+            className="flex-1 rounded-full border border-line py-3 text-[13px] font-bold text-[#8f2b2b]"
           >
             {t("delete account")}
           </button>
@@ -493,7 +493,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
               }).then((x) => x.json()).catch(() => null)
               if (r?.url) window.location.href = r.url
             }}
-            className="mt-2 w-full rounded-full border-2 border-line py-3 text-[12.5px] font-bold text-ink-soft"
+            className="mt-2 w-full rounded-full border border-line py-3 text-[12.5px] font-bold text-ink-soft"
           >
             {t("manage subscription")}
           </button>
@@ -511,7 +511,7 @@ function TopBar({ me, onProfile, dot }) {
       <Logo h="h-9" />
       <button
         onClick={onProfile}
-        className="flex items-center gap-2 rounded-full border border-line bg-cream-deep/70 py-1 pl-1 pr-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-soft active:scale-95"
+        className="flex items-center gap-2 rounded-full border border-line bg-cream-deep/70 py-1 pl-1 pr-3 text-[12px] font-medium text-ink-soft active:scale-95"
       >
         <span className="relative">
           <Avatar member={me} photo={me.photo} size="h-6 w-6 text-[11px]" />
@@ -595,7 +595,7 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
         className="max-h-[92dvh] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-cream p-6 pb-[max(2rem,env(safe-area-inset-bottom))]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
-        <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-lime-deep">
+        <p className="flex items-center gap-1.5 text-[12px] text-lime-deep font-semibold">
           <Sparkle size={12} weight="fill" /> {lines.kicker}
         </p>
         <h3 className="display mt-1.5 text-[26px] font-bold leading-tight">{lines.head}</h3>
@@ -609,7 +609,7 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
         </ul>
         <motion.button whileTap={{ scale: 0.98 }} onClick={() => go("monthly")} disabled={busy} className="mt-5 w-full rounded-full bg-ink py-4 text-center text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)] disabled:opacity-60">
           <span className="block text-[15.5px] font-bold">{busy ? t("one sec…") : t("start your free month")}</span>
-          <span className="block font-mono text-[10px] text-cream/60">{t("then $19.99/mo · cancel anytime")}</span>
+          <span className="block tabular-nums text-[10px] text-cream/60">{t("then $19.99/mo · cancel anytime")}</span>
         </motion.button>
         <button onClick={() => go("yearly")} disabled={busy} className="mt-2 w-full py-1.5 text-[12.5px] font-semibold text-ink-soft">
           {t("or $89 for the year")}
@@ -627,7 +627,7 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
               data-lpignore="true"
               autoFocus
               placeholder="RIDE-XXXXXX"
-              className="w-full rounded-full border-2 border-line bg-white px-4 py-2.5 font-mono text-[14px] font-bold uppercase outline-none focus:border-ink"
+              className="w-full rounded-full border border-line bg-white px-4 py-2.5 text-[14px] font-bold outline-none focus:border-ink"
             />
             <button onClick={redeem} disabled={busy || !code.trim()} className="shrink-0 rounded-full bg-lime px-4 text-[13px] font-bold disabled:opacity-50">{t("use")}</button>
           </div>
@@ -636,14 +636,14 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
         )}
         {err && <p className="mt-2 text-center text-[12.5px] font-semibold text-[#b3461f]">{err}</p>}
 
-        <button onClick={share} className="mt-3 flex w-full items-center justify-between rounded-[1.2rem] border-2 border-dashed border-line px-4 py-3 text-left">
+        <button onClick={share} className="mt-3 flex w-full items-center justify-between rounded-[1.2rem] border border-line px-4 py-3 text-left">
           <span>
             <span className="block text-[13.5px] font-bold">🎁 {t("invite a friend, you both get a free month")}</span>
             <span className="block text-[11.5px] text-ink-soft">{t("once you're both on the monthly plan")}</span>
           </span>
-          <span className="shrink-0 font-mono text-[10px] font-bold uppercase text-ink-soft">{copied ? t("copied") : t("share")}</span>
+          <span className="shrink-0 text-[12px] font-bold text-ink-soft">{copied ? t("copied") : t("share")}</span>
         </button>
-        <button onClick={onClose} className="mt-2 w-full py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+        <button onClick={onClose} className="mt-2 w-full py-2 text-[12px] text-ink-soft font-semibold">
           {reason === "deliver" ? t("keep it as a draft") : t("keep browsing free")}
         </button>
       </motion.div>
@@ -658,7 +658,7 @@ function RepBadge({ score, count, verified }) {
     <span className="flex items-center gap-1.5">
       {verified && <span title="verified" className="text-lime-deep">✓</span>}
       {score != null && (
-        <span className="rounded-full bg-cream-deep px-1.5 py-0.5 font-mono text-[9.5px] font-semibold text-ink-soft">
+        <span className="rounded-full bg-cream-deep px-1.5 py-0.5 tabular-nums text-[9.5px] font-semibold text-ink-soft">
           ⭐ {score.toFixed(1)}{count ? `·${count}` : ""}
         </span>
       )}
@@ -707,7 +707,7 @@ function PinnedInfo({ token, me, initial }) {
           <ActIcon a={act} size="h-9 w-9 text-[15px]" />
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft">
+          <p className="text-[12px] text-ink-soft font-semibold">
             {whenLine(act)}{act.place ? ` · ${act.place}` : ""} · {act.joined.length} {t("going")}
           </p>
           {editing ? (
@@ -720,13 +720,13 @@ function PinnedInfo({ token, me, initial }) {
                 placeholder={t("address, meeting point, what to bring…")}
                 className="w-full rounded-lg border border-line bg-white/80 px-2.5 py-1.5 text-[12.5px] outline-none focus:border-lime-deep"
               />
-              <button onClick={save} className="shrink-0 rounded-full bg-ink px-3 py-1.5 font-mono text-[10px] font-semibold uppercase text-cream">{t("save")}</button>
+              <button onClick={save} className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-[12px] font-semibold text-cream">{t("save")}</button>
             </div>
           ) : (
             <p className="mt-0.5 text-[12.5px] leading-snug text-ink">
               {act.details || (isCreator ? t("no details yet") : "")}
               {isCreator && (
-                <button onClick={() => { setText(act.details || ""); setEditing(true) }} className="ml-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-lime-deep underline underline-offset-2">
+                <button onClick={() => { setText(act.details || ""); setEditing(true) }} className="ml-2 text-[12px] font-semibold text-lime-deep underline underline-offset-2">
                   {act.details ? t("edit") : t("add details")}
                 </button>
               )}
@@ -1076,7 +1076,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
         </button>
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold leading-tight">{title}</p>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
+          <p className="text-[12px] text-ink-soft font-semibold">
             {/* city rooms are open to everyone in town; only old activity threads are private */}
             {activity
               ? t("private · joined members only")
@@ -1096,7 +1096,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
         <div className="flex items-start gap-2.5 border-b border-line/70 bg-cream-deep/50 px-4 py-2.5">
           <PushPin size={14} weight="fill" className="mt-0.5 shrink-0 text-ink-soft" />
           <div>
-            <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-soft/70">{t("pinned")}</p>
+            <p className="text-[12px] font-semibold text-ink-soft/70">{t("pinned")}</p>
             <p className="mt-0.5 text-[12.5px] leading-snug text-ink">{t("say hi, say where you're at, find someone to go with.")}</p>
           </div>
         </div>
@@ -1110,7 +1110,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
           {!msgs ? (
             <div className="flex justify-center pb-8"><CircleNotch size={20} className="animate-spin text-ink-soft" /></div>
           ) : msgs.length === 0 ? (
-            <p className="pb-8 text-center font-mono text-[11px] text-ink-soft">{t("no messages yet. say something.")}</p>
+            <p className="pb-8 text-center tabular-nums text-[11px] text-ink-soft">{t("no messages yet. say something.")}</p>
           ) : (
             msgs.map((m, i) => {
               const mine = m.from.memberNo === me.memberNo
@@ -1130,7 +1130,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               const dayLine = newDay && (
                 <div className="flex items-center gap-3 py-1">
                   <span className="h-px flex-1 bg-line" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{chatDay(m.at)}</span>
+                  <span className="text-[12px] text-ink-soft font-semibold">{chatDay(m.at)}</span>
                   <span className="h-px flex-1 bg-line" />
                 </div>
               )
@@ -1138,7 +1138,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               if (system) {
                 return (
                   <div key={m.key} className="flex justify-center">
-                    <p className="max-w-[85%] rounded-full bg-cream-deep/80 px-4 py-1.5 text-center font-mono text-[10.5px] leading-relaxed text-ink-soft">
+                    <p className="max-w-[85%] rounded-full bg-cream-deep/80 px-4 py-1.5 text-center tabular-nums text-[10.5px] leading-relaxed text-ink-soft">
                       <WithMentions text={m.text} />
                     </p>
                   </div>
@@ -1168,7 +1168,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       {...pressFor(m)}
                       className={`bubble min-w-0 max-w-full break-words px-3.5 py-2 [overflow-wrap:anywhere] ${
                         m.deleted
-                          ? "rounded-[1.2rem] border border-dashed border-line bg-transparent"
+                          ? "rounded-[1.2rem] border border-line bg-transparent"
                           : mine
                             ? `rounded-[1.2rem] bg-lime text-ink ${last ? "rounded-br-md" : ""}`
                             : `rounded-[1.2rem] bg-white text-ink shadow-[0_1px_2px_rgba(58,50,44,0.08)] ${last ? "rounded-bl-md" : ""}`
@@ -1195,8 +1195,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                         {m.deleted ? t("message deleted") : m.text.startsWith("📍 ") ? (
                           <span className="font-semibold"><span className="out-dot mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" /><WithMentions text={m.text.slice(2)} /></span>
                         ) : <WithMentions text={m.text} />}
-                        {m.edited && !m.deleted && <span className="ml-1.5 font-mono text-[9px] text-ink/45">{t("(edited)")}</span>}
-                        {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap font-mono text-[9px] text-ink/45">{msgTime(m.at)}</span>}
+                        {m.edited && !m.deleted && <span className="ml-1.5 tabular-nums text-[9px] text-ink/45">{t("(edited)")}</span>}
+                        {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap tabular-nums text-[9px] text-ink/45">{msgTime(m.at)}</span>}
                       </p>
                       {translated[m.key] && translated[m.key] !== "same" && !m.deleted && (
                         <p className="mt-1 border-t border-ink/10 pt-1 text-[13.5px] italic leading-snug">
@@ -1212,7 +1212,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                     {!m.deleted && !mine && !translated[m.key] && looksForeign(m.text) && (
                       <button
                         onClick={(e) => { e.stopPropagation(); translate(m) }}
-                        className="mt-0.5 px-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft"
+                        className="mt-0.5 px-1 text-[12px] font-semibold text-ink-soft"
                       >
                         {t("translate")}
                       </button>
@@ -1264,7 +1264,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
         {needsDates && (
           <button
             onClick={() => onNeedDates?.(channel)}
-            className="mx-3 mb-2 flex items-center gap-3 rounded-[1.4rem] border-2 border-ink bg-lime px-4 py-3 text-left"
+            className="mx-3 mb-2 flex items-center gap-3 rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3 text-left"
           >
             <img src="/art/icon-dates.png" alt="" className="h-10 w-10 shrink-0 object-contain" draggable="false" />
             <div className="min-w-0">
@@ -1283,12 +1283,12 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               className="overflow-hidden"
             >
               <div className="mb-2 flex items-center justify-between rounded-xl border border-line bg-cream-deep/70 px-3 py-1.5">
-                <p className="truncate font-mono text-[10.5px] text-ink-soft">
+                <p className="truncate tabular-nums text-[10.5px] text-ink-soft">
                   {editing ? t("editing your message") : `${t("replying to")} ${replyTo.from.name.toLowerCase()}: ${replyTo.text.slice(0, 50)}`}
                 </p>
                 <button
                   onClick={() => { setReplyTo(null); setEditing(null); setText("") }}
-                  className="ml-2 font-mono text-[10px] uppercase text-ink-soft"
+                  className="ml-2 text-[12px] text-ink-soft font-semibold"
                 >
                   {t("cancel")}
                 </button>
@@ -1304,7 +1304,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               <button
                 key={f.memberNo}
                 onClick={() => setText((x) => x.replace(/@([\w.]*)$/, `@${mentionTag(f)} `))}
-                className="shrink-0 rounded-full border-2 border-line bg-white/80 px-3 py-1 text-[12.5px] font-bold"
+                className="shrink-0 rounded-full border border-line bg-white/80 px-3 py-1 text-[12.5px] font-bold"
               >
                 @{mentionTag(f)}
               </button>
@@ -1360,7 +1360,7 @@ function DeniedScreen() {
         {t("member sign in with google")}
       </button>
       {sent ? (
-        <p className="mt-3 font-mono text-[11px] text-ink-soft">{t("if that email is in our system, a login link is on its way.")}</p>
+        <p className="mt-3 tabular-nums text-[11px] text-ink-soft">{t("if that email is in our system, a login link is on its way.")}</p>
       ) : (
         <div className="mt-3 flex w-full max-w-[320px] gap-2">
           <input
@@ -1376,7 +1376,7 @@ function DeniedScreen() {
           </button>
         </div>
       )}
-      <a href="/" className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft underline underline-offset-2">
+      <a href="/" className="mt-4 text-[12px] text-ink-soft underline underline-offset-2 font-semibold">
         {t("or join on the homepage")}
       </a>
     </div>
@@ -1609,7 +1609,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           )}
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{(other.name || other.first || "").toLowerCase()} <RepBadge score={other.repScore} verified={other.verified} /></p>
-            <p className="font-mono text-[10px] text-ink-soft">{other.ig}</p>
+            <p className="tabular-nums text-[10px] text-ink-soft">{other.ig}</p>
           </div>
         </div>
         <div className="relative flex min-h-0 flex-1 flex-col">
@@ -1618,7 +1618,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           {!convo ? (
             <div className="flex flex-1 items-center justify-center"><CircleNotch size={20} className="animate-spin text-ink-soft" /></div>
           ) : shownMsgs.length === 0 ? (
-            <p className="mt-6 text-center font-mono text-[11px] text-ink-soft">{t("say hi. you're in the same city on the same days.")}</p>
+            <p className="mt-6 text-center tabular-nums text-[11px] text-ink-soft">{t("say hi. you're in the same city on the same days.")}</p>
           ) : (
             shownMsgs.map((m, i) => {
               const prev = shownMsgs[i - 1]
@@ -1631,7 +1631,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                   {(!prev || dayKey(prev.at) !== dayKey(m.at)) && (
                     <div className="flex items-center gap-3 py-2">
                       <span className="h-px flex-1 bg-line" />
-                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{chatDay(m.at)}</span>
+                      <span className="text-[12px] text-ink-soft font-semibold">{chatDay(m.at)}</span>
                       <span className="h-px flex-1 bg-line" />
                     </div>
                   )}
@@ -1644,7 +1644,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                       {...(m.pending ? {} : pressFor(m))}
                       onClick={m.failed ? () => retry(m) : (m.pending ? undefined : pressFor(m).onClick)}
                       className={`bubble max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[14px] leading-snug [overflow-wrap:anywhere] ${
-                        m.deleted ? "border border-dashed border-line bg-transparent italic text-ink-soft/60" : m.fromMe ? `bg-lime text-ink ${m.pending && !m.failed ? "opacity-70" : ""}` : "bg-white text-ink shadow-[0_1px_2px_rgba(58,50,44,0.08)]"
+                        m.deleted ? "border border-line bg-transparent italic text-ink-soft/60" : m.fromMe ? `bg-lime text-ink ${m.pending && !m.failed ? "opacity-70" : ""}` : "bg-white text-ink shadow-[0_1px_2px_rgba(58,50,44,0.08)]"
                       }`}
                     >
                       {quoted && !m.deleted && (
@@ -1657,7 +1657,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                         </button>
                       )}
                       {m.deleted ? t("message deleted") : <WithMentions text={m.text} />}
-                      <span className="float-right ml-2 mt-1.5 flex items-center gap-1 whitespace-nowrap font-mono text-[9.5px] leading-none text-ink/45">
+                      <span className="float-right ml-2 mt-1.5 flex items-center gap-1 whitespace-nowrap tabular-nums text-[9.5px] leading-none text-ink/45">
                         {m.edited && !m.deleted && t("edited")}
                         {m.failed ? <span className="font-bold text-[#b3461f]">{t("not sent · tap to retry")}</span> : msgTime(m.at)}
                         {m.fromMe && !m.deleted && !m.failed && (
@@ -1670,9 +1670,9 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                         </p>
                       )}
                     </div>
-                    {lastMine && m.read && <span className="mt-0.5 px-1 font-mono text-[9.5px] text-ink-soft">{t("seen")}</span>}
+                    {lastMine && m.read && <span className="mt-0.5 px-1 tabular-nums text-[9.5px] text-ink-soft">{t("seen")}</span>}
                     {!m.fromMe && !m.deleted && !tr && looksForeign(m.text) && (
-                      <button onClick={() => translateDm(m)} className="mt-0.5 px-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                      <button onClick={() => translateDm(m)} className="mt-0.5 px-1 text-[12px] font-semibold text-ink-soft">
                         {t("translate")}
                       </button>
                     )}
@@ -1719,7 +1719,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           <button
             onClick={askVideo}
             disabled={busy}
-            className="mx-3 mb-2 flex items-center justify-center gap-2 rounded-full border-2 border-line bg-white/70 py-2 text-[12.5px] font-bold text-ink-soft disabled:opacity-40"
+            className="mx-3 mb-2 flex items-center justify-center gap-2 rounded-full border border-line bg-white/70 py-2 text-[12.5px] font-bold text-ink-soft disabled:opacity-40"
           >
             📹 {t("ask for a quick video call first")}
           </button>
@@ -1728,10 +1728,10 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
           {(dmReply || dmEditing) && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden px-3">
               <div className="mb-1 flex items-center justify-between rounded-xl border border-line bg-cream-deep/70 px-3 py-1.5">
-                <p className="truncate font-mono text-[10.5px] text-ink-soft">
+                <p className="truncate tabular-nums text-[10.5px] text-ink-soft">
                   {dmEditing ? t("editing your message") : `${t("replying to")} ${dmReply.fromMe ? t("you") : (other.name || "").split(" ")[0].toLowerCase()}: ${dmReply.text.slice(0, 50)}`}
                 </p>
-                <button onClick={() => { setDmReply(null); setDmEditing(null); setText("") }} className="ml-2 font-mono text-[10px] uppercase text-ink-soft">{t("cancel")}</button>
+                <button onClick={() => { setDmReply(null); setDmEditing(null); setText("") }} className="ml-2 text-[12px] text-ink-soft font-semibold">{t("cancel")}</button>
               </div>
             </motion.div>
           )}
@@ -1769,70 +1769,65 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
   // the inbox
   return (
     <div className="px-5 pb-28 pt-4">
-      <h2 className="display text-[30px] font-bold">{t("chat")}</h2>
+      <h2 className="display text-[30px] font-bold leading-none">{t("chat")}</h2>
 
-      {rooms.map((c) => (
-        <button
-          key={c}
-          onClick={() => { setRoomUnread((u) => ({ ...u, [c]: 0 })); onOpenRoom ? onOpenRoom({ slug: c, name: cityChip(c).name.toLowerCase(), emoji: cityChip(c).emoji }) : (setRoomCity(c), setRoomOpen(true)) }}
-          className="lift mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-ink bg-lime px-4 py-4 text-left"
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-cream text-[26px] leading-none" aria-hidden>
-            {cityChip(c).emoji}
-          </span>
-          <div className="min-w-0">
-            <p className="display text-[19px] font-bold leading-tight">{cityChip(c).name.toLowerCase()} {t("chat")}</p>
-            <p className="text-[12.5px] text-ink-soft">
-              {cityCounts[c] ? `${cityCounts[c]} ${t("here")}` : t("everyone in town right now")}
-            </p>
-          </div>
-          {roomUnread[c] > 0 && (
-            <span className="ml-auto shrink-0 rounded-full bg-ink px-2.5 py-1 text-[12px] font-bold text-cream">
-              {roomUnread[c]}
-            </span>
-          )}
-        </button>
-      ))}
-      {modRooms.length > 0 && (
-        <div className="mt-3 rounded-[1.5rem] border-2 border-line bg-white/70">
-          <button onClick={() => setModOpen((x) => !x)} className="flex w-full items-center justify-between px-4 py-3 text-left">
-            <span className="text-[13.5px] font-bold">🛡️ {t("moderate")} · {modRooms.length} {t("other city chats")}</span>
-            <span className="text-[12px] font-bold text-ink-soft">{modOpen ? "▴" : "▾"}</span>
-          </button>
-          {modOpen && (
-            <div className="flex flex-wrap gap-1.5 px-3 pb-3">
-              {modRooms.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onOpenRoom ? onOpenRoom({ slug: c, name: cityChip(c).name.toLowerCase(), emoji: cityChip(c).emoji }) : (setRoomCity(c), setRoomOpen(true))}
-                  className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12.5px] font-bold active:scale-95"
-                >
-                  {cityChip(c).emoji} {cityChip(c).name.toLowerCase()}
-                </button>
-              ))}
+      {/* groups: your city rooms + every city, one clean list */}
+      <p className="mt-4 px-1 text-[12px] font-semibold text-ink-soft">{t("groups")}</p>
+      <div className="mt-1.5 divide-y divide-line/60 overflow-hidden rounded-[1.25rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05)]">
+        {rooms.map((c) => (
+          <button
+            key={c}
+            onClick={() => { setRoomUnread((u) => ({ ...u, [c]: 0 })); onOpenRoom ? onOpenRoom({ slug: c, name: cityChip(c).name.toLowerCase(), emoji: cityChip(c).emoji }) : (setRoomCity(c), setRoomOpen(true)) }}
+            className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/40"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[22px] leading-none" aria-hidden>{cityChip(c).emoji}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold leading-tight">{cityChip(c).name.toLowerCase()}</p>
+              <p className="truncate text-[12.5px] text-ink-soft">{cityCounts[c] ? `${cityCounts[c]} ${t("here")}` : t("everyone in town right now")}</p>
             </div>
-          )}
-        </div>
-      )}
-      <button
-        onClick={onOpenWorld}
-        className="mt-3 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-line bg-white/70 px-4 py-3.5 text-left active:scale-[0.99]"
-      >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[24px]">🌍</span>
-        <div className="min-w-0">
-          <p className="display text-[17px] font-bold leading-tight">{t("every city's chat")}</p>
-          <p className="text-[12.5px] text-ink-soft">{t("see where irlpass is right now and who's talking")}</p>
-        </div>
-      </button>
+            {roomUnread[c] > 0 && <span className="shrink-0 rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-cream">{roomUnread[c]}</span>}
+          </button>
+        ))}
+        <button onClick={onOpenWorld} className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/40">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[20px]">🌍</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-semibold leading-tight">{t("every city")}</p>
+            <p className="truncate text-[12.5px] text-ink-soft">{t("see where irlpass is right now and who's talking")}</p>
+          </div>
+        </button>
+        {modRooms.length > 0 && (
+          <div>
+            <button onClick={() => setModOpen((x) => !x)} className="flex w-full items-center justify-between px-4 py-3 text-left active:bg-cream-deep/40">
+              <span className="text-[13.5px] font-semibold text-ink-soft">{t("moderate")} · {modRooms.length} {t("other city chats")}</span>
+              <span className="text-[12px] text-ink-soft">{modOpen ? "▴" : "▾"}</span>
+            </button>
+            {modOpen && (
+              <div className="flex flex-wrap gap-1.5 px-4 pb-3">
+                {modRooms.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => onOpenRoom ? onOpenRoom({ slug: c, name: cityChip(c).name.toLowerCase(), emoji: cityChip(c).emoji }) : (setRoomCity(c), setRoomOpen(true))}
+                    className="rounded-full bg-cream-deep/70 px-3 py-1.5 text-[12.5px] font-semibold active:scale-95"
+                  >
+                    {cityChip(c).emoji} {cityChip(c).name.toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <p className="mt-5 px-1 text-[12px] font-semibold text-ink-soft">{t("messages")}</p>
       {me.memberNo !== "002" && (
         <button
           onClick={() => setOpenWith({ memberNo: "002", name: "Josh", ig: "@jawshmac" })}
-          className="mt-2 flex w-full items-center gap-3 rounded-[1.5rem] border-2 border-line bg-white/70 px-4 py-3.5 text-left active:scale-[0.99]"
+          className="mt-1.5 flex w-full items-center gap-3 rounded-[1.25rem] bg-white px-4 py-3 text-left shadow-[0_1px_2px_rgba(58,50,44,0.05)] active:bg-cream-deep/40"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lime text-[18px]">👋</span>
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold leading-tight">{t("josh · irlpass")}</p>
-            <p className="text-[12.5px] text-ink-soft">{t("stuck on something? he answers")}</p>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[18px]">👋</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-semibold leading-tight">{t("josh · irlpass")}</p>
+            <p className="truncate text-[12.5px] text-ink-soft">{t("stuck on something? he answers")}</p>
           </div>
         </button>
       )}
@@ -1840,7 +1835,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       {!threads ? (
         <div className="mt-10 flex justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>
       ) : threads.length === 0 ? (
-        <div className="mt-10 rounded-2xl border border-dashed border-line p-6 text-center">
+        <div className="mt-10 rounded-2xl border border-line p-6 text-center">
           <p className="text-[15px] font-semibold">{t("no dms yet")}</p>
           <p className="mt-1 text-[13px] text-ink-soft">{t("say hi to someone on your dates and it lands here.")}</p>
         </div>
@@ -1856,10 +1851,10 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             value={inboxQ}
             onChange={(e) => setInboxQ(e.target.value)}
             placeholder={t("search chats")}
-            className="mt-4 w-full rounded-full border-2 border-line bg-white/80 px-4 py-2.5 text-[14px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50 focus:border-ink"
+            className="mt-4 w-full rounded-full border border-line bg-white/80 px-4 py-2.5 text-[14px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50 focus:border-ink"
           />
         )}
-        <div className="mt-3 divide-y divide-line/70 rounded-2xl border border-line bg-white/70">
+        <div className="mt-2 divide-y divide-line/60 overflow-hidden rounded-[1.25rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05)]">
           <MoreList
             items={threads.filter((th) => !(hiddenChats()[th.with.memberNo] >= th.at)).filter((th) => !inboxQ.trim() || `${th.with.name} ${th.with.ig} ${th.last}`.toLowerCase().includes(inboxQ.trim().toLowerCase()))}
             step={15}
@@ -1869,11 +1864,11 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
               <Avatar member={th.with} photo={photoMap[th.with.memberNo]} />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{th.with.name.toLowerCase()} <RepBadge score={th.with.repScore} verified={th.with.verified} /></p>
-                <p className="truncate font-mono text-[11px] text-ink-soft">{th.lastFromMe ? `${t("you")}: ` : ""}{th.last}</p>
+                <p className="truncate tabular-nums text-[11px] text-ink-soft">{th.lastFromMe ? `${t("you")}: ` : ""}{th.last}</p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className="font-mono text-[9.5px] text-ink-soft">{msgTime(th.at)}</span>
-                {th.unread > 0 && <span className="rounded-full bg-lime px-2 py-0.5 font-mono text-[10px] font-semibold text-ink">{th.unread}</span>}
+                <span className="tabular-nums text-[9.5px] text-ink-soft">{msgTime(th.at)}</span>
+                {th.unread > 0 && <span className="rounded-full bg-lime px-2 py-0.5 tabular-nums text-[10px] font-semibold text-ink">{th.unread}</span>}
               </div>
             </button>
           )}
@@ -1928,7 +1923,7 @@ function HostSheet({ token, onClose }) {
         initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+        className="w-full rounded-t-[1.75rem] border-t border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
       >
         <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
         {sent ? (
@@ -1943,7 +1938,7 @@ function HostSheet({ token, onClose }) {
             <p className="mt-1 text-[13.5px] text-ink-soft">{t("dinners, pregames, rides. what would you want to earn per night?")}</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {(d?.ranges || []).map((r) => (
-                <button key={r} onClick={() => setEarn(r)} className={`rounded-2xl border-2 py-3 text-[14px] font-bold ${earn === r ? "border-ink bg-lime" : "border-line bg-white/70"}`}>{r}</button>
+                <button key={r} onClick={() => setEarn(r)} className={`rounded-2xl border py-3 text-[14px] font-bold ${earn === r ? "border-transparent bg-ink text-cream" : "border-line bg-white/70"}`}>{r}</button>
               ))}
             </div>
             <textarea
@@ -1951,7 +1946,7 @@ function HostSheet({ token, onClose }) {
               onChange={(e) => setNote(e.target.value)}
               rows={2}
               placeholder={t("what would you host? (optional)")}
-              className="mt-3 w-full resize-none rounded-2xl border-2 border-line bg-white/80 px-4 py-2.5 text-[14px] outline-none focus:border-ink"
+              className="mt-3 w-full resize-none rounded-2xl border border-line bg-white/80 px-4 py-2.5 text-[14px] outline-none focus:border-ink"
             />
             <button onClick={save} disabled={!earn} className="mt-3 w-full rounded-full bg-ink py-3.5 text-[15px] font-bold text-cream disabled:opacity-40">{t("yes, i want to host")}</button>
           </>
@@ -1980,7 +1975,7 @@ function NameSheet({ token, me, onSaved, onClose }) {
         initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+        className="w-full rounded-t-[1.75rem] border-t border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
       >
         <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
         <h2 className="display text-[26px] font-bold leading-tight">{t("what should people call you?")}</h2>
@@ -1995,7 +1990,7 @@ function NameSheet({ token, me, onSaved, onClose }) {
           autoComplete="given-name"
           maxLength={30}
           placeholder={t("your first name")}
-          className="mt-4 w-full rounded-[1.4rem] border-2 border-line bg-white/80 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink"
+          className="mt-4 w-full rounded-[1.4rem] border border-line bg-white/80 px-4 py-3.5 text-[17px] font-semibold outline-none focus:border-ink"
         />
         {err && <p className="mt-2 text-[13px] font-semibold text-[#8f2b2b]">{err}</p>}
         <button onClick={save} disabled={name.trim().length < 2} className="mt-3 w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream disabled:opacity-40">
@@ -2042,7 +2037,7 @@ function VibesSheet({ token, me, onSaved, onClose }) {
         initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90%] w-full overflow-y-auto rounded-t-[1.75rem] border-t-2 border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+        className="max-h-[90%] w-full overflow-y-auto rounded-t-[1.75rem] border-t border-line bg-cream px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
       >
         <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
         <h2 className="display text-[26px] font-bold leading-tight">{t("what's your vibe?")}</h2>
@@ -2057,7 +2052,7 @@ function VibesSheet({ token, me, onSaved, onClose }) {
                 key={v.key}
                 whileTap={{ scale: 0.94 }}
                 onClick={() => setPicked((l) => (on ? l.filter((x) => x !== v.key) : [...l, v.key]))}
-                className={`flex aspect-[1/0.85] flex-col items-center justify-center gap-1 rounded-[1.2rem] border-2 px-1 text-center ${on ? "border-ink bg-lime" : "border-line bg-white/70"}`}
+                className={`flex aspect-[1/0.85] flex-col items-center justify-center gap-1 rounded-[1.2rem] border px-1 text-center ${on ? "border-transparent bg-ink text-cream" : "border-line bg-white/70"}`}
               >
                 <span className="text-[24px] leading-none">{v.emoji}</span>
                 <span className={`text-[11.5px] font-bold leading-tight ${on ? "text-ink" : "text-ink-soft"}`}>{vibeLabel(v.key)}</span>
@@ -2101,12 +2096,10 @@ function ModeStrip({ token, me }) {
     <button
       onClick={flip}
       disabled={busy}
-      className={`flex w-full items-center justify-between gap-2 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-left ${
-        member ? "bg-peach text-ink" : "bg-ink text-cream"
-      }`}
+      className={`flex w-full items-center justify-between gap-2 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-left ${ member ? "bg-peach text-ink" : "bg-ink text-cream" }`}
     >
       <span className="min-w-0">
-        <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.16em]">
+        <span className="block text-[12px] font-bold">
           {member ? "member view" : "mod mode"}
         </span>
         <span className="block truncate text-[11.5px] font-semibold opacity-80">
@@ -2618,7 +2611,7 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       {!inThread && (
-        <nav className="sticky bottom-0 z-10 flex border-t-2 border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
+        <nav className="sticky bottom-0 z-10 flex border-t border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
           {TABS.map((tb) => (
             <button key={tb.key} onClick={() => { if (tb.key === "mood") clearMoodNew(); setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
               <span className="relative flex h-9 w-14 items-center justify-center rounded-full">
@@ -2626,7 +2619,7 @@ export default function Club({ token }) {
                   <motion.span
                     layoutId="nav-pill"
                     transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                    className="absolute inset-0 rounded-full bg-lime shadow-[0_4px_12px_-4px_rgba(120,90,200,0.55)]"
+                    className="absolute inset-0 rounded-full bg-ink/[0.07]"
                   />
                 )}
                 <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={`relative ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`} />

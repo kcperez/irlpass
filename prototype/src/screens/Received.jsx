@@ -18,7 +18,7 @@ export default function Received({ applicant }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="mt-5 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-soft"
+          className="mt-5 text-[12px] font-medium text-ink-soft"
         >
           application received · {applicant.ig}
         </motion.p>
@@ -44,7 +44,7 @@ export default function Received({ applicant }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="mt-7 rounded-full border border-line bg-cream-deep/70 px-4 py-2 font-mono text-[11px] text-ink-soft"
+          className="mt-7 rounded-full border border-line bg-cream-deep/70 px-4 py-2 tabular-nums text-[11px] text-ink-soft"
         >
           {t("50 founding spots")}
         </motion.p>
@@ -64,7 +64,7 @@ export default function Received({ applicant }) {
         >
           <InstagramLogo size={18} weight="bold" /> {t("watch us build it")}
         </a>
-        <p className="mt-3 text-center font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-soft/70">
+        <p className="mt-3 text-center text-[12px] text-ink-soft/70 font-semibold">
           {t("go pack. we'll email you.")}
         </p>
       </motion.div>
