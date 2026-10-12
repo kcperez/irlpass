@@ -205,37 +205,29 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
 
   return (
     <>
-      <section className={`overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.06),0_14px_34px_-18px_rgba(58,50,44,0.45)] ${compact ? "" : "mb-4"}`}>
-        <div className="relative overflow-hidden px-5 pb-4 pt-5">
-          <motion.span
-            aria-hidden
-            animate={{ rotate: [0, 12, -8, 0], y: [0, -3, 0] }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-            className="pointer-events-none absolute -right-2 -top-1 text-[64px] opacity-90"
-          >
-            🎲
-          </motion.span>
-          <p className="text-[12px] text-ink-soft font-semibold">
-            {t("the shuffle")} · {lastCity || t("near you")} · {clock}
-          </p>
-          <h3 className="display mt-0.5 max-w-[78%] text-[26px] font-bold leading-[1.05]">{t("what should i do right now?")}</h3>
+      <section className={`overflow-hidden rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.06),0_10px_26px_-18px_rgba(58,50,44,0.4)] ${compact ? "" : "mb-3"}`}>
+        {/* slim: one line + the button, then the feelings. people stay above the fold */}
+        <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11.5px] font-semibold text-ink-soft">{lastCity || t("near you")} · {clock}</p>
+            <h3 className="display truncate text-[19px] font-bold leading-tight">{t("what should i do right now?")}</h3>
+          </div>
           <motion.button
-            whileTap={{ scale: 0.96 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => ask("surprise")}
-            className="mt-3 w-full rounded-full bg-ink py-3.5 text-[15.5px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]"
+            className="shrink-0 rounded-full bg-ink px-4 py-2.5 text-[13.5px] font-bold text-cream"
           >
-            🎲 {t("shuffle me")}
+            {t("shuffle")}
           </motion.button>
-          <p className="mt-4 text-[12px] font-semibold text-ink-soft">{t("or tell it how you feel")}</p>
         </div>
-        <div className="-mt-1 flex gap-2 overflow-x-auto px-5 pb-5 [scrollbar-width:none]">
+        <div className="flex gap-2 overflow-x-auto px-4 pb-4 [scrollbar-width:none]">
           {FEELINGS.filter((x) => x.key !== "surprise").map((x, i) => (
             <motion.button
               key={x.key}
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.025 }}
               whileTap={{ scale: 0.94 }}
               onClick={() => ask(x.key)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-cream-deep/70 px-3.5 py-2 text-[13px] font-semibold active:bg-ink active:text-cream"
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-cream-deep/70 px-3 py-1.5 text-[12.5px] font-semibold active:bg-ink active:text-cream"
             >
               <span className="text-[15px] leading-none">{x.emoji}</span>
               {t(x.label)}

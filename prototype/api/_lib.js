@@ -45,6 +45,7 @@ export const rowToMember = (r) =>
     testAsMember: r.test_as_member === true,
     homeCity: r.home_city || null,
     compUntil: r.comp_until || null,
+    hidePhoto: !!r.hide_photo,
     referredBy: r.referred_by || null,
   }
 

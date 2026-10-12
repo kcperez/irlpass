@@ -121,13 +121,16 @@ export default async function handler(req, res) {
       const access = mineOverlap ? await reachFor(mineOverlap) : { ok: false }
       const open = access.ok || known.has(m.memberNo)
       const blocked = me.gender === "man" && m.allowDmFromMen === false
+      // give to get: post your dates here and you see real faces (unless they hid theirs)
+      const faceOpen = open || ((mine || []).length > 0 && !m.hidePhoto && !blocked)
 
       out.push({
         memberNo: m.memberNo,
+        faceOpen,
         first: open ? String(m.name || "").trim().split(/\s+/)[0] || "someone" : safeFirstName(m.name, m.ig),
         name: open ? m.name : null,
         ig: open ? m.ig : null,
-        photo: open ? m.photo : lockedPhoto(m.photo),
+        photo: faceOpen ? m.photo : lockedPhoto(m.photo),
         verified: m.verified,
         repScore: m.repScore,
         repCount: m.repCount,

@@ -1,6 +1,6 @@
 import { getUser, lockedPhoto, safeFirstName, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
-import { canReach } from "./_access.js"
+import { canReach, today } from "./_access.js"
 import { actsAsMod } from "./_mods.js"
 import { waitUntil } from "@vercel/functions"
 import { enrichSpots, googleSearch } from "./_guide.js"
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const city = String(req.query?.city || "medellin")
-      const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }, { data: roomMsgs }] = await Promise.all([
+      const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }, { data: roomMsgs }, { count: myTripsHere }] = await Promise.all([
         db.from("spots").select("*").eq("city", city).eq("active", true).order("sort").order("id"),
         db.from("spot_going").select("spot_id, member_no").eq("night", night),
         db.from("moods").select("mood").eq("member_no", me.memberNo).eq("night", night).maybeSingle(),
@@ -88,7 +88,10 @@ export default async function handler(req, res) {
         db.from("dm_threads").select("a_no, b_no").or(`a_no.eq.${me.memberNo},b_no.eq.${me.memberNo}`),
         // which plans have a live group chat this night
         db.from("messages").select("channel").like("channel", `spot-%-${night.replace(/-/g, "")}`).eq("deleted", false),
+        // give to get: your own dates here let you see faces
+        db.from("trips").select("id", { count: "exact", head: true }).eq("member_no", me.memberNo).eq("city", city).gte("ends", today()),
       ])
+      const myDatesHere = (myTripsHere || 0) > 0
       const chatCount = {}
       for (const m of roomMsgs || []) {
         const id = Number(m.channel.split("-")[1])
@@ -108,11 +111,13 @@ export default async function handler(req, res) {
         const m = byNo.get(no)
         if (!m) return null
         const open = no === me.memberNo || access.ok || known.has(no) || actsAsMod(me)
+        const faceOpen = open || (myDatesHere && !m.hidePhoto && !(me.gender === "man" && m.allowDmFromMen === false))
         return {
           memberNo: no,
+          faceOpen,
           first: open ? String(m.name || "").split(/\s+/)[0] : safeFirstName(m.name, m.ig),
           name: open ? m.name : null,
-          photo: open ? m.photo : lockedPhoto(m.photo),
+          photo: faceOpen ? m.photo : lockedPhoto(m.photo),
           locked: !open,
           me: no === me.memberNo,
           outNow: (out || []).some((o) => o.member_no === no),

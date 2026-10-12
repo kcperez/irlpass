@@ -66,12 +66,15 @@ export default async function handler(req, res) {
       // safety: a member who only accepts women/non-binary dms stays masked to men
       const blocked = me.gender === "man" && m.allowDmFromMen === false
       const open = access.ok || known.has(m.memberNo)
+      // give to get: these are your own dates, so you see faces unless they hid theirs
+      const faceOpen = open || (!m.hidePhoto && !blocked)
       people.push({
         memberNo: m.memberNo,
+        faceOpen,
         first: open ? firstName(m.name) : safeFirstName(m.name, m.ig),
         name: open ? m.name : null,
         ig: open && (m.showIgToMen || me.gender !== "man") ? m.ig : null,
-        photo: open ? m.photo : lockedPhoto(m.photo),
+        photo: faceOpen ? m.photo : lockedPhoto(m.photo),
         gender: m.gender,
         verified: m.verified,
         repScore: m.repScore,
@@ -125,10 +128,12 @@ export default async function handler(req, res) {
       .filter((m) => m && !listed.has(m.memberNo))
       .map((m) => {
         const open = access.ok || known.has(m.memberNo)
+        const faceOpen = open || (!m.hidePhoto && !(me.gender === "man" && m.allowDmFromMen === false))
         return {
           memberNo: m.memberNo,
+          faceOpen,
           first: open ? firstName(m.name) : safeFirstName(m.name, m.ig),
-          photo: open ? m.photo : lockedPhoto(m.photo),
+          photo: faceOpen ? m.photo : lockedPhoto(m.photo),
           locked: !open,
           shared: sharedWith(me.interests, m.interests),
         }

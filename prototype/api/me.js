@@ -51,5 +51,6 @@ export default async function handler(req, res) {
     isMod: isMod(member.memberNo),
     memberView: !!member.modOff,
     needsName: nameIsHandle(member.name, member.ig),
+    hidePhoto: !!member.hidePhoto,
   })
 }

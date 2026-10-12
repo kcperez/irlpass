@@ -38,7 +38,7 @@ function Face({ p, size = "h-9 w-9" }) {
           src={p.photo}
           alt=""
           onError={(e) => { e.currentTarget.style.display = "none" }}
-          className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[2px]" : ""}`}
+          className={`h-full w-full object-cover ${p.locked && !p.faceOpen ? "scale-105 blur-[2px]" : ""}`}
         />
       ) : (
         <span className="flex h-full w-full items-center justify-center text-[12px] font-bold text-ink-soft">

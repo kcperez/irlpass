@@ -51,7 +51,7 @@ function PersonRow({ p, onMessage, onOpen, cityLabel, viewerIsMan }) {
   return (
     <div className="flex items-center gap-3 border-b border-line/60 px-4 py-3 last:border-b-0">
       <button onClick={() => onOpen?.(p.memberNo)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-      <Initials name={p.name || p.first} photo={p.photo} locked={p.locked} />
+      <Initials name={p.name || p.first} photo={p.photo} locked={p.locked && !p.faceOpen} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-[15px] font-semibold">{p.locked ? p.first : p.name || p.first}</span>
@@ -676,7 +676,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
                       {overlap.locals.slice(0, 7).map((p) => (
                         <div key={p.memberNo} className="h-10 w-10 overflow-hidden rounded-full border border-cream bg-cream-deep">
                           {p.photo && (
-                            <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[2px]" : ""}`} />
+                            <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked && !p.faceOpen ? "scale-105 blur-[2px]" : ""}`} />
                           )}
                         </div>
                       ))}
@@ -687,12 +687,20 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
               </div>
             ) : (
               <>
-                <div className="mb-2 flex items-baseline gap-2">
-                  <span className="display text-[42px] font-bold leading-none">{overlap.count}</span>
-                  <span className="text-[14px] text-ink-soft">
-                    {overlap.count === 1 ? "person" : "people"} here on your dates
-                    {overlap.women > 0 && ` · ${overlap.women} ${overlap.women === 1 ? "woman" : "women"}`}
-                  </span>
+                {/* faces, not just a number: who's actually here on your dates */}
+                <div className="mb-2.5 flex items-center gap-3">
+                  <div className="flex -space-x-2.5">
+                    {overlap.people.filter((p) => p.photo).slice(0, 5).map((p) => (
+                      <img key={p.memberNo} src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-9 w-9 rounded-full border-2 border-cream object-cover ${p.locked && !p.faceOpen ? "blur-[1.5px]" : ""}`} />
+                    ))}
+                    {overlap.count > 5 && (
+                      <span className="flex h-9 min-w-9 items-center justify-center rounded-full border-2 border-cream bg-ink px-2 text-[11.5px] font-bold text-cream">+{overlap.count - 5}</span>
+                    )}
+                  </div>
+                  <p className="min-w-0 text-[14px] leading-tight text-ink-soft">
+                    <span className="font-bold text-ink">{overlap.count} {overlap.count === 1 ? t("person") : t("people")}</span> {t("here on your dates")}
+                    {overlap.women > 0 && ` · ${overlap.women} ${overlap.women === 1 ? t("woman") : t("women")}`}
+                  </p>
                 </div>
 
                 <div className="lift overflow-hidden rounded-[1.75rem] bg-white">

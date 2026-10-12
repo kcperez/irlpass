@@ -453,7 +453,17 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${me.showIgToMen ? "left-[22px]" : "left-0.5"}`} />
             </button>
           </label>
+          <label className="mt-2 flex items-center justify-between">
+            <span className="text-[13.5px] font-semibold">{t("show my photo")}</span>
+            <button
+              onClick={() => saveSafety({ hidePhoto: !me.hidePhoto })}
+              className={`relative h-6 w-11 rounded-full transition-colors ${!me.hidePhoto ? "bg-lime-deep" : "bg-line"}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${!me.hidePhoto ? "left-[22px]" : "left-0.5"}`} />
+            </button>
+          </label>
           <p className="mt-2 text-[12px] text-ink-soft">{t("off means only women and non-binary members can start a chat with you.")}</p>
+          <p className="mt-1 text-[12px] text-ink-soft">{t("your photo shows to people with dates in your city. off keeps it blurred until you talk.")}</p>
         </div>
 
         {reviewOf && <ReviewSheet token={token} activity={reviewOf} onClose={() => setReviewOf(null)} />}

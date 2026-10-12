@@ -234,7 +234,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
               {out.slice(0, 4).map((p) => (
                 <span key={p.memberNo} className="relative h-9 w-9 shrink-0">
                   <span className="block h-9 w-9 overflow-hidden rounded-full bg-cream-deep-deep">
-                    {p.photo && <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked ? "blur-[2px]" : ""}`} />}
+                    {p.photo && <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked && !p.faceOpen ? "blur-[2px]" : ""}`} />}
                   </span>
                   {p.out.now && <span className="out-dot absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-line bg-[#5fd35f]" />}
                 </span>
@@ -292,7 +292,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                         src={p.photo}
                         alt=""
                         onError={(e) => { e.currentTarget.style.display = "none" }}
-                        className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[2px]" : ""}`}
+                        className={`h-full w-full object-cover ${p.locked && !p.faceOpen ? "scale-105 blur-[2px]" : ""}`}
                       />
                     )}
                   </div>
@@ -366,10 +366,10 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                     src={p.photo}
                     alt=""
                     loading="lazy"
-                    className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[4px]" : ""}`}
+                    className={`h-full w-full object-cover ${p.locked && !p.faceOpen ? "scale-105 blur-[4px]" : ""}`}
                   />
                 ) : (
-                  <div className={`display flex h-full w-full items-center justify-center text-[44px] font-bold text-ink-soft/40 ${p.locked ? "blur-[8px]" : ""}`}>
+                  <div className={`display flex h-full w-full items-center justify-center text-[44px] font-bold text-ink-soft/40 ${p.locked && !p.faceOpen ? "blur-[8px]" : ""}`}>
                     {(p.name || p.first)[0]?.toUpperCase()}
                   </div>
                 )}
@@ -473,7 +473,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
               >
                 <div className="aspect-square w-full overflow-hidden rounded-[1rem] bg-cream-deep">
                   {p.photo ? (
-                    <img src={p.photo} alt="" loading="lazy" className={`h-full w-full object-cover ${p.locked ? "scale-105 blur-[3px]" : ""}`} />
+                    <img src={p.photo} alt="" loading="lazy" className={`h-full w-full object-cover ${p.locked && !p.faceOpen ? "scale-105 blur-[3px]" : ""}`} />
                   ) : (
                     <div className="display flex h-full w-full items-center justify-center text-[20px] font-bold text-ink-soft/40">
                       {(p.name || p.first)[0]?.toUpperCase()}

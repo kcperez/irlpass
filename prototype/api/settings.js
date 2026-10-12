@@ -14,6 +14,8 @@ export default async function handler(req, res) {
   if (typeof req.body?.allowDmFromMen === "boolean") patch.allow_dm_from_men = req.body.allowDmFromMen
   if (typeof req.body?.showIgToMen === "boolean") patch.show_ig_to_men = req.body.showIgToMen
   // mods only: flip between mod mode and member view (test as a regular member)
+  // give to get has an opt-out: keep your photo blurred for people you haven't talked to
+  if (typeof req.body?.hidePhoto === "boolean") patch.hide_photo = req.body.hidePhoto
   // leave yourself out of other people's connections
   if (typeof req.body?.hideConnections === "boolean") patch.hide_connections = req.body.hideConnections
   if (typeof req.body?.testAsMember === "boolean" && isMod(me.memberNo)) {
