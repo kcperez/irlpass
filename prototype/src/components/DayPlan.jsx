@@ -103,13 +103,14 @@ export function DaySheet({ token, me, cityName, trips = [], onPaywall, onClose }
     const now = new Date()
     let here = null
     try { here = JSON.parse(sessionStorage.getItem("irl:here") || "null") } catch { /* private mode */ }
-    const tomorrow = new Date(now.getTime() + 864e5).toISOString().slice(0, 10)
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    const tomorrow = iso(new Date(now.getTime() + 864e5))
     const trip = trips.find((x) => x.city === when)
     const body = {
-      t: token, wish, vibes,
+      t: token, wish, vibes, today: iso(now),
       day: now.getDay(), minute: now.getHours() * 60 + now.getMinutes(),
       ...(when === "tomorrow" ? { date: tomorrow } : {}),
-      ...(trip ? { city: trip.city, date: trip.starts > now.toISOString().slice(0, 10) ? trip.starts : undefined } : {}),
+      ...(trip ? { city: trip.city, date: trip.starts > iso(now) ? trip.starts : undefined } : {}),
       ...(here && !trip ? { lat: here.lat, lng: here.lng } : {}),
     }
     const r = await fetch("/api/day", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })

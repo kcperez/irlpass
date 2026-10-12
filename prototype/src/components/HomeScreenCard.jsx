@@ -14,6 +14,15 @@ if (typeof window !== "undefined") {
   })
 }
 
+// chrome's own install dialog: true if they installed, null if chrome didn't offer one
+export async function installPrompt() {
+  if (!deferred) return null
+  deferred.prompt()
+  const choice = await deferred.userChoice.catch(() => null)
+  deferred = null
+  return choice?.outcome === "accepted"
+}
+
 export default function HomeScreenCard() {
   const [show, setShow] = useState(false)
   const [steps, setSteps] = useState(false)

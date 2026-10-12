@@ -63,6 +63,8 @@ export default async function handler(req, res) {
     const wish = String(req.body?.wish || "").trim().slice(0, 300)
     const vibes = (Array.isArray(req.body?.vibes) ? req.body.vibes : []).map(String).slice(0, 6)
     const forDate = /^\d{4}-\d{2}-\d{2}$/.test(req.body?.date || "") ? req.body.date : null
+    // the phone's own date, so "today" is today where they are
+    const localDay = /^\d{4}-\d{2}-\d{2}$/.test(req.body?.today || "") ? req.body.today : today()
 
     // where: a trip city they picked, else the phone, else the trip they're on, else home
     const { data: trips } = await db.from("trips").select("city, starts, ends").eq("member_no", me.memberNo).gte("ends", today()).eq("hidden", false).order("starts")
@@ -142,8 +144,8 @@ reply only json:
 
     const id = newId()
     const out = { title: String(plan.title || "your day").slice(0, 60), intro: String(plan.intro || "").slice(0, 200), country, stops }
-    await db.from("day_plans").insert({ id, member_no: me.memberNo, city, city_name: cityName, date: forDate || today(), wish: wish || null, stops: out })
-    return res.status(200).json({ id, city, cityName, date: forDate || today(), ...out, left: member ? null : 0 })
+    await db.from("day_plans").insert({ id, member_no: me.memberNo, city, city_name: cityName, date: forDate || localDay, wish: wish || null, stops: out })
+    return res.status(200).json({ id, city, cityName, date: forDate || localDay, ...out, left: member ? null : 0 })
   } catch (e) {
     console.error("day error:", e)
     return res.status(500).json({ error: "couldn't plan that right now. try again in a bit" })

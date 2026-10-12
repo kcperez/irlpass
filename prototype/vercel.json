@@ -1,6 +1,17 @@
 {
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "day",
+          "value": "(?<id>[a-z0-9]{6,20})"
+        }
+      ],
+      "destination": "/api/day-page?id=:id"
+    },
+    {
       "source": "/admin",
       "destination": "/index.html"
     }

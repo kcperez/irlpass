@@ -29,6 +29,7 @@ import RideCard from "../components/RideCard"
 import TonightPin from "../components/TonightPin"
 import NightPrompt from "../components/NightPrompt"
 import PushPrompt from "../components/PushPrompt"
+import InstallSheet from "../components/InstallSheet"
 import { registerSW, askPush } from "../lib/push"
 import { isSeen, markSeen, useNew, NewDot } from "../lib/newdot"
 import { cityChip, registerCities } from "../lib/cities"
@@ -2601,6 +2602,7 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       <PushPrompt token={token} />
+      <InstallSheet />
       {(
         <NightPrompt
           token={token}
