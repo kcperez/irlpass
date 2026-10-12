@@ -121,7 +121,7 @@ export function DaySheet({ token, me, cityName, trips = [], onPaywall, onClose }
     setPlan(r.d); setPicks({})
   }
 
-  const link = plan ? `https://irlpass.xyz/?day=${plan.id}` : ""
+  const link = plan ? `https://irlpass.xyz/d/${plan.id}` : ""
   const share = async () => {
     const text = `${plan.title}\n${planText(plan, picks)}\n`
     try {

@@ -24,7 +24,10 @@ const params = new URLSearchParams(window.location.search)
 try { if (/^\d{3}$/.test(params.get("ref") || "")) localStorage.setItem("irl:ref", params.get("ref")) } catch { /* private mode */ }
 const isAdminPath = window.location.pathname === "/admin"
 // a shared "my day" link (?day=abc123) opens the plan itself, members or not
-const dayParam = /^[a-z0-9]{6,20}$/.test(params.get("day") || "") ? params.get("day") : ""
+const dayParam = (() => {
+  const id = window.location.pathname.match(/^\/d\/([a-z0-9]{6,20})\/?$/)?.[1] || params.get("day") || ""
+  return /^[a-z0-9]{6,20}$/.test(id) ? id : ""
+})()
 const initialScreen = isAdminPath
   ? "admin"
   : ["pass", "info", "app", "auth", "invite", "redeem", "join", "offer", "ops"].includes(params.get("screen"))

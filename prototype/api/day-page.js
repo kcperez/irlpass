@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
       .replace(/(property="og:title" content=")[^"]*/, `$1${esc(title)}`)
       .replace(/(property="og:description" content=")[^"]*/, `$1${esc(desc)}`)
-      .replace(/(property="og:url" content=")[^"]*/, `$1https://irlpass.xyz/?day=${esc(id)}`)
+      .replace(/(property="og:url" content=")[^"]*/, `$1https://irlpass.xyz/d/${esc(id)}`)
       .replace(/(name="description" content=")[^"]*/, `$1${esc(desc)}`)
       .replace(/(name="twitter:title" content=")[^"]*/, `$1${esc(title)}`)
       .replace(/(name="twitter:description" content=")[^"]*/, `$1${esc(desc)}`)
