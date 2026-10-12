@@ -17,7 +17,7 @@ export function DayTimeline({ plan, picks, onPick }) {
     <div>
       <h2 className="display text-[28px] font-bold leading-[1.02] tracking-tight">{plan.title}</h2>
       {plan.intro && <p className="mt-1.5 text-[14px] leading-snug text-ink-soft">{plan.intro}</p>}
-      <ol className="relative mt-5 space-y-3 before:absolute before:bottom-3 before:left-[34px] before:top-3 before:w-px before:bg-line">
+      <ol className="relative mt-5 space-y-3 before:absolute before:bottom-3 before:left-[77px] before:top-3 before:w-px before:bg-line">
         {plan.stops.map((s, i) => {
           const chosen = picks?.[i] ?? -1 // -1 = the main pick, else an alternative
           const cur = chosen >= 0 && s.alts?.[chosen] ? s.alts[chosen] : s
@@ -139,7 +139,7 @@ export function DaySheet({ token, me, cityName, trips = [], onPaywall, onClose }
         className="fixed inset-x-0 bottom-0 top-10 z-50 mx-auto flex max-w-[460px] flex-col overflow-hidden rounded-t-[2rem] bg-cream shadow-[0_-20px_60px_-20px_rgba(58,50,44,0.45)]"
       >
         <div className="flex items-center justify-between px-5 pb-1 pt-4">
-          <p className="text-[12px] font-semibold text-ink-soft">{t("my day")} · {(plan?.cityName || cityName || "").toLowerCase()}</p>
+          <p className="text-[12px] font-semibold text-ink-soft">{t("my day")}{plan?.cityName || cityName ? ` · ${(plan?.cityName || cityName).toLowerCase()}` : ""}</p>
           <button onClick={onClose} aria-label={t("close")} className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><X size={18} weight="bold" /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2">

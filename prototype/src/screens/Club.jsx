@@ -2065,7 +2065,7 @@ function VibesSheet({ token, me, onSaved, onClose }) {
                 className={`flex aspect-[1/0.85] flex-col items-center justify-center gap-1 rounded-[1.2rem] border px-1 text-center ${on ? "border-transparent bg-ink text-cream" : "border-line bg-white/70"}`}
               >
                 <span className="text-[24px] leading-none">{v.emoji}</span>
-                <span className={`text-[11.5px] font-bold leading-tight ${on ? "text-ink" : "text-ink-soft"}`}>{vibeLabel(v.key)}</span>
+                <span className={`text-[11.5px] font-bold leading-tight ${on ? "text-cream" : "text-ink-soft"}`}>{vibeLabel(v.key)}</span>
               </motion.button>
             )
           })}
