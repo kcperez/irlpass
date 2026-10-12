@@ -549,7 +549,7 @@ export default function Trips({ token, me, onOpenDM, onOpenPerson, unlockRequest
 
 
         {/* the daily reason to open the app: what should i do right now? */}
-        <RightNow token={token} me={me} onPaywall={onPaywall} />
+        <RightNow token={token} me={me} onPaywall={onPaywall} trips={trips.map((x) => ({ city: x.city, starts: x.starts, name: cityChip(x.city).name }))} />
         {/* before you land: the stuff you should know about where you're headed */}
         {trips[0] && <CityBrief token={token} city={trips[0].city} starts={trips[0].starts} />}
 

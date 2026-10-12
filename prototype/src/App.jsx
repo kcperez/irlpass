@@ -15,6 +15,7 @@ const Club = lazy(() => import("./screens/Club"))
 const Admin = lazy(() => import("./screens/Admin"))
 const Auth = lazy(() => import("./screens/Auth"))
 const Invite = lazy(() => import("./screens/Invite"))
+const SharedDay = lazy(() => import("./components/DayPlan").then((m) => ({ default: m.SharedDay })))
 const Redeem = lazy(() => import("./screens/Redeem"))
 
 // filming helper: /?screen=pass&name=maya&ig=@maya.travels jumps straight to a screen
@@ -22,6 +23,8 @@ const params = new URLSearchParams(window.location.search)
 // an invite link (?ref=021) is remembered until they sign up, even if they browse first
 try { if (/^\d{3}$/.test(params.get("ref") || "")) localStorage.setItem("irl:ref", params.get("ref")) } catch { /* private mode */ }
 const isAdminPath = window.location.pathname === "/admin"
+// a shared "my day" link (?day=abc123) opens the plan itself, members or not
+const dayParam = /^[a-z0-9]{6,20}$/.test(params.get("day") || "") ? params.get("day") : ""
 const initialScreen = isAdminPath
   ? "admin"
   : ["pass", "info", "app", "auth", "invite", "redeem", "join", "offer", "ops"].includes(params.get("screen"))
@@ -51,7 +54,7 @@ const savedToken = (() => {
 // and after signup for everyone else
 const goParam = /^((spot|dm)-\d+|now-[a-z]+)$/.test(params.get("go") || "") ? params.get("go") : ""
 if (goParam && !savedToken) { try { localStorage.setItem("irl:go", goParam) } catch { /* private mode */ } }
-if (savedToken && initialScreen === "welcome" && !inviteFromUrl && !params.get("home") && !params.get("by")) {
+if (savedToken && !dayParam && initialScreen === "welcome" && !inviteFromUrl && !params.get("home") && !params.get("by")) {
   window.location.replace(`/?screen=app&t=${savedToken}${goParam ? `&go=${goParam}` : ""}`)
 }
 
@@ -70,7 +73,7 @@ export default function App() {
         <div className="grain h-full w-full">
           {/* everything but the homepage loads on demand: members never download signup */}
           <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-ink" /></div>}>
-          <div key={screen}>
+          {dayParam ? <SharedDay id={dayParam} /> : <div key={screen}>
               {/* already a member and handed an invite: one button, no signup */}
               {inviteFromUrl && savedToken && (screen === "welcome" || screen === "join") && (
                 <InviteAccept token={savedToken} invite={inviteFromUrl} invitedBy={params.get("by")} />
@@ -129,7 +132,7 @@ export default function App() {
                   onJoined={(t) => { window.location.href = `/?screen=pass&t=${t}` }}
                 />
               )}
-          </div>
+          </div>}
           </Suspense>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowsClockwise, ArrowUpRight, CircleNotch, X } from "@phosphor-icons/react"
+import { DaySheet } from "./DayPlan"
 import { t } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import { SpotLink } from "../lib/spotlink"
@@ -96,7 +97,8 @@ function Spinner({ emoji, city }) {
   )
 }
 
-export default function RightNow({ token, me, onPaywall, compact = false }) {
+export default function RightNow({ token, me, onPaywall, trips = [], compact = false }) {
+  const [dayOpen, setDayOpen] = useState(false)
   const openSpot = useContext(SpotLink)
   const [feeling, setFeeling] = useState(null)
   const [res, setRes] = useState(null) // { picks, cityName, left }
@@ -234,7 +236,20 @@ export default function RightNow({ token, me, onPaywall, compact = false }) {
             </motion.button>
           ))}
         </div>
+        {/* a whole day, planned: the lagos page, for wherever you are */}
+        <button onClick={() => setDayOpen(true)} className="flex w-full items-center gap-3 border-t border-line/60 px-4 py-3 text-left active:bg-cream-deep/40">
+          <span className="text-[20px] leading-none">🗺️</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-bold leading-tight">{t("plan my day")}</span>
+            <span className="block truncate text-[12px] text-ink-soft">{t("a timeline of where to go, with options. send it to who you're with.")}</span>
+          </span>
+          <span className="text-[16px] font-bold text-ink-soft">→</span>
+        </button>
       </section>
+
+      <AnimatePresence>
+        {dayOpen && <DaySheet token={token} me={me} cityName={lastCity} trips={trips} onPaywall={(p) => { setDayOpen(false); onPaywall?.(p) }} onClose={() => setDayOpen(false)} />}
+      </AnimatePresence>
 
       <AnimatePresence>
         {feeling && (

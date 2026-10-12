@@ -547,6 +547,8 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
         ? { kicker: t("your plan is ready"), head: t("start your free month to send it"), sub: draft ? `“${draft}”` : "" }
       : reason === "shuffle"
         ? { kicker: t("right now"), head: t("unlimited picks, every city"), sub: t("start your free month and shuffle as much as you want, wherever you are.") }
+      : reason === "day"
+        ? { kicker: t("my day"), head: t("plan every day of the trip"), sub: t("start your free month and plan as many days as you want, wherever you are.") }
       : reason === "member"
         ? { kicker: t("members only"), head: t("the guaranteed ride is for members"), sub: t("start your free month, then grab a seat.") }
         : reason === "dm"
