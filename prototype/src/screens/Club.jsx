@@ -1089,9 +1089,6 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
 
       {activity && <PinnedInfo token={token} me={me} initial={activity} />}
       {channel === "medellin" && <TonightPin token={token} />}
-      {/^[a-z0-9-]+$/.test(channel) && !channel.startsWith("spot-") && onBuyRide && (
-        <div className="border-b border-line/70 px-3 py-2.5"><RideCard token={token} city={channel} onBuy={onBuyRide} compact /></div>
-      )}
       {channel === "medellin" && (
         <div className="flex items-start gap-2.5 border-b border-line/70 bg-cream-deep/50 px-4 py-2.5">
           <PushPin size={14} weight="fill" className="mt-0.5 shrink-0 text-ink-soft" />

@@ -5,6 +5,7 @@ import { actsAsMod } from "./_mods.js"
 import { waitUntil } from "@vercel/functions"
 import { enrichSpots, googleSearch } from "./_guide.js"
 import { notifyMemberNo } from "./_notify.js"
+import { openAt, fmtMin } from "./_hours.js"
 
 // the mood tab (josh's EDC sprint): pick tonight's mood, see the hand-picked
 // spots for it, tap "i'm going tonight", see who else is going, and drop an
@@ -123,6 +124,10 @@ export default async function handler(req, res) {
       const goingBySpot = {}
       for (const g of going || []) (goingBySpot[g.spot_id] = goingBySpot[g.spot_id] || []).push(g.member_no)
 
+      // what's open right now in medellín (utc-5): at 3am a closed bar is useless
+      const local = new Date(Date.now() - 5 * 3600e3)
+      const nowDay = local.getUTCDay()
+      const nowMin = local.getUTCHours() * 60 + local.getUTCMinutes()
       const board = Object.fromEntries(MOODS.map((mood) => [mood, []]))
       for (const s of spots || []) {
         if (!board[s.mood]) continue
@@ -148,9 +153,14 @@ export default async function handler(req, res) {
           website: s.website || "",
           blurb: s.blurb || "",
           quote: s.quote || "",
-          going: people.length,
+          // only other people count; you see "you're going" instead of "1 going"
+          going: people.filter((p) => !p.me).length,
           people: people.slice(0, 8),
           imGoing: people.some((p) => p.me),
+          ...(night === tn ? (() => {
+            const o = openAt(s.hours, nowDay, nowMin)
+            return { openNow: o.open, openUntil: o.open ? fmtMin(o.until) : null }
+          })() : {}),
           added: !!s.added_by,
           mood: s.mood,
           room: `spot-${s.id}-${night.replace(/-/g, "")}`,
@@ -164,7 +174,9 @@ export default async function handler(req, res) {
           // one rule everywhere: live plans first (people going or a group
           // chat going), then the most active, then the guide's own order
           .sort((a, b) =>
-            (b.x.going > 0 || b.x.chat > 0) - (a.x.going > 0 || a.x.chat > 0) ||
+            // tonight: closed spots sink to the bottom, whatever else is going on
+            (a.x.openNow === false) - (b.x.openNow === false) ||
+            (b.x.going > 0 || b.x.chat > 0 || b.x.imGoing) - (a.x.going > 0 || a.x.chat > 0 || a.x.imGoing) ||
             b.x.going * 3 + b.x.chat - (a.x.going * 3 + a.x.chat) ||
             a.i - b.i)
           .map(({ x }) => x)

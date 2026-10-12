@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     ])
     // hidden trips are only for their owner
     const trips = (allTrips || []).filter((t) => self || !t.hidden)
-    const { data: spots } = going?.length ? await db.from("spots").select("name, area").in("id", going.map((g) => g.spot_id)) : { data: [] }
+    const { data: spots } = going?.length ? await db.from("spots").select("id, name, area").in("id", going.map((g) => g.spot_id)) : { data: [] }
 
     const upcoming = trips.filter((t) => t.ends >= today())
     const past = [...new Set(trips.filter((t) => t.ends < today() && !t.local).map((t) => t.city))]
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
       connections,
       hideConnections: self ? !!row.hide_connections : undefined,
       been: past.map(cityLabel),
-      out: out || spots?.length ? { area: out?.area || spots?.[0]?.area || "", spots: (spots || []).map((s) => s.name) } : null,
+      out: out || spots?.length ? { area: out?.area || spots?.[0]?.area || "", spots: (spots || []).map((s) => s.name), spotId: spots?.[0]?.id || null } : null,
       canMessage: !self && open && !blocked,
       blocked,
       talked: !!dms.get(no)?.talked,

@@ -86,6 +86,7 @@ function GoingButton({ s, busy, onToggle, full = false }) {
 }
 
 function WhoGoing({ s }) {
+  if (!s.going && s.imGoing) return <p className="text-[12.5px] font-semibold text-ink-soft">{t("just you so far. bring someone?")}</p>
   if (!s.going) return <p className="text-[12.5px] font-semibold text-ink-soft">{t("nobody from irlpass yet. be the first.")}</p>
   const match = s.people.find((p) => !p.me && p.shared?.length)
   // where tonight's crowd is from, the way airbnb shows who's on an experience
@@ -215,6 +216,19 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   const [night, setNight] = useState(null)
   useEffect(() => { if (planWith?.nights?.length) setNight(planWith.nights[0]) }, [planWith])
   const [invite, setInvite] = useState(null) // { spot, when } right after a plan is born
+  const [invited, setInvited] = useState(null) // "anthony invited" confirmation
+  useEffect(() => { if (!invited) return; const id = setTimeout(() => setInvited(null), 6000); return () => clearTimeout(id) }, [invited])
+  // after midnight the night you're in is "still out" and the coming evening is
+  // "tonight" (instead of "tonight" next to "7 wed" for what feels like one night)
+  const lateNight = new Date().getHours() < 6
+  const chipLabel = (d) => {
+    if (!data?.tonight) return d
+    const next = new Date(`${data.tonight}T12:00:00Z`); next.setUTCDate(next.getUTCDate() + 1)
+    const nextIso = next.toISOString().slice(0, 10)
+    if (d === data.tonight) return lateNight ? t("still out") : t("tonight")
+    if (d === nextIso) return lateNight ? t("tonight") : t("tomorrow")
+    return new Date(`${d}T12:00:00Z`).toLocaleDateString([], { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()
+  }
   const nightLabel = (iso) =>
     !iso || iso === data?.tonight
       ? t("tonight")
@@ -290,6 +304,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ t: token, action: "invite", spotId: spot.id, night: data?.night, to: planWith.memberNo }),
         }).then(async (x) => ({ status: x.status })).catch(() => ({ status: 0 }))
+        if (r.status === 200) setInvited(planWith.first)
         onPlanDone?.()
         setOpenId(null) // one sheet at a time
         if (r.status === 402) {
@@ -370,8 +385,14 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("this is medellín's, where irlpass started. yours opens as more people post dates there.")}</p>
         </div>
       )}
-      {inMde && <RideCard token={token} city="medellin" onBuy={onBuyRide} />}
+      {/* rides are off for now (not scalable); the checkout stays in the code */}
 
+      {invited && (
+        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-[1.4rem] bg-lime px-4 py-3">
+          <p className="text-[14.5px] font-bold">✓ {invited} {t("invited")}</p>
+          <p className="text-[12px] text-ink/70">{t("they get a ping. you'll see them here when they're in.")}</p>
+        </motion.div>
+      )}
       {/* making a plan with someone: pick the night, then the spot */}
       {planWith && (
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 flex items-center gap-3 rounded-[1.4rem] bg-ink px-4 py-3 text-cream">
@@ -398,7 +419,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
                 onClick={() => setNight(d === data.tonight ? null : d)}
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${on ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
               >
-                {d === data.tonight ? t("tonight") : new Date(`${d}T12:00:00Z`).toLocaleDateString([], { weekday: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}
+                {chipLabel(d)}
               </button>
             )
           })}
@@ -521,18 +542,24 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           >
             <div className="lift relative aspect-[4/3] overflow-hidden rounded-[1.75rem] bg-cream-deep">
               {s.photos[0] ? (
-                <img src={s.photos[0]} alt="" loading="lazy" className="h-full w-full object-cover" />
+                <img src={s.photos[0]} alt="" loading="lazy" className={`h-full w-full object-cover ${s.openNow === false ? "opacity-50 grayscale" : ""}`} />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#d9cdf3] via-cream-deep to-[#f4d9c4] text-[64px]">
-                  {MOODS.find((m) => m.key === s.mood)?.emoji || "📍"}
+                // no photo yet: a clean typographic cover instead of an emoji
+                <div className="flex h-full w-full items-start bg-gradient-to-br from-[#e9e0d6] to-[#d8cdc1] p-5">
+                  <span className="display text-[44px] font-bold leading-none text-ink/15">{s.name}</span>
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-              {s.going > 0 && (
-                <span className="absolute left-3 top-3 rounded-full bg-cream/95 px-2.5 py-1 text-[11.5px] font-bold">
-                  {s.going} {t("from irlpass going")}
-                </span>
-              )}
+              <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+                {s.openNow === false && <span className="rounded-full bg-ink/85 px-2.5 py-1 text-[11.5px] font-bold text-cream">{t("closed now")}</span>}
+                {s.imGoing && <span className="rounded-full bg-lime px-2.5 py-1 text-[11.5px] font-bold text-ink">✓ {t("you're going")}</span>}
+                {s.going > 0 && (
+                  <span className="rounded-full bg-cream/95 px-2.5 py-1 text-[11.5px] font-bold">
+                    {s.going} {s.imGoing ? t("others going") : t("from irlpass going")}
+                  </span>
+                )}
+                {s.openNow && s.openUntil && <span className="rounded-full bg-cream/90 px-2.5 py-1 text-[11.5px] font-semibold">{t("open til")} {s.openUntil}</span>}
+              </div>
               <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
                 <p className="text-[12px] text-cream/80 font-semibold">
                   {[s.category || s.kind, s.area].filter(Boolean).join(" · ")}
