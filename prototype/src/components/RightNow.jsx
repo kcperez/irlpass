@@ -110,6 +110,22 @@ export default function RightNow({ token, me, onPaywall, trips = [], compact = f
 
   const [aheadCity, setAheadCity] = useState(null) // planning a trip you haven't started yet
   const [lastHere, setLastHere] = useState(null)
+  // what you already got per place ("here" or a trip city), so switching tabs
+  // never throws away a shuffle. only the shuffle button makes new picks
+  const [kept, setKept] = useState({})
+  const placeKey = (k, c) => `${k}|${c || "here"}`
+  useEffect(() => {
+    if (feeling && res?.picks?.length) setKept((m) => ({ ...m, [placeKey(feeling, aheadCity)]: { res, seen } }))
+  }, [res, seen]) // eslint-disable-line react-hooks/exhaustive-deps
+  const switchTo = (c) => {
+    if (c === aheadCity || busy) return
+    const hit = kept[placeKey(feeling, c)]
+    setAheadCity(c)
+    setErr("")
+    if (hit) { setRes({ ...hit.res, ahead: hit.res.ahead?.length ? hit.res.ahead : res?.ahead }); setSeen(hit.seen); return }
+    setSeen([])
+    ask(feeling, false, c)
+  }
   const ask = async (key, more = false, cityOverride) => {
     const planCity = cityOverride !== undefined ? cityOverride : aheadCity
     setFeeling(key)
@@ -192,7 +208,7 @@ export default function RightNow({ token, me, onPaywall, trips = [], compact = f
     setRes((x) => x && { ...x, picks: x.picks.map((p, k) => (k === i ? { ...next, label: p.label || next.label } : p)) })
   }
 
-  const close = () => { setFeeling(null); setRes(null); setSeen([]); setErr(""); setAheadCity(null) }
+  const close = () => { setFeeling(null); setRes(null); setSeen([]); setErr(""); setAheadCity(null); setKept({}) }
   const [lastCity, setLastCity] = useState(() => { try { return sessionStorage.getItem("irl:now-city") || "" } catch { return "" } })
   // the loop: "irlpass sent me to oni nikkei 🎲" goes to the group chat or the story
   const share = async (p) => {
@@ -278,7 +294,7 @@ export default function RightNow({ token, me, onPaywall, trips = [], compact = f
               {res?.ahead?.length > 0 && (
                 <div className="flex gap-1.5 overflow-x-auto px-5 pt-2">
                   <button
-                    onClick={() => { setAheadCity(null); setSeen([]); ask(feeling, false, null) }}
+                    onClick={() => switchTo(null)}
                     className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-bold ${!aheadCity ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
                   >
                     📍 {t("here")}{!aheadCity && res?.cityName ? ` · ${res.cityName.toLowerCase()}` : ""}
@@ -286,7 +302,7 @@ export default function RightNow({ token, me, onPaywall, trips = [], compact = f
                   {res.ahead.filter((a) => aheadCity === a.city || a.name.toLowerCase() !== (res?.cityName || "").toLowerCase() || aheadCity).map((a) => (
                     <button
                       key={a.city}
-                      onClick={() => { setAheadCity(a.city); setSeen([]); ask(feeling, false, a.city) }}
+                      onClick={() => switchTo(a.city)}
                       className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-bold ${aheadCity === a.city ? "border-ink bg-ink text-cream" : "border-line bg-white/70"}`}
                     >
                       {a.now ? "🧳" : "✈️"} {a.name.toLowerCase()}{a.now ? "" : ` · ${new Date(`${a.starts}T12:00:00Z`).toLocaleDateString([], { month: "short", day: "numeric", timeZone: "UTC" }).toLowerCase()}`}
@@ -391,7 +407,7 @@ export default function RightNow({ token, me, onPaywall, trips = [], compact = f
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-lime py-3.5 text-[15px] font-bold disabled:opacity-60"
                 >
                   {busy ? <CircleNotch size={17} className="animate-spin" /> : <ArrowsClockwise size={17} weight="bold" />}
-                  {t("shuffle")}
+                  {res?.picks?.length ? t("shuffle again") : t("shuffle")}{res?.cityName ? ` · ${res.cityName.toLowerCase()}` : ""}
                 </motion.button>
                 {res?.left != null && (
                   <p className="mt-1.5 text-center text-[11.5px] text-ink-soft">

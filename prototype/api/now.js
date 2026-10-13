@@ -22,10 +22,10 @@ export const config = { maxDuration: 60 }
 
 export const FEELINGS = {
   hungry: { label: "hungry", mood: "pregame", match: /restaurant|food|grill|sushi|pizza|bistro|bakery|brunch|steak|taco|burger|kitchen|cocina|asian|peruvian|thai|ramen|market|hawker|noodle/ },
-  coffee: { label: "coffee", mood: "chill", match: /cafe|café|coffee|espresso|bakery|tea|pastry/ },
+  coffee: { label: "coffee", mood: "chill", match: /cafe|café|coffee|espresso|bakery|tea|pastry|roast/, strict: true, ask: "good coffee: specialty cafes and roasters" },
   drinks: { label: "drinks", mood: "pregame", match: /\bbar\b|pub|cocktail|wine|rooftop|brew|lounge/, moods: ["pregame"], night: true },
-  dance: { label: "dance", mood: "afters", match: /night ?club|disco|dance|salsa|reggaeton/, moods: ["afters"], night: true },
-  sweat: { label: "sweat", mood: "chill", match: /gym|yoga|fitness|crossfit|pilates|climb|boxing/, tag: "recovery" },
+  dance: { label: "dance", mood: "afters", match: /night ?club|club|disco|dance|salsa|reggaeton|techno|dj/, moods: ["afters"], night: true, strict: true, ask: "dancing: clubs, dance bars, salsa nights, dj sets" },
+  sweat: { label: "sweat", mood: "chill", match: /gym|yoga|fitness|crossfit|pilates|climb|boulder|boxing|surf|run club|martial|spin|padel|tennis|swim/, strict: true, ask: "a workout: a gym that takes day passes, yoga, pilates, climbing, boxing, crossfit, a run club, surf or padel. never cafes, bars or restaurants" },
   recover: { label: "recover", mood: "chill", match: /juice|brunch|spa|sauna|healthy|cafe|coffee|market|smoothie|açaí|acai/, tag: "recovery" },
   explore: { label: "explore", mood: "chill", match: /park|museum|market|garden|view|tour|gallery|temple|beach/ },
   surprise: { label: "surprise me", mood: "chill", match: /./ },
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     } else if (here) {
       const { data: known } = await db.from("cities").select("slug, name, lat, lng").not("lat", "is", null)
       const near = (known || []).map((c) => ({ c, d: km(here, c) })).sort((a, b) => a.d - b.d)[0]
-      if (near && near.d < 80) {
+      if (near && near.d < 25) {
         city = near.c.slug
         cityName = near.c.name
       } else {
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
 
     // 1. our guide: verified spots that fit, open, close, rated, with people going
     const hay = (s) => `${s.category || ""} ${s.kind || ""}`.toLowerCase()
-    const fits = (s) => feeling === "surprise" || f.match.test(hay(s)) || (f.moods || []).includes(s.mood) || (f.tag && s.tag === f.tag)
+    const fits = (s) => feeling === "surprise" || f.match.test(hay(s)) || (!f.strict && s.kind === f.label) || (f.moods || []).includes(s.mood) || (f.tag && s.tag === f.tag)
     const scored = (spots || [])
       .filter((s) => !seen.has(norm(s.id)) && !seen.has(norm(s.name)) && fits(s))
       .map((s) => {
@@ -188,7 +188,7 @@ export default async function handler(req, res) {
         system: `you curate a short list of places for a traveler on irlpass, a social travel app. ${VOICE}`,
         messages: [{
           role: "user",
-          content: `${when} in ${cityName}. they feel: ${f.label}.${useHere || aheadTrip ? "" : " we don't know exactly where they are."}\ncandidates (json):\n${JSON.stringify(cands)}\n\nmake a list of up to ${PICKS}, each a different reason to go, using these labels once each when they fit: ${SLOTS.join(", ")}. prefer open now, close, well reviewed, and places other irlpass people are going. reply only json: {"picks":[{"id":number,"label":"...","why":"...","tip":"..."}]}`,
+          content: `${when} in ${cityName}. they want: ${f.ask || f.label}.${useHere || aheadTrip ? "" : " we don't know exactly where they are."}\ncandidates (json):\n${JSON.stringify(cands)}\n\nmake a list of up to ${PICKS}, each a different reason to go, using these labels once each when they fit: ${SLOTS.join(", ")}. prefer open now, close, well reviewed, and places other irlpass people are going. reply only json: {"picks":[{"id":number,"label":"...","why":"...","tip":"..."}]}`,
         }],
       })
       const chosen = (Array.isArray(out?.picks) ? out.picks : []).filter((p, i, a) => cands.some((c) => c.id === p.id) && a.findIndex((q) => q.id === p.id) === i).slice(0, PICKS)
@@ -230,10 +230,12 @@ export default async function handler(req, res) {
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }],
         messages: [{
           role: "user",
-          content: `${when} in ${cityName}${useHere ? ` near ${useHere.lat.toFixed(3)},${useHere.lng.toFixed(3)}` : ""}. they feel: ${f.label}. skip: ${[...seen].join(", ") || "nothing"}${picks.length ? `, ${picks.map((p) => p.name).join(", ")}` : ""}.\nfind ${PICKS - picks.length} well-reviewed places, each a different reason to go, using these labels once each when they fit: ${SLOTS.filter((s) => s !== "where irlpass is going").join(", ")}. reply only json: {"picks":[{"name":"...","area":"neighborhood","label":"...","why":"...","tip":"...","rating":4.6,"price":"$$"}]}`,
+          content: `${when} in ${cityName}${useHere ? ` near ${useHere.lat.toFixed(3)},${useHere.lng.toFixed(3)}` : ""}. they want: ${f.ask || f.label}. every place must be exactly that kind of place. skip: ${[...seen].join(", ") || "nothing"}${picks.length ? `, ${picks.map((p) => p.name).join(", ")}` : ""}.\nfind ${PICKS - picks.length} well-reviewed places, each a different reason to go, using these labels once each when they fit: ${SLOTS.filter((s) => s !== "where irlpass is going").join(", ")}. reply only json: {"picks":[{"name":"...","type":"what kind of place, e.g. yoga studio","area":"neighborhood","label":"...","why":"...","tip":"...","rating":4.6,"price":"$$"}]}`,
         }],
       })
       const web = (out?.picks || [])
+        // a wrong kind of place is worse than fewer picks (a cafe for "sweat")
+        .filter((p) => !f.strict || f.match.test(String(p.type || "").toLowerCase()))
         .filter((p) => p?.name && !seen.has(norm(p.name)) && !picks.some((q) => norm(q.name) === norm(p.name)))
         .slice(0, PICKS - picks.length)
       if (web.length) source = picks.length ? "guide+web" : "web"
@@ -254,6 +256,7 @@ export default async function handler(req, res) {
               name: String(p.name).slice(0, 60),
               area: String(p.area || "").toLowerCase().slice(0, 40) || null,
               kind: f.label,
+              category: String(p.type || "").toLowerCase().slice(0, 40) || null,
               blurb: String(p.why || "").slice(0, 200) || null,
               sort: 950,
               added_by: "ai",

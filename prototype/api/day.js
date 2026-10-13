@@ -75,7 +75,7 @@ export default async function handler(req, res) {
     if (!chosen && here) {
       const { data: known } = await db.from("cities").select("slug, name, lat, lng").not("lat", "is", null)
       const near = (known || []).map((c) => ({ c, d: km(here, c) })).sort((a, b) => a.d - b.d)[0]
-      if (near && near.d < 80) { city = near.c.slug; cityName = near.c.name }
+      if (near && near.d < 25) { city = near.c.slug; cityName = near.c.name }
       else {
         const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=${here.lat}&lon=${here.lng}`, { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }).catch(() => null)
         const a = r?.ok ? (await r.json().catch(() => ({})))?.address || {} : {}
