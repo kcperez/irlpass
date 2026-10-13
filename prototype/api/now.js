@@ -101,10 +101,12 @@ export default async function handler(req, res) {
         city = near.c.slug
         cityName = near.c.name
       } else {
-        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=${here.lat}&lon=${here.lng}`, { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }).catch(() => null)
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&accept-language=en&zoom=10&lat=${here.lat}&lon=${here.lng}`, { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }).catch(() => null)
         const a = r?.ok ? (await r.json().catch(() => ({})))?.address || {} : {}
-        cityName = a.city || a.town || a.state || a.country || "where you are"
-        city = cityName.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").slice(0, 40)
+        // with the country: "lagos" alone is lagos, nigeria to everyone
+        const town = a.city || a.town || a.village || a.state || ""
+        cityName = town ? `${town}${a.country ? `, ${a.country}` : ""}` : a.country || "where you are"
+        city = `${town || a.country || "here"}-${a.country_code || ""}`.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").slice(0, 40)
       }
     }
     const when = aheadTrip
