@@ -25,7 +25,7 @@ export const FEELINGS = {
   coffee: { label: "coffee", mood: "chill", match: /cafe|café|coffee|espresso|bakery|tea|pastry|roast/, strict: true, ask: "good coffee: specialty cafes and roasters" },
   drinks: { label: "drinks", mood: "pregame", match: /\bbar\b|pub|cocktail|wine|rooftop|brew|lounge/, moods: ["pregame"], night: true },
   dance: { label: "dance", mood: "afters", match: /night ?club|club|disco|dance|salsa|reggaeton|techno|dj/, moods: ["afters"], night: true, strict: true, ask: "dancing: clubs, dance bars, salsa nights, dj sets" },
-  sweat: { label: "sweat", mood: "chill", match: /gym|yoga|fitness|crossfit|pilates|climb|boulder|boxing|surf|run club|martial|spin|padel|tennis|swim/, strict: true, ask: "a workout: a gym that takes day passes, yoga, pilates, climbing, boxing, crossfit, a run club, surf or padel. never cafes, bars or restaurants" },
+  sweat: { label: "sweat", mood: "chill", match: /gym|yoga|fitness|crossfit|pilates|climb|boulder|box|surf|run|martial|spin|padel|tennis|swim|sport|train|hiit|barre|muay|jiu|kite|bootcamp|athlet|workout|kayak|paddle|hike|trail/, strict: true, ask: "a workout: a gym that takes day passes, yoga, pilates, climbing, boxing, crossfit, a run club, surf or padel. never cafes, bars or restaurants" },
   recover: { label: "recover", mood: "chill", match: /juice|brunch|spa|sauna|healthy|cafe|coffee|market|smoothie|açaí|acai/, tag: "recovery" },
   explore: { label: "explore", mood: "chill", match: /park|museum|market|garden|view|tour|gallery|temple|beach/ },
   surprise: { label: "surprise me", mood: "chill", match: /./ },
@@ -53,13 +53,19 @@ async function claude(body, model = "claude-haiku-4-5-20251001") {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model, max_tokens: 1600, ...body }),
+    body: JSON.stringify({ model, max_tokens: 3000, ...body }),
   })
   if (!r.ok) { console.error("claude", r.status, await r.text().catch(() => "")); return null }
   const d = await r.json()
-  const text = (d.content || []).filter((c) => c.type === "text").map((c) => c.text).join("")
-  const m = text.match(/\{[\s\S]*\}/)
-  try { return m ? JSON.parse(m[0]) : null } catch { return null }
+  // with web search the answer arrives in several text blocks, sometimes with
+  // a sentence around it: try the whole thing, then each block from the end
+  const texts = (d.content || []).filter((c) => c.type === "text").map((c) => c.text)
+  for (const tx of [texts.join(""), ...texts.slice().reverse()]) {
+    const m = tx.match(/\{[\s\S]*"picks"[\s\S]*\}/)
+    try { if (m) return JSON.parse(m[0]) } catch { /* try the next one */ }
+  }
+  console.error("now: no json from claude", d.stop_reason, texts.join("").slice(-300))
+  return null
 }
 
 // fun and useful, never fluff: the one thing that makes it worth going, said
@@ -237,7 +243,11 @@ export default async function handler(req, res) {
       })
       const web = (out?.picks || [])
         // a wrong kind of place is worse than fewer picks (a cafe for "sweat")
-        .filter((p) => !f.strict || f.match.test(String(p.type || "").toLowerCase()))
+        .filter((p) => {
+          const ok = !f.strict || f.match.test(`${p.type || ""} ${p.name || ""}`.toLowerCase())
+          if (!ok) console.log("now: dropped off-feeling pick", feeling, p.name, p.type)
+          return ok
+        })
         .filter((p) => p?.name && !seen.has(norm(p.name)) && !picks.some((q) => norm(q.name) === norm(p.name)))
         .slice(0, PICKS - picks.length)
       if (web.length) source = picks.length ? "guide+web" : "web"
