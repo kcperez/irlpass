@@ -25,7 +25,7 @@ export const FEELINGS = {
   coffee: { label: "coffee", mood: "chill", match: /cafe|café|coffee|espresso|bakery|tea|pastry|roast/, strict: true, ask: "good coffee: specialty cafes and roasters" },
   drinks: { label: "drinks", mood: "pregame", match: /\bbar\b|pub|cocktail|wine|rooftop|brew|lounge/, moods: ["pregame"], night: true },
   dance: { label: "dance", mood: "afters", match: /night ?club|club|disco|dance|salsa|reggaeton|techno|dj/, moods: ["afters"], night: true, strict: true, ask: "dancing: clubs, dance bars, salsa nights, dj sets" },
-  sweat: { label: "sweat", mood: "chill", match: /gym|yoga|fitness|crossfit|pilates|climb|boulder|box|surf|run|martial|spin|padel|tennis|swim|sport|train|hiit|barre|muay|jiu|kite|bootcamp|athlet|workout|kayak|paddle|hike|trail/, strict: true, ask: "a workout: a gym that takes day passes, yoga, pilates, climbing, boxing, crossfit, a run club, surf or padel. never cafes, bars or restaurants" },
+  sweat: { label: "sweat", mood: "chill", match: /gym|yoga|fitness|crossfit|pilates|climb|boulder|box|surf|run|martial|spin|padel|tennis|swim|sport|train|hiit|barre|muay|jiu|kite|bootcamp|athlet|workout|kayak|paddle|hike|trail/, strict: true, ask: "a workout: gyms, yoga, pilates, climbing, boxing, crossfit, run clubs, surf or padel. never cafes, bars or restaurants" },
   recover: { label: "recover", mood: "chill", match: /juice|brunch|spa|sauna|healthy|cafe|coffee|market|smoothie|açaí|acai/, tag: "recovery" },
   explore: { label: "explore", mood: "chill", match: /park|museum|market|garden|view|tour|gallery|temple|beach/ },
   surprise: { label: "surprise me", mood: "chill", match: /./ },
@@ -234,7 +234,7 @@ export default async function handler(req, res) {
     // finds is saved so this city's guide grows (photos and hours fill in from google)
     if (picks.length < 4) {
       const out = await claude({
-        system: `you curate real places for a traveler on irlpass. only suggest places that exist${aheadTrip ? "" : " and are open at this hour"}. ${VOICE}`,
+        system: `you curate real places for a traveler on irlpass. only suggest places that exist${aheadTrip ? "" : ", likely open at this hour"}. always answer with the json: if search can't confirm every detail, use the best-reviewed real places you found and put what to check in the tip. never tell them to call or check themselves instead of answering. ${VOICE}`,
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }],
         messages: [{
           role: "user",
