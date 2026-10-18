@@ -58,6 +58,24 @@ export async function searchRealCities(q, limit = 6) {
   return out
 }
 
+// what kind of place a slug is on openstreetmap ("city", "country", "state"...),
+// so a whole country never gets a city starter kit. null when nothing matches
+const kinds = new Map()
+export async function placeKind(slug) {
+  const s = String(slug || "")
+  if (KNOWN.has(s)) return "city"
+  if (kinds.has(s)) return kinds.get(s)
+  try {
+    const rows = await nominatim(s.replace(/-/g, " "))
+    const hit = rows.find((p) => isPlace(p) && (canonicalCity(placeName(p)) === s || canonicalCity(p.name).includes(s)))
+    const kind = hit ? hit.addresstype || "city" : null
+    kinds.set(s, kind)
+    return kind
+  } catch {
+    return "city"
+  }
+}
+
 export async function isRealCity(slug) {
   const s = String(slug || "")
   if (KNOWN.has(s)) return true
