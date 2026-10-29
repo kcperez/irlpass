@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/v/:slug",
+      "destination": "/api/venue?slug=:slug"
+    },
+    {
+      "source": "/pro",
+      "destination": "/api/pro"
+    },
+    {
       "source": "/d/:id",
       "destination": "/api/day-page?id=:id"
     },

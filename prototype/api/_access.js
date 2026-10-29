@@ -18,6 +18,12 @@ export async function setting(key, fallback) {
   return settings[key] ?? fallback
 }
 
+// v4 (josh 10/21): the consumer app is free, businesses pay. ops can turn the
+// old paywall back on with app_settings paywall=on.
+export async function appIsFree() {
+  return (await setting("paywall", "off")) !== "on"
+}
+
 // a free month from a code (ride buyers, hosts, promos, referrals) counts as the pass
 export const hasComp = (member) => !!member.compUntil && member.compUntil >= today()
 
@@ -64,6 +70,7 @@ export async function foundingLeft() {
 // Free when: they hold a founding slot, they subscribe, or they bought this window.
 export async function canReach(member, city, starts, ends) {
   if (member.paid) return { ok: true, via: "pass" }
+  if (await appIsFree()) return { ok: true, via: "free" }
   if (hasComp(member)) return { ok: true, via: "comp" }
   if (await foundingCounts(member)) return { ok: true, via: "founding" }
   const { data } = await db

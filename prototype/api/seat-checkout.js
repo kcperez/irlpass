@@ -1,3 +1,4 @@
+import { appIsFree } from "./_access.js"
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
     if (!act.price_cents) return res.status(400).json({ error: "this activity is free" })
     // a seat fee is the host's charge — but joining a plan in another city still
     // needs a subscription, same gate as a free rsvp.
-    if ((act.city || "medellin") !== me.city && !me.paid) {
+    if ((act.city || "medellin") !== me.city && !me.paid && !(await appIsFree())) {
       return res.status(402).json({ error: "subscribe to join plans in other cities", city: act.city || "medellin", gate: "city" })
     }
     if ((act.audience || "open") === "women_nb" && !(me.gender === "woman" || me.gender === "nonbinary")) {

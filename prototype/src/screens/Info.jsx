@@ -8,7 +8,7 @@ const SECTIONS = [
   },
   {
     h: "pricing",
-    p: "membership is a subscription: $9.99 usd per month, or $69.99 usd per year. cancel anytime. meals, drinks, and activities at member meetups are paid by each member directly. prices are shown at checkout before any payment. payments are processed securely by stripe.",
+    p: "membership is free. meals, drinks, and activities at member meetups are paid by each member directly. prices are shown at checkout before any payment. payments are processed securely by stripe.",
   },
   {
     h: "refund policy",

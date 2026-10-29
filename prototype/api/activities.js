@@ -1,3 +1,4 @@
+import { appIsFree } from "./_access.js"
 import { randomBytes } from "node:crypto"
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
@@ -65,7 +66,8 @@ export default async function handler(req, res) {
         acts = acts.filter((a) => a.audience !== "women_nb" || a.joined.some((j) => j.memberNo === me.memberNo))
       }
       // flag which activities this user can't free-join (other city, not subscribed)
-      acts = acts.map((a) => ({ ...a, locked: a.city !== me.city && !me.paid }))
+      const free = await appIsFree()
+      acts = acts.map((a) => ({ ...a, locked: a.city !== me.city && !me.paid && !free }))
       return res.status(200).json({ activities: acts, viewerCity: me.city, viewerPaid: !!me.paid })
     }
 
@@ -81,7 +83,7 @@ export default async function handler(req, res) {
         // which city this plan lives in. defaults to the host's current city.
         const actCity = isCity(city) ? String(city) : me.city || "medellin"
         // hosting in a city other than your current one is a paid perk
-        if (actCity !== me.city && !me.paid) {
+        if (actCity !== me.city && !me.paid && !(await appIsFree())) {
           return res.status(402).json({ error: "subscribe to host in other cities", city: actCity, gate: "city" })
         }
         // only women & non-binary members can create women-only plans
@@ -172,7 +174,7 @@ export default async function handler(req, res) {
         const rowCity = row.city || "medellin"
         if (action === "join" && !inIt) {
           // cross-city joins require a subscription — browsing is free, joining isn't
-          if (rowCity !== me.city && !me.paid) {
+          if (rowCity !== me.city && !me.paid && !(await appIsFree())) {
             return res.status(402).json({ error: `subscribe to join plans in other cities`, city: rowCity, gate: "city" })
           }
           // women-only plans are joinable only by women & non-binary members
