@@ -6,7 +6,7 @@
     },
     {
       "source": "/pro",
-      "destination": "/api/pro"
+      "destination": "/index.html"
     },
     {
       "source": "/d/:id",

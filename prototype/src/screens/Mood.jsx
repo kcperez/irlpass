@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { cachedJson } from "../lib/cached"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, Clock, MapPin, Star, X } from "@phosphor-icons/react"
+import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, Clock, Gift, InstagramLogo, MapPin, QrCode, Star, X } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
@@ -115,6 +115,26 @@ function WhoGoing({ s }) {
 }
 
 // the full page for one spot
+// a partner venue's perk: claimed at the door with the irlpass qr, plus a
+// bonus for posting a story (the venue pays us; members just show up)
+function PerkCard({ partner }) {
+  return (
+    <div className="mt-5 overflow-hidden rounded-[1.5rem] bg-lime">
+      <div className="px-4 pb-3.5 pt-4">
+        <p className="flex items-center gap-1.5 text-[12px] font-bold text-ink/70"><Gift size={14} weight="fill" /> {t("irlpass perk")}</p>
+        <p className="display mt-1 text-[24px] font-bold leading-[1.02] tracking-tight">{partner.perk}</p>
+      </div>
+      <div className="space-y-2 bg-white/55 px-4 py-3 text-[13px] leading-snug">
+        <p className="flex items-start gap-2"><QrCode size={16} weight="bold" className="mt-0.5 shrink-0" /> {t("scan the irlpass qr at the door and show the screen at the bar")}</p>
+        <p className="flex items-start gap-2">
+          <InstagramLogo size={16} weight="bold" className="mt-0.5 shrink-0" />
+          {partner.story ? `${t("post a story tagging them and get")} ${partner.story}` : t("post a story tagging them so more of us end up here")}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
   const [shot, setShot] = useState(0)
   return (
@@ -161,6 +181,8 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
           {s.quote && (
             <p className="mt-3 text-[13.5px] italic leading-snug text-ink-soft">“{s.quote}” <span className="not-italic">· {t("a google review")}</span></p>
           )}
+
+          {s.partner && <PerkCard partner={s.partner} />}
 
           <div className="mt-5 rounded-[1.5rem] border border-line bg-white/80 p-4">
             <WhoGoing s={s} />
@@ -363,6 +385,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   const boardNames = new Set(Object.values(data.board || {}).flat().map((s) => norm(s.name)))
   const extra = places.filter((p) => !(p.spotId && boardIds.has(p.spotId)) && !boardNames.has(norm(p.name))).slice(0, 5)
   const open = spots.find((s) => s.id === openId) || Object.values(data.board || {}).flat().find((s) => s.id === openId)
+  const perks = Object.values(data.board || {}).flat().filter((s, i, all) => s.partner && all.findIndex((x) => x.id === s.id) === i)
   const others = (data.presence || []).filter((p) => !p.me)
   const outEnds = data.myOut ? new Date(data.myOut.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() : null
   const meta = MOODS.find((m) => m.key === mood)
@@ -454,6 +477,33 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
         placeholder={t("search spots, like rooftop or sushi")}
         className="mt-2 w-full rounded-full border border-line bg-white/80 px-4 py-2.5 text-[14px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50 focus:border-ink"
       />
+
+      {/* perks: partner spots give members something for showing up and posting */}
+      {!needle && perks.length > 0 && (
+        <section className="mt-4">
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-soft"><Gift size={13} weight="fill" /> {t("perks for irlpass members")}</p>
+          <div className="-mx-4 mt-2 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {perks.map((s) => (
+              <motion.button
+                key={s.id}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setOpenId(s.id)}
+                className="relative h-[168px] w-[148px] shrink-0 overflow-hidden rounded-[1.4rem] bg-cream-deep text-left"
+              >
+                {s.photos[0] && <img src={s.photos[0]} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <span className="absolute left-2.5 top-2.5 flex max-w-[calc(100%-1.25rem)] items-center gap-1 truncate rounded-full bg-lime px-2 py-0.5 text-[11px] font-bold text-ink">
+                  <Gift size={11} weight="fill" className="shrink-0" /> <span className="truncate">{s.partner.perk}</span>
+                </span>
+                <span className="absolute inset-x-0 bottom-0 p-3 text-cream">
+                  <span className="block truncate text-[11px] font-semibold text-cream/75">{s.area}</span>
+                  <span className="display block text-[18px] font-bold leading-[1] tracking-tight">{s.name}</span>
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* who's out right now: neighborhood only, gone after a few hours */}
       {inMde && (!night || night === data.tonight) && (
@@ -552,6 +602,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
               <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                 {s.openNow === false && <span className="rounded-full bg-ink/85 px-2.5 py-1 text-[11.5px] font-bold text-cream">{t("closed now")}</span>}
+                {s.partner && <span className="flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-[11.5px] font-bold text-ink"><Gift size={12} weight="fill" /> {s.partner.perk}</span>}
                 {s.imGoing && <span className="rounded-full bg-lime px-2.5 py-1 text-[11.5px] font-bold text-ink">✓ {t("you're going")}</span>}
                 {s.going > 0 && (
                   <span className="rounded-full bg-cream/95 px-2.5 py-1 text-[11.5px] font-bold">

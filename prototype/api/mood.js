@@ -79,6 +79,9 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const city = String(req.query?.city || "medellin")
+      // partner venues (they pay, members get a perk for showing up + posting)
+      const { data: partners } = await db.from("venues").select("slug, spot_id, perk, story_perk").eq("city", city).eq("status", "active").not("spot_id", "is", null)
+      const perkBySpot = Object.fromEntries((partners || []).map((v) => [v.spot_id, { slug: v.slug, perk: v.perk, story: v.story_perk || null }]))
       const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }, { data: roomMsgs }, { count: myTripsHere }] = await Promise.all([
         db.from("spots").select("*").eq("city", city).eq("active", true).order("sort").order("id"),
         db.from("spot_going").select("spot_id, member_no").eq("night", night),
@@ -167,6 +170,7 @@ export default async function handler(req, res) {
             return { openNow: o.open, openUntil: o.open ? fmtMin(o.until) : null }
           })() : {}),
           added: !!s.added_by,
+          partner: perkBySpot[s.id] || null,
           mood: s.mood,
           room: `spot-${s.id}-${night.replace(/-/g, "")}`,
           chat: chatCount[s.id] || 0,
@@ -181,6 +185,7 @@ export default async function handler(req, res) {
           .sort((a, b) =>
             // tonight: closed spots sink to the bottom, whatever else is going on
             (a.x.openNow === false) - (b.x.openNow === false) ||
+            !!b.x.partner - !!a.x.partner ||
             (b.x.going > 0 || b.x.chat > 0 || b.x.imGoing) - (a.x.going > 0 || a.x.chat > 0 || a.x.imGoing) ||
             b.x.going * 3 + b.x.chat - (a.x.going * 3 + a.x.chat) ||
             a.i - b.i)
