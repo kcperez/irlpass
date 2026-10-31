@@ -21,6 +21,17 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
 
   const { t, action } = req.body || {}
+  // attribution for the owner's dashboard: someone opened the spot, or tapped
+  // its booking link. signed in or not, once per person per day
+  if (action === "view" || action === "book") {
+    const who = await getUser(t).catch(() => null)
+    if (who?.memberNo) {
+      const { count } = await db.from("venue_events").select("id", { count: "exact", head: true }).eq("venue_slug", slug).eq("kind", action).eq("member_no", who.memberNo).eq("day", today())
+      if (count) return res.status(200).json({ ok: true })
+    }
+    await db.from("venue_events").insert({ venue_slug: slug, kind: action, member_no: who?.memberNo || null, day: today() })
+    return res.status(200).json({ ok: true })
+  }
   const me = await getUser(t)
   if (!me || me.banned) return res.status(401).json({ error: "sign in to irlpass first" })
 

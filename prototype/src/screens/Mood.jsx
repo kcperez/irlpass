@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { cachedJson } from "../lib/cached"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, Clock, Gift, InstagramLogo, MapPin, QrCode, Star, X } from "@phosphor-icons/react"
+import { ArrowUpRight, CalendarCheck, ChatsCircle, CheckCircle, CircleNotch, Clock, Gift, InstagramLogo, MapPin, Megaphone, QrCode, Star, X } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
@@ -115,10 +115,32 @@ function WhoGoing({ s }) {
 }
 
 // the full page for one spot
+// a pro venue counts views and booking taps on its dashboard
+const logVenue = (slug, action, token) =>
+  fetch("/api/venue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, action, t: token }), keepalive: true }).catch(() => {})
+
+// what a pro venue posted for tonight or this week, in its own words
+function VenuePosts({ partner }) {
+  if (!partner.posts?.length) return null
+  return (
+    <div className="mt-5 space-y-2">
+      {partner.posts.map((p) => (
+        <div key={p.id} className="rounded-[1.4rem] border border-line bg-white/80 px-4 py-3">
+          <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-ink-soft"><Megaphone size={13} weight="fill" /> {p.day ? t("on tonight") : t("on this week")}</p>
+          <p className="mt-0.5 text-[15.5px] font-bold leading-snug">{p.title}</p>
+          {p.body && <p className="mt-0.5 text-[13px] leading-snug text-ink-soft">{p.body}</p>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // a partner venue's perk: claimed at the door with the irlpass qr, plus a
 // bonus for posting a story (the venue pays us; members just show up)
-function PerkCard({ partner }) {
+function PerkCard({ partner, token }) {
   return (
+    <>
+    <VenuePosts partner={partner} />
     <div className="mt-5 overflow-hidden rounded-[1.5rem] bg-lime">
       <div className="px-4 pb-3.5 pt-4">
         <p className="flex items-center gap-1.5 text-[12px] font-bold text-ink/70"><Gift size={14} weight="fill" /> {t("irlpass perk")}</p>
@@ -131,12 +153,24 @@ function PerkCard({ partner }) {
           {partner.story ? `${t("post a story tagging them and get")} ${partner.story}` : t("post a story tagging them so more of us end up here")}
         </p>
       </div>
+      {partner.booking && (
+        <a
+          href={partner.booking} target="_blank" rel="noreferrer"
+          onClick={() => logVenue(partner.slug, "book", token)}
+          className="flex items-center justify-center gap-1.5 bg-ink py-3 text-[14px] font-bold text-cream"
+        >
+          <CalendarCheck size={16} weight="fill" /> {t("book a table")} <ArrowUpRight size={13} weight="bold" />
+        </a>
+      )}
     </div>
+    </>
   )
 }
 
-function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
+function SpotSheet({ s, token, busy, onToggle, onOpenRoom, onClose }) {
   const [shot, setShot] = useState(0)
+  const slug = s.partner?.slug
+  useEffect(() => { if (slug) logVenue(slug, "view", token) }, [slug, token])
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-40 bg-ink/50" />
@@ -182,7 +216,7 @@ function SpotSheet({ s, busy, onToggle, onOpenRoom, onClose }) {
             <p className="mt-3 text-[13.5px] italic leading-snug text-ink-soft">“{s.quote}” <span className="not-italic">· {t("a google review")}</span></p>
           )}
 
-          {s.partner && <PerkCard partner={s.partner} />}
+          {s.partner && <PerkCard partner={s.partner} token={token} />}
 
           <div className="mt-5 rounded-[1.5rem] border border-line bg-white/80 p-4">
             <WhoGoing s={s} />
@@ -493,7 +527,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
                 {s.photos[0] && <img src={s.photos[0]} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <span className="absolute left-2.5 top-2.5 flex max-w-[calc(100%-1.25rem)] items-center gap-1 truncate rounded-full bg-lime px-2 py-0.5 text-[11px] font-bold text-ink">
-                  <Gift size={11} weight="fill" className="shrink-0" /> <span className="truncate">{s.partner.perk}</span>
+                  {s.partner.posts?.[0] ? <Megaphone size={11} weight="fill" className="shrink-0" /> : <Gift size={11} weight="fill" className="shrink-0" />} <span className="truncate">{s.partner.posts?.[0]?.title || s.partner.perk}</span>
                 </span>
                 <span className="absolute inset-x-0 bottom-0 p-3 text-cream">
                   <span className="block truncate text-[11px] font-semibold text-cream/75">{s.area}</span>
@@ -684,6 +718,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
         {open && (
           <SpotSheet
             s={open}
+            token={token}
             busy={busy === open.id}
             onToggle={toggleGoing}
             onOpenRoom={onOpenRoom}

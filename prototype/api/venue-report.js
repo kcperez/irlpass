@@ -62,7 +62,7 @@ ${rows.filter((r) => r.s.length).map((r) => `<h2>${esc(r.v.name)} · stories</h2
 <div class="row"><div><label>city</label><input id="city" value="medellin"></div><div><label>instagram</label><input id="instagram"></div></div>
 <div class="row"><div><label>perk at the door</label><input id="perk" placeholder="a free drink"></div><div><label>extra perk for a story</label><input id="story_perk" placeholder="a second drink"></div></div>
 <div class="row"><div><label>guide spot id (shows the perk in the app)</label><input id="spot_id" inputmode="numeric"></div></div>
-<div class="row"><div><label>plan</label><select id="plan"><option>listing</option><option>founding</option><option>partner</option></select></div><div><label>status</label><select id="status"><option>active</option><option>pending</option><option>lead</option><option>paused</option></select></div></div>
+<div class="row"><div><label>plan</label><select id="plan"><option>pro</option><option>listing</option></select></div><div><label>status</label><select id="status"><option>active</option><option>pending</option><option>lead</option><option>paused</option></select></div></div>
 <button id="save">save venue</button><p class="soft" id="msg"></p>
 </div>
 <p class="soft">other months: <a href="?key=${k}&month=${esc(prevMonth(month))}">${esc(prevMonth(month))}</a></p>`

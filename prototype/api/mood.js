@@ -80,8 +80,17 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const city = String(req.query?.city || "medellin")
       // partner venues (they pay, members get a perk for showing up + posting)
-      const { data: partners } = await db.from("venues").select("slug, spot_id, perk, story_perk").eq("city", city).eq("status", "active").not("spot_id", "is", null)
-      const perkBySpot = Object.fromEntries((partners || []).map((v) => [v.spot_id, { slug: v.slug, perk: v.perk, story: v.story_perk || null }]))
+      // pro venues also post what's on and link their own booking page
+      const { data: partners } = await db.from("venues").select("slug, spot_id, perk, story_perk, booking_url, founding").eq("city", city).eq("status", "active").not("spot_id", "is", null)
+      const slugs = (partners || []).map((v) => v.slug)
+      const { data: vposts } = slugs.length
+        ? await db.from("venue_posts").select("id, venue_slug, title, body, day, ends_on").in("venue_slug", slugs).gte("ends_on", night).order("created_at", { ascending: false })
+        : { data: [] }
+      const postsBy = {}
+      for (const p of vposts || []) if (!p.day || p.day === night) (postsBy[p.venue_slug] = postsBy[p.venue_slug] || []).push({ id: p.id, title: p.title, body: p.body, day: p.day })
+      const perkBySpot = Object.fromEntries((partners || []).map((v) => [v.spot_id, {
+        slug: v.slug, perk: v.perk, story: v.story_perk || null, booking: v.booking_url || null, founding: !!v.founding, posts: postsBy[v.slug] || [],
+      }]))
       const [{ data: spots }, { data: going }, { data: myMood }, { data: out }, access, { data: threads }, { data: roomMsgs }, { count: myTripsHere }] = await Promise.all([
         db.from("spots").select("*").eq("city", city).eq("active", true).order("sort").order("id"),
         db.from("spot_going").select("spot_id, member_no").eq("night", night),
