@@ -263,7 +263,7 @@ async function notifyOverlap(me, trip) {
     .select("member_no", { count: "exact", head: true })
     .eq("city", trip.city)
     .gt("expires_at", new Date().toISOString())
-  const board = trip.city === "medellin" ? "mood" : "people"
+  const board = "mood"
   for (const m of members || []) {
     if (!m.email || !m.notify) continue
     await sendEmail({

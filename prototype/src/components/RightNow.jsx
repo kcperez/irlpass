@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowsClockwise, ArrowUpRight, CircleNotch, X } from "@phosphor-icons/react"
+import { ArrowsClockwise, ArrowUpRight, CircleNotch, Shuffle, X } from "@phosphor-icons/react"
 import { DaySheet } from "./DayPlan"
 import { t } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
@@ -228,14 +228,17 @@ export default function RightNow({ token, me, onPaywall, trips = [], compact = f
         <div className="flex items-center gap-3 px-4 pb-3 pt-4">
           <div className="min-w-0 flex-1">
             <p className="truncate text-[11.5px] font-semibold text-ink-soft">{lastCity || t("near you")} · {clock}</p>
-            <h3 className="display truncate text-[19px] font-bold leading-tight">{t("what should i do right now?")}</h3>
+            {/* wraps instead of clipping "now" on small iphones */}
+            <h3 className="display text-[19px] font-bold leading-[1.1] [text-wrap:balance]">{t("what should i do right now?")}</h3>
           </div>
           <motion.button
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.9, rotate: -12 }}
             onClick={() => ask("surprise")}
-            className="shrink-0 rounded-full bg-ink px-4 py-2.5 text-[13.5px] font-bold text-cream"
+            aria-label={t("shuffle")}
+            title={t("shuffle")}
+            className="icon-btn h-11 w-11 shrink-0 bg-ink text-cream shadow-[0_6px_16px_-8px_rgba(28,27,23,0.6)]"
           >
-            {t("shuffle")}
+            <Shuffle size={20} weight="bold" />
           </motion.button>
         </div>
         <div className="flex gap-2 overflow-x-auto px-4 pb-4 [scrollbar-width:none]">

@@ -890,18 +890,21 @@ function WithMentions({ text }) {
 
 // type @ and the guide's spots pop up, like tagging a person. the tag becomes
 // @[name](s12) in the message, which renders as a tappable spot chip.
-let spotCache = null
-function SpotSuggest({ token, text, setText }) {
-  const [spots, setSpots] = useState(spotCache || [])
+// a city's own room is named after the city ("miami"); spot rooms, group
+// chats and plan threads have their own prefixes
+const isCityChannel = (c) => /^[a-z][a-z0-9-]+$/.test(String(c || "")) && !/^(spot|g|run)-/.test(c)
+const spotCaches = {}
+function SpotSuggest({ token, text, setText, city = "medellin" }) {
+  const [spots, setSpots] = useState(spotCaches[city] || [])
   const q = (text.match(/@([^\s@\[]*)$/) || [])[1]
   useEffect(() => {
-    if (q === undefined || spotCache) return
-    fetch(`/api/mood?t=${token}&city=medellin`)
+    if (q === undefined || spotCaches[city]) return
+    fetch(`/api/mood?t=${token}&city=${city}`)
       .then((r) => r.json())
       .then((d) => {
         const all = Object.values(d.board || {}).flat()
-        spotCache = [...new Map(all.map((x) => [x.id, { id: x.id, name: x.name, area: x.area, going: x.going }])).values()]
-        setSpots(spotCache)
+        spotCaches[city] = [...new Map(all.map((x) => [x.id, { id: x.id, name: x.name, area: x.area, going: x.going }])).values()]
+        setSpots(spotCaches[city])
       })
       .catch(() => {})
   }, [q, token])
@@ -1101,8 +1104,8 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
       </div>
 
       {activity && <PinnedInfo token={token} me={me} initial={activity} />}
-      {channel === "medellin" && <TonightPin token={token} />}
-      {channel === "medellin" && (
+      {isCityChannel(channel) && <TonightPin token={token} city={channel} />}
+      {isCityChannel(channel) && (
         <div className="flex items-start gap-2.5 border-b border-line/70 bg-cream-deep/50 px-4 py-2.5">
           <PushPin size={14} weight="fill" className="mt-0.5 shrink-0 text-ink-soft" />
           <div>
@@ -1307,7 +1310,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
           )}
         </AnimatePresence>
         {sendErr && <p className="mb-2 text-center text-[12px] font-semibold text-[#b3461f]">{sendErr}</p>}
-        {(channel === "medellin" || channel.startsWith("spot-")) && <SpotSuggest token={token} text={text} setText={setText} />}
+        {(isCityChannel(channel) || channel.startsWith("spot-")) && <SpotSuggest token={token} text={text} setText={setText} city={isCityChannel(channel) ? channel : me.city} />}
         {mentionPool.length > 0 && (
           <div className="mb-2 flex gap-1.5 overflow-x-auto">
             {mentionPool.map((f) => (
@@ -1746,7 +1749,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             </motion.div>
           )}
         </AnimatePresence>
-        {me.city === "medellin" && <div className="px-3 pt-2"><SpotSuggest token={token} text={text} setText={setText} /></div>}
+        <div className="px-3 pt-2"><SpotSuggest token={token} text={text} setText={setText} city={me.city} /></div>
         <div className="flex items-end gap-2 border-t border-line px-3 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2.5">
           <Composer id="dm-composer" value={text} onChange={setText} onSend={() => send()} placeholder={t("message…")} />
           <button onClick={() => send()} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
@@ -2157,15 +2160,8 @@ export default function Club({ token }) {
   // a group chat forms, and she gets asked along.
   const [planWith, setPlanWith] = useState(null) // { memberNo, first, photo, nights }
   const makePlan = (p, nights = null, city = null) => {
-    // plan boards only exist where we have a guide (medellín for now). anywhere
-    // else, a plan starts as a conversation instead of a medellín bar list.
-    if (city && city !== "medellin") {
-      setPersonNo(null)
-      setDmWith({ memberNo: p.memberNo, name: p.name || p.first, photo: p.photo || null })
-      setDmReturn(tab)
-      setTab("dms")
-      return
-    }
+    // every city has a guide now (josh v5): the plan opens that city's board
+    if (city) setViewCity(city)
     setPersonNo(null)
     setDmWith(null)
     setCityRoom(null)
@@ -2292,8 +2288,7 @@ export default function Club({ token }) {
       prefetch(`/api/trips?t=${token}`)
       prefetch(`/api/members?t=${token}&city=${meCity}`)
       prefetch(`/api/dm?t=${token}`)
-      prefetch(`/api/mood?t=${token}&city=medellin`)
-      prefetch(`/api/rides?t=${token}&city=medellin`)
+      prefetch(`/api/mood?t=${token}&city=${meCity}`)
     }, 600)
     return () => clearTimeout(id)
   }, [state, token, meCity])
@@ -2486,7 +2481,7 @@ export default function Club({ token }) {
             onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
         )}
-        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => setPlanWith(null)} onPaywall={setPaywall} />}
+        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={viewCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => setPlanWith(null)} onPaywall={setPaywall} />}
         {!cityRoom && tab === "mood" && spotRoom && (
           <Thread
             token={token}

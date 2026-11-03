@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { cachedJson } from "../lib/cached"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, CalendarCheck, ChatsCircle, CheckCircle, CircleNotch, Clock, Gift, InstagramLogo, MapPin, Megaphone, QrCode, Star, X } from "@phosphor-icons/react"
+import { ArrowUpRight, CalendarCheck, ChatsCircle, CheckCircle, CircleNotch, Clock, Gift, HandWaving, InstagramLogo, MapPin, Megaphone, Plus, QrCode, Star, X } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
 import { joinVibes } from "../lib/vibes"
 import { countryOf } from "../lib/countries"
@@ -10,15 +10,35 @@ import InvitePrompt from "../components/InvitePrompt"
 import { askPush } from "../lib/push"
 import { MoreList } from "../lib/more"
 import { cityChip } from "../lib/cities"
+import AddSpot from "../components/AddSpot"
 
-// the guide: tonight in medellín, the way a good city guide reads. pick a
-// mood, browse hand-picked spots with real photos and a line on why you go,
-// say you're going, and see who from irlpass will be there.
+// the guide: your city right now, the way a good city guide reads. pick a
+// mood, browse spots with real photos and a line on why you go, say you're
+// going, and see who from irlpass will be there. every city gets the same
+// guide (josh v5); a city with no spots yet asks its members to add them.
 const MOODS = [
-  { key: "pregame", emoji: "🍸", label: "pregame", sub: "rooftops, bars, dinner", title: "before the night" },
-  { key: "afters", emoji: "🪩", label: "afters", sub: "clubs, late", title: "after midnight" },
-  { key: "chill", emoji: "☕", label: "chill", sub: "coffee, gym, a walk", title: "slow day" },
+  { key: "lockin", emoji: "🧘", label: "lock in", title: "lock in" },
+  { key: "explore", emoji: "🗺️", label: "explore", title: "go see something" },
+  { key: "pregame", emoji: "🍸", label: "pregame", title: "before the night" },
+  { key: "afters", emoji: "🪩", label: "afters", title: "after midnight" },
+  { key: "chill", emoji: "☕", label: "chill", title: "slow day" },
 ]
+// the right chip for the moment, on the city's own clock: weekday daytime is
+// lock in, after midnight is afters, evenings are pregame
+const moodFor = (l) => {
+  if (!l) return "pregame"
+  if (l.hour < 5) return "afters"
+  if (l.day >= 1 && l.day <= 5 && l.hour < 17) return "lockin"
+  if (l.hour >= 17) return "pregame"
+  return "chill"
+}
+const PRICE_LEVELS = ["$", "$$", "$$$", "$$$$"]
+// "$$ · ~$25–40 per person", next to the name
+export const priceLine = (s) => {
+  const lvl = s.priceLevel ? "$".repeat(s.priceLevel) : (/^[$]{1,4}$/.test(s.price || "") ? s.price : "")
+  const range = s.priceRange || (/\d/.test(s.price || "") ? s.price : "")
+  return [lvl, range ? `~${range.replace(/^~/, "")} ${t("per person")}` : ""].filter(Boolean).join(" · ")
+}
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 // google's "5 PM to 2 AM" for today, in the reader's words
@@ -57,7 +77,8 @@ function Meta({ s, light = false }) {
       {s.reviews ? <span className="opacity-70">({fmtCount(s.reviews)})</span> : null}
     </span>
   )
-  if (s.price) bits.push(<span key="p">{s.price}</span>)
+  const pl = priceLine(s)
+  if (pl) bits.push(<span key="p" className={light ? "rounded-full bg-cream/20 px-1.5" : "font-bold text-ink"}>{pl}</span>)
   const h = hoursToday(s.hours)
   if (h) bits.push(<span key="h">{h}</span>)
   if (!bits.length) return null
@@ -208,6 +229,7 @@ function SpotSheet({ s, token, busy, onToggle, onOpenRoom, onClose }) {
           </p>
           <h2 className="display mt-1 text-[32px] font-bold leading-[0.95] tracking-tight">{s.name}</h2>
           <div className="mt-2"><Meta s={s} /></div>
+          {s.groupSpend > 0 && <p className="mt-1.5 text-[12.5px] font-bold text-ink">{t("irlpass groups spent")} ~${Math.round(s.groupSpend)} {t("per person here")}</p>}
 
           {s.blurb && (
             <p className="mt-4 border-l-4 border-lime-deep pl-3 text-[16px] leading-snug">{s.blurb}</p>
@@ -259,7 +281,11 @@ function SpotSheet({ s, token, busy, onToggle, onOpenRoom, onClose }) {
   )
 }
 
-export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBuyRide, planWith, onPlanDone, onPaywall }) {
+export default function Mood({ token, me, city: cityProp, onOpenRoom, focusSpot, onFocused, onBuyRide, planWith, onPlanDone, onPaywall }) {
+  const city = cityProp || me?.city || "medellin"
+  const [addOpen, setAddOpen] = useState(false)
+  const [priceOn, setPriceOn] = useState(undefined) // undefined = their budget from onboarding
+  const [downBusy, setDownBusy] = useState(false)
   const [data, setData] = useState(null)
   const [mood, setMood] = useState(null)
   const [q, setQ] = useState("") // search the spots, not free-text moods
@@ -297,7 +323,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
     const text = q.trim()
     if (text.length < 2) { setPlaces([]); return }
     const id = setTimeout(() => {
-      fetch(`/api/mood?t=${token}&search=${encodeURIComponent(text)}`)
+      fetch(`/api/mood?t=${token}&city=${city}&search=${encodeURIComponent(text)}`)
         .then((r) => r.json())
         .then((d) => setPlaces(d.places || []))
         .catch(() => setPlaces([]))
@@ -313,7 +339,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   const searchGoogle = async () => {
     setGBusy(true)
     setGErr("")
-    const d = await fetch(`/api/mood?t=${token}&google=${encodeURIComponent(q.trim())}`).then((r) => r.json()).catch(() => null)
+    const d = await fetch(`/api/mood?t=${token}&city=${city}&google=${encodeURIComponent(q.trim())}`).then((r) => r.json()).catch(() => null)
     setGBusy(false)
     if (!d?.places) return setGErr(d?.error || t("couldn't reach google maps. try again"))
     setGPlaces(d.places)
@@ -330,9 +356,11 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   }
 
   const load = useCallback(() => {
-    cachedJson(`/api/mood?t=${token}&city=medellin${night ? `&night=${night}` : ""}`, (d) => { setData(d); setMood((m) => m || d.mood || "pregame") })
+    cachedJson(`/api/mood?t=${token}&city=${city}${night ? `&night=${night}` : ""}`, (d) => { setData(d); setMood((m) => m || (d.mood === "lockin" || d.mood === "explore" ? null : d.mood) || moodFor(d.local)) })
       .catch(() => setData((d) => d || { board: {}, presence: [] }))
-  }, [token, night])
+  }, [token, night, city])
+  // a different city is a different board
+  useEffect(() => { setData(null); setNight(null); setQ("") }, [city])
   useEffect(() => { load() }, [load])
   // the board is live on a night out: refresh every half minute
   useEffect(() => { const id = setInterval(load, 30000); return () => clearInterval(id) }, [load])
@@ -341,7 +369,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
     fetch("/api/mood", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, ...body }),
+      body: JSON.stringify({ t: token, city, ...body }),
     }).then((r) => r.json()).catch(() => null)
 
   const pickMood = async (key) => {
@@ -358,7 +386,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
         const r = await fetch("/api/mood", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ t: token, action: "invite", spotId: spot.id, night: data?.night, to: planWith.memberNo }),
+          body: JSON.stringify({ t: token, city, action: "invite", spotId: spot.id, night: data?.night, to: planWith.memberNo }),
         }).then(async (x) => ({ status: x.status })).catch(() => ({ status: 0 }))
         if (r.status === 200) setInvited(planWith.first)
         onPlanDone?.()
@@ -404,9 +432,13 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   const matches = (s) =>
     [s.name, s.area, s.kind, s.category, s.blurb].filter(Boolean).join(" ").toLowerCase().includes(needle)
   // typing searches every board; otherwise it's tonight's mood
-  const spots = needle
-    ? Object.values(data.board || {}).flat().filter(matches)
-    : data.board?.[mood] || []
+  const budgetLvl = priceOn === undefined ? (data.budget || null) : priceOn
+  const affordable = (s) => !budgetLvl || !s.priceLevel || s.priceLevel <= budgetLvl.length
+  const allSpots = Object.values(data.board || {}).flat().filter((s, i, all) => all.findIndex((x) => x.id === s.id) === i)
+  const spots = (needle
+    ? allSpots.filter(matches)
+    : data.board?.[mood] || []).filter(affordable)
+  const cityEmpty = allSpots.length === 0
   // something chill reads as two sections: coffee & walks, then recovery
   const sections = !needle && mood === "chill"
     ? [
@@ -423,24 +455,49 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
   const others = (data.presence || []).filter((p) => !p.me)
   const outEnds = data.myOut ? new Date(data.myOut.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() : null
   const meta = MOODS.find((m) => m.key === mood)
-  // medellín is "yours" when you're there, have dates there, or live there
-  const myCity = me?.city || "medellin"
-  const inMde = !me || myCity === "medellin" || (me.cities || []).includes("medellin")
+  const cityName = String(data.cityName || cityChip(city).name || "").toLowerCase()
+  const downOthers = (data.down || []).filter((p) => !p.me)
+  const toggleDown = async () => {
+    setDownBusy(true)
+    await post({ action: "down", on: !data.myDown, mood: mood || "chill" })
+    if (!data.myDown) setTimeout(() => askPush(t("people who are down to hang")), 500)
+    await load()
+    setDownBusy(false)
+  }
   const dateLine = new Date().toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }).toLowerCase()
 
   return (
     <div className="relative px-4 pb-28 pt-4">
-      <p className="text-[12px] text-ink-soft font-semibold">{t("the guide")} · medellín{inMde ? ` · ${dateLine}` : ""}</p>
-      <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{inMde ? t(meta?.title || "tonight") : t("medellín, city one")}</h2>
-      {/* content follows where you are: somewhere else, the guide says plainly
-          that it's medellín's, instead of acting like it's your city */}
-      {!inMde && (
-        <div className="mt-3 rounded-[1.4rem] border border-line bg-white/70 px-4 py-3">
-          <p className="text-[14px] font-bold leading-snug">
-            {cityChip(myCity).emoji} {t("no guide for")} {cityChip(myCity).name.toLowerCase()} {t("yet")}
-          </p>
-          <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("this is medellín's, where irlpass started. yours opens as more people post dates there.")}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[12px] text-ink-soft font-semibold">{t("the guide")} · {cityChip(city).emoji} {cityName} · {dateLine}</p>
+          <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{t(meta?.title || "tonight")}</h2>
         </div>
+        {/* know a spot? add it (crowdsourced, a mod approves it) */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setAddOpen(true)}
+          aria-label={t("add a spot")}
+          className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream shadow-[0_6px_16px_-8px_rgba(28,27,23,0.6)]"
+        >
+          <Plus size={18} weight="bold" />
+        </motion.button>
+      </div>
+
+      {/* a city with no spots yet: same layout, and a way to be the first */}
+      {cityEmpty && !needle && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setAddOpen(true)}
+          className="relative mt-4 block w-full overflow-hidden rounded-[1.75rem] bg-ink p-5 text-left text-cream"
+        >
+          <span className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-lime/25 blur-2xl" />
+          <span className="text-[12px] font-bold text-lime">{cityChip(city).emoji} {cityName} {t("is just getting started")}</span>
+          <span className="display mt-1.5 block text-[28px] font-bold leading-[1] tracking-tight">{t("know a spot?")}<br />{t("add it.")}</span>
+          <span className="mt-2 block max-w-[290px] text-[13.5px] leading-snug text-cream/75">{t("your coffee place, the gym, the bar you'd take a friend to. be the first to make a plan here.")}</span>
+          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-lime px-4 py-2.5 text-[13.5px] font-bold text-ink"><Plus size={15} weight="bold" /> {t("add a spot")}</span>
+        </motion.button>
       )}
       {/* rides are off for now (not scalable); the checkout stays in the code */}
 
@@ -463,7 +520,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       )}
 
       {/* plan tonight or any night ahead (the overlap with them, when planning together) */}
-      {inMde && data.tonight && (
+      {data.tonight && (
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
           {(planWith?.nights?.length
             ? planWith.nights
@@ -494,6 +551,24 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           </button>
         ))}
       </div>
+
+      {/* price: defaults to their usual night out from onboarding */}
+      {!cityEmpty && (
+        <div className="mt-2 flex items-center gap-1.5">
+          {PRICE_LEVELS.map((p) => {
+            const on = budgetLvl === p
+            return (
+              <button
+                key={p}
+                onClick={() => setPriceOn(on ? null : p)}
+                className={`rounded-full border px-3 py-1 text-[12px] font-bold tabular-nums ${on ? "border-ink bg-ink text-cream" : "border-line bg-white/60 text-ink-soft"}`}
+              >
+                {p === "$$$$" ? p : `${t("up to")} ${p}`}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* search the spots on this board: "rooftop", "sushi", "yoga" */}
       <input
@@ -540,8 +615,40 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       )}
 
       {/* who's out right now: neighborhood only, gone after a few hours */}
-      {inMde && (!night || night === data.tonight) && (
+      {(!night || night === data.tonight) && (
       <div className="mt-3 rounded-[1.5rem] border border-line bg-white/70 p-3">
+        {/* down to hang: 3 hours, everyone here who's also down gets told */}
+        <div className="mb-3 flex items-center gap-3 border-b border-line/70 pb-3">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${data.myDown ? "bg-lime" : "bg-cream-deep"}`}><HandWaving size={18} weight="fill" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-bold leading-tight">{data.myDown ? t("you're down to hang") : t("down to hang now?")}</p>
+            <p className="truncate text-[12px] text-ink-soft">
+              {data.myDown
+                ? `${t("until")} ${new Date(data.myDown).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()} · ${downOthers.length ? `${downOthers.length} ${t("others too")}` : t("we'll tell whoever's down next")}`
+                : downOthers.length ? `${downOthers.slice(0, 2).map((p) => p.first).join(", ")}${downOthers.length > 2 ? ` +${downOthers.length - 2}` : ""} ${t("down right now")}` : t("for 3 hours. people here who are down get a ping")}
+            </p>
+          </div>
+          <button
+            onClick={toggleDown}
+            disabled={downBusy}
+            role="switch"
+            aria-checked={!!data.myDown}
+            aria-label={t("down to hang")}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${data.myDown ? "bg-ink" : "bg-line"}`}
+          >
+            <motion.span layout transition={{ type: "spring", stiffness: 600, damping: 34 }} className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow ${data.myDown ? "right-0.5" : "left-0.5"}`} />
+          </button>
+        </div>
+        {downOthers.length > 0 && (
+          <div className="-mt-1 mb-3 flex gap-3 overflow-x-auto border-b border-line/70 pb-3 [scrollbar-width:none]">
+            {downOthers.map((p) => (
+              <div key={p.memberNo} className="flex w-14 shrink-0 flex-col items-center gap-1 text-center">
+                <Face p={p} size="h-11 w-11" />
+                <span className="w-full truncate text-[11px] font-bold">{p.first}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {data.myOut ? (
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13.5px] font-bold">
@@ -565,7 +672,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
               onKeyDown={(e) => e.key === "Enter" && goOut()}
               autoFocus
               maxLength={40}
-              placeholder={t("neighborhood, like provenza")}
+              placeholder={city === "medellin" ? t("neighborhood, like provenza") : t("which neighborhood?")}
               className="w-full rounded-full border border-line bg-white px-3.5 py-2 text-[14px] font-semibold outline-none focus:border-ink"
             />
             <button onClick={goOut} disabled={busy === "out"} className="shrink-0 rounded-full bg-ink px-4 text-[13px] font-bold text-cream disabled:opacity-50">{t("go")}</button>
@@ -583,7 +690,7 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
                 {label}
               </button>
             ))}
-            <span className="w-full pt-0.5 text-[11.5px] text-ink-soft">{t("visible to medellín members, and posted once in the medellín chat")}</span>
+            <span className="w-full pt-0.5 text-[11.5px] text-ink-soft">{t("visible to")} {cityName} {t("members, and posted once in the")} {cityName} {t("chat")}</span>
           </div>
         )}
         {!data.myOut && !outOpen && (
@@ -644,12 +751,14 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
                   </span>
                 )}
                 {s.openNow && s.openUntil && <span className="rounded-full bg-cream/90 px-2.5 py-1 text-[11.5px] font-semibold">{t("open til")} {s.openUntil}</span>}
+                {s.isNew && <span className="rounded-full bg-peach px-2.5 py-1 text-[11.5px] font-bold text-ink">{s.pending ? t("new · in review") : t("new")}</span>}
               </div>
               <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
                 <p className="text-[12px] text-cream/80 font-semibold">
                   {[s.category || s.kind, s.area].filter(Boolean).join(" · ")}
                 </p>
                 <h3 className="display mt-0.5 text-[27px] font-bold leading-[0.95] tracking-tight">{s.name}</h3>
+                {s.groupSpend > 0 && <p className="mt-1 text-[11.5px] font-bold text-lime">{t("irlpass groups spent")} ~${Math.round(s.groupSpend)} {t("pp")}</p>}
                 <div className="mt-1.5"><Meta s={s} light /></div>
               </div>
             </div>
@@ -665,14 +774,17 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
       />
       </div>
       ))}
-      {spots.length === 0 && !extra.length && (
-        <p className="py-6 text-center text-[13px] text-ink-soft">{needle ? t("no spots match that") : t("no spots here yet")}</p>
+      {spots.length === 0 && !extra.length && !cityEmpty && (
+        <div className="py-6 text-center">
+          <p className="text-[13px] text-ink-soft">{needle ? t("no spots match that") : budgetLvl ? t("nothing in that price range for this mood") : t("no spots for this mood yet")}</p>
+          <button onClick={() => setAddOpen(true)} className="mt-2 text-[13px] font-bold underline underline-offset-2">{t("add one")}</button>
+        </div>
       )}
 
       {/* not on the guide? any bar, club or cafe in town, straight from the map */}
       {needle && (extra.length > 0 || gPlaces?.length > 0) && (
         <section className="mt-6">
-          <p className="text-[12px] text-ink-soft font-semibold">{t("anywhere else in medellín")}</p>
+          <p className="text-[12px] text-ink-soft font-semibold">{t("anywhere else in")} {cityName}</p>
           <div className="mt-2 space-y-2">
             {[...(gPlaces || []), ...extra.filter((p) => !(gPlaces || []).some((g) => g.name.toLowerCase() === p.name.toLowerCase()))].map((p) => (
               <motion.div
@@ -708,9 +820,23 @@ export default function Mood({ token, me, onOpenRoom, focusSpot, onFocused, onBu
           {gBusy ? <><CircleNotch size={15} className="animate-spin" /> {t("searching google maps…")}</> : <>🔎 {t("not here? search google maps")}</>}
         </button>
       )}
-      {gPlaces?.length === 0 && <p className="mt-3 text-center text-[12.5px] text-ink-soft">{t("google maps has nothing by that name in medellín")}</p>}
+      {gPlaces?.length === 0 && <p className="mt-3 text-center text-[12.5px] text-ink-soft">{t("google maps has nothing by that name in")} {cityName}</p>}
       {gErr && <p className="mt-3 text-center text-[12.5px] font-semibold text-[#b3461f]">{gErr}</p>}
 
+      <AnimatePresence>
+        {addOpen && (
+          <AddSpot
+            token={token}
+            city={city}
+            cityName={data.cityName}
+            center={data.center}
+            mood={mood}
+            onClose={() => setAddOpen(false)}
+            onAdded={load}
+            onOpenSpot={(id) => { setAddOpen(false); setOpenId(id) }}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {invite && <InvitePrompt me={me} spot={invite.spot} when={invite.when} onClose={() => { setInvite(null); setTimeout(() => askPush(t("people join your plan")), 600) }} />}
       </AnimatePresence>

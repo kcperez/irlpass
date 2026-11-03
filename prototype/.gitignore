@@ -26,3 +26,4 @@ dist-ssr
 .env*
 .env*.local
 public/press/
+scripts/_q.mjs

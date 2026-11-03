@@ -1,6 +1,27 @@
 import { getUser } from "./_lib.js"
 import { cityLabel, isValidCity } from "./_cities.js"
-import { ensureBrief } from "./_brief.js"
+import { ensureBrief, isStale } from "./_brief.js"
+import { waitUntil } from "@vercel/functions"
+import { db } from "./_db.js"
+import { cityInfo } from "./_place.js"
+
+// the starter kit card's thumbnail: the city's own photo (wikipedia's lead
+// image), looked up once and kept
+export async function cityPhoto(city) {
+  const key = `cityphoto:${city}`
+  const { data: row } = await db.from("app_settings").select("value").eq("key", key).maybeSingle()
+  if (row) return row.value || null
+  const info = await cityInfo(city)
+  let url = null
+  for (const title of [info.name, `${info.name}, ${info.country}`]) {
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`, { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }).catch(() => null)
+    const d = r?.ok ? await r.json().catch(() => null) : null
+    const src = d?.type !== "disambiguation" ? d?.thumbnail?.source || d?.originalimage?.source : null
+    if (src && !/flag|coat_of_arms|map|locator|seal|logo/i.test(src)) { url = src.replace(/\/\d+px-/, "/720px-").replace(/\?.*$/, ""); break }
+  }
+  await db.from("app_settings").upsert({ key, value: url || "", updated_at: new Date().toISOString() }, { onConflict: "key" })
+  return url
+}
 
 // GET ?t=&city=slug -> { city, name, brief: { headline, sections: [{ key, title, items: [{ name?, text }] }] } }
 export const config = { maxDuration: 120 }
@@ -11,10 +32,14 @@ export default async function handler(req, res) {
   const city = String(req.query?.city || "")
   if (!isValidCity(city)) return res.status(400).json({ error: "which city?" })
   try {
+    if (req.query?.photo) return res.status(200).json({ photo: await cityPhoto(city).catch(() => null) })
     const brief = await ensureBrief(city)
     if (!brief) return res.status(503).json({ error: "starter kits aren't on yet" })
-    res.setHeader("cache-control", "private, max-age=3600")
-    return res.status(200).json({ city, name: cityLabel(city), brief })
+    // old format: show it cleaned now, remake it in the new one behind the scenes
+    if (isStale(brief)) waitUntil(ensureBrief(city, { force: true }).catch((e) => console.error("kit remake:", e)))
+    res.setHeader("cache-control", isStale(brief) ? "no-store" : "private, max-age=3600")
+    const photo = await cityPhoto(city).catch(() => null)
+    return res.status(200).json({ city, name: cityLabel(city), brief, photo })
   } catch (e) {
     console.error("brief error:", e)
     return res.status(502).json({ error: "couldn't put that together right now" })

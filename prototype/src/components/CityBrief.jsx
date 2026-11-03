@@ -6,13 +6,28 @@ import { cityChip } from "../lib/cities"
 
 // "heading to bangkok?": what to download, how to get around, money, what to
 // watch out for, how things work, your first night. one per trip city.
-const ICON = { apps: "📲", around: "🛺", money: "💸", watch: "👀", local: "🤝", first: "🌙" }
+const ICON = { apps: "📲", around: "🛺", money: "💸", watch: "👀", local: "🤝", first: "🌙", lockin: "🧘" }
 
-export default function CityBrief({ token, city, starts }) {
+export default function CityBrief({ token, city, starts, shine = false }) {
   const [open, setOpen] = useState(false)
   const [d, setD] = useState(null)
   const [err, setErr] = useState("")
+  const [photo, setPhoto] = useState(() => { try { return localStorage.getItem(`irl:cityphoto:${city}`) || null } catch { return null } })
   const c = cityChip(city)
+  // the city's own photo as the card's thumbnail (fast, separate from the kit)
+  useEffect(() => {
+    let alive = true
+    fetch(`/api/brief?t=${token}&city=${city}&photo=1`).then((r) => r.json()).then((x) => {
+      if (!alive) return
+      setPhoto(x.photo || null)
+      try { if (x.photo) localStorage.setItem(`irl:cityphoto:${city}`, x.photo) } catch { /* private mode */ }
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [token, city])
+  // the shine stays until they've opened it once
+  const seenKey = `irl:kit-opened:${city}`
+  const [opened, setOpened] = useState(() => { try { return !!localStorage.getItem(seenKey) } catch { return true } })
+  const openKit = () => { setOpen(true); setOpened(true); try { localStorage.setItem(seenKey, "1") } catch { /* private mode */ } }
   // tick things off as you go (per city, on this phone)
   const ckey = `irl:kit:${city}`
   const [ticked, setTicked] = useState(() => { try { return JSON.parse(localStorage.getItem(ckey) || "{}") } catch { return {} } })
@@ -41,10 +56,15 @@ export default function CityBrief({ token, city, starts }) {
     <>
       <motion.button
         whileTap={{ scale: 0.98 }}
-        onClick={() => setOpen(true)}
-        className="mb-4 flex w-full items-center gap-3 rounded-[1.5rem] border border-line bg-white px-4 py-3 text-left"
+        onClick={openKit}
+        className={`mb-4 flex w-full items-center gap-3 overflow-hidden rounded-[1.5rem] border border-line bg-white p-2.5 pr-4 text-left shadow-[0_1px_2px_rgba(58,50,44,0.06),0_10px_26px_-18px_rgba(58,50,44,0.4)] ${shine && !opened ? "kit-shine" : ""}`}
       >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-deep text-[24px]">{c.emoji}</span>
+        <span className="relative h-[60px] w-[60px] shrink-0 overflow-hidden rounded-[1.1rem] bg-cream-deep">
+          {photo
+            ? <img src={photo} alt="" className="h-full w-full object-cover" />
+            : <span className="flex h-full w-full items-center justify-center text-[26px]">{c.emoji}</span>}
+          {photo && <span className="absolute bottom-1 right-1 text-[13px] leading-none drop-shadow">{c.emoji}</span>}
+        </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[12px] text-ink-soft font-semibold">{here ? t("you're in") : t("next level")} · {c.name.toLowerCase()}</span>
           <span className="block text-[15px] font-bold leading-tight">{t("your starter kit")}</span>
@@ -84,22 +104,23 @@ export default function CityBrief({ token, city, starts }) {
                     className="rounded-[1.4rem] bg-white p-4 shadow-[0_1px_2px_rgba(58,50,44,0.06),0_8px_24px_-14px_rgba(58,50,44,0.3)]"
                   >
                     <p className="text-[15px] font-bold">{ICON[sec.key] || "✦"} {sec.title}</p>
-                    <ul className="mt-2 space-y-2">
+                    <ul className="mt-2.5 space-y-2.5">
                       {(sec.items || []).map((it, j) => {
                         const id = `${sec.key || i}-${j}`
                         return (
                           <li key={j}>
-                            <button onClick={() => tick(id)} className="flex w-full items-start gap-2.5 text-left">
+                            <button onClick={() => tick(id)} className="flex w-full items-start gap-3 text-left">
+                              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.8rem] bg-cream-deep text-[18px] leading-none transition-opacity ${ticked[id] ? "opacity-40" : ""}`}>{it.emoji || ICON[sec.key] || "✦"}</span>
+                              <span className={`min-w-0 flex-1 pt-0.5 ${ticked[id] ? "text-ink-soft" : ""}`}>
+                                {it.name && <span className={`block text-[14px] font-bold leading-tight ${ticked[id] ? "line-through decoration-ink/30" : ""}`}>{it.name}</span>}
+                                <span className="mt-0.5 block text-[13px] leading-snug text-ink-soft">{it.text}</span>
+                              </span>
                               <motion.span
                                 animate={{ scale: ticked[id] ? [1, 1.25, 1] : 1 }}
-                                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold ${ticked[id] ? "border-transparent bg-ink text-cream" : "border-line bg-white"}`}
+                                className={`mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${ticked[id] ? "border-transparent bg-ink text-cream" : "border-line bg-white"}`}
                               >
                                 {ticked[id] ? "✓" : ""}
                               </motion.span>
-                              <span className={`text-[13.5px] leading-snug ${ticked[id] ? "text-ink-soft line-through decoration-ink/30" : ""}`}>
-                                {it.name && <span className="font-bold">{it.name}: </span>}
-                                {it.text}
-                              </span>
                             </button>
                           </li>
                         )

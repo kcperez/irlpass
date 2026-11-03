@@ -176,7 +176,7 @@ export default async function handler(req, res) {
       quote: x.s.quote || "",
       address: x.s.address || "",
       hoursToday: (Array.isArray(x.s.hours) ? x.s.hours : []).find((h) => h.day?.toLowerCase() === DAYS[day])?.hours || "",
-      id: city === "medellin" ? c.id : null,
+      id: c.id,
       ref: c.id,
       name: c.name,
       area: c.area,
@@ -277,7 +277,7 @@ export default async function handler(req, res) {
             if (id) saved.push({ id, q: `${p.name}, ${p.area || ""}, ${cityName}` })
           }
           picks.push({
-            id: city === "medellin" ? id || null : null,
+            id: id || null,
             ref: id || null,
             name: String(p.name).slice(0, 80),
             area: String(p.area || "").slice(0, 60),

@@ -5,17 +5,17 @@ import { SpotLink } from "../lib/spotlink"
 
 // pinned at the top of the city chat: tonight's plan (yours, or the busiest
 // one). tap it and you're on that spot's board. resets every night.
-export default function TonightPin({ token }) {
+export default function TonightPin({ token, city = "medellin" }) {
   const openSpot = useContext(SpotLink)
   const [pin, setPin] = useState(null)
   useEffect(() => {
-    cachedJson(`/api/mood?t=${token}&city=medellin`, (d) => {
+    cachedJson(`/api/mood?t=${token}&city=${city}`, (d) => {
       const all = Object.values(d.board || {}).flat()
       const mine = all.find((s) => s.imGoing)
       const top = [...all].sort((a, b) => b.going - a.going)[0]
       setPin(mine ? { s: mine, mine: true } : top?.going > 0 ? { s: top, mine: false } : null)
     }).catch(() => {})
-  }, [token])
+  }, [token, city])
   if (!pin) return null
   return (
     <button onClick={() => openSpot(pin.s.id)} className="flex w-full items-center gap-3 border-b border-line/70 bg-ink px-4 py-2.5 text-left text-cream">

@@ -1,5 +1,6 @@
 import sharp from "sharp"
 import { db } from "./_db.js"
+import { cityInfo } from "./_place.js"
 
 // the recs guide: each spot's real google maps listing (via apify), with its
 // photos copied to our own storage so they never expire or hit quotas.
@@ -62,7 +63,8 @@ export async function enrichSpots({ ids = null, limit = 5, query = null, near = 
 
   const out = []
   for (const s of spots) {
-    const search = query && ids?.length === 1 ? query : `${s.name}, ${s.area || ""}, Medellín, Colombia`
+    const where = await cityInfo(s.city || "medellin")
+    const search = query && ids?.length === 1 ? query : `${s.name}, ${s.area || ""}, ${where.name}${where.country ? `, ${where.country}` : ""}`
     const r = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=120`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -102,6 +104,9 @@ export async function enrichSpots({ ids = null, limit = 5, query = null, near = 
       address: p.address || null,
       category: p.categoryName || null,
       price: p.price || null,
+      price_level: priceLevelOf(p.price),
+      price_range: /\d/.test(String(p.price || "")) ? String(p.price) : null,
+      place_id: p.placeId || null,
       website: p.website || null,
       maps_url: p.url || null,
       hours: p.openingHours || null,
@@ -128,9 +133,26 @@ export async function enrichSpots({ ids = null, limit = 5, query = null, near = 
   return { done: out.length, left: count || 0, spots: out }
 }
 
+// google's price is "$$" or a per-person range like "$20–30" / "COP 40–60K".
+// a level ($-$$$$) either way: ranges map by their top end in usd, other
+// currencies by how many tiers google itself would give
+export function priceLevelOf(price) {
+  const p = String(price || "").trim()
+  if (!p) return null
+  if (/^[$€£₱¥₩]{1,4}$/.test(p)) return p.length
+  const nums = (p.replace(/,/g, "").match(/\d+(\.\d+)?/g) || []).map(Number)
+  if (!nums.length) return null
+  let top = Math.max(...nums)
+  if (/k\b/i.test(p)) top *= 1000
+  if (/^\$|usd/i.test(p)) return top <= 15 ? 1 : top <= 35 ? 2 : top <= 70 ? 3 : 4
+  if (/cop/i.test(p)) return top <= 50000 ? 1 : top <= 120000 ? 2 : top <= 250000 ? 3 : 4
+  if (/€|eur|£/i.test(p)) return top <= 15 ? 1 : top <= 30 ? 2 : top <= 60 ? 3 : 4
+  return null
+}
+
 // any place on google maps, for the mood tab's "search google maps": a few
 // matches with their google ids and coordinates, no photos yet (fast)
-export async function googleSearch(q) {
+export async function googleSearch(q, here = null) {
   const token = process.env.APIFY_TOKEN
   if (!token) return { error: "no scraper key" }
   const text = String(q || "").trim().slice(0, 200)
@@ -138,7 +160,7 @@ export async function googleSearch(q) {
   const isLink = /^https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)/.test(text)
   const input = isLink
     ? { startUrls: [{ url: text }], maxCrawledPlacesPerSearch: 1 }
-    : { searchStringsArray: [`${text}, Medellín, Colombia`], maxCrawledPlacesPerSearch: 5 }
+    : { searchStringsArray: [`${text}, ${here?.name || "Medellín"}${here?.country ? `, ${here.country}` : here ? "" : ", Colombia"}`], maxCrawledPlacesPerSearch: 5 }
   const r = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}&timeout=60`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -156,6 +178,13 @@ export async function googleSearch(q) {
       lat: p.location.lat,
       lng: p.location.lng,
       mapsUrl: p.url || "",
+      placeId: p.placeId || null,
+      price: p.price || "",
+      priceLevel: priceLevelOf(p.price),
+      rating: typeof p.totalScore === "number" ? p.totalScore : null,
+      reviews: typeof p.reviewsCount === "number" ? p.reviewsCount : null,
+      photo: p.imageUrl || null,
+      address: p.address || "",
       google: true,
     })),
   }

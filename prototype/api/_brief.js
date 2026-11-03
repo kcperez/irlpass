@@ -14,24 +14,90 @@ const inFlight = new Map()
 const NO_KIT = new Set(["country", "continent"])
 const SKIP = { skip: true }
 
-const PROMPT = (name) => `someone from irlpass (a social travel app, mostly people 22-35 going out and meeting people) is heading to ${name}.
-search the web and write what they should know before they land. be specific to ${name} and current: real app names, real neighborhoods, real scams. no generic travel advice.
+// v2 (josh v5): every item is the medellín format, an emoji, a bold title and
+// one short line. kits made before that get cleaned on read and remade.
+export const KIT_VERSION = 2
+
+// some cities have a lane. miami is the wellness city
+const FOCUS = {
+  miami: {
+    note: "miami is irlpass's wellness city: people lock in on weekdays (run clubs, sauna, cold plunge, pilates, juice and coffee) and go out on weekends without overdoing it.",
+    extra: { key: "lockin", title: "lock in", hint: "run clubs, sauna and cold plunge, juice and coffee spots" },
+  },
+}
+
+// irlpass is how members meet people and find plans, so the kit never sends
+// them to an app that does that job
+const COMPETITORS = ["ZONA", "Tabler", "Timeleft", "NomadTable", "Nomad Table", "Meetup", "Bumble BFF", "Couchsurfing hangouts", "Hey! VINA", "Party With A Local", "Discotech", "Peanut"]
+
+const PROMPT = (name, slug) => {
+  const focus = FOCUS[slug]
+  return `someone from irlpass (a social travel app, mostly people 22-35 going out and meeting people) is heading to ${name}.
+search the web and write what they should know before they land. be specific to ${name} and current: real app names, real neighborhoods, real places, real scams. no generic travel advice.
+${focus ? `${focus.note}\n` : ""}never recommend apps or services for meeting people, finding plans, nightlife guest lists or group dinners (irlpass is that), for example: ${COMPETITORS.join(", ")}.
 
 reply only json:
 {"headline":"one line, max 12 words",
  "sections":[
-  {"key":"apps","title":"download before you land","items":[{"name":"app name","text":"what it's for there, and why not the usual one"}]},
-  {"key":"around","title":"getting around","items":[{"text":"..."}]},
-  {"key":"money","title":"money","items":[{"text":"..."}]},
-  {"key":"watch","title":"watch out for","items":[{"text":"..."}]},
-  {"key":"local","title":"how it works here","items":[{"text":"..."}]},
-  {"key":"first","title":"your first night","items":[{"text":"..."}]}
+  {"key":"apps","title":"download before you land","items":[{"emoji":"one emoji","name":"app name","text":"..."}]},
+  {"key":"around","title":"getting around","items":[{"emoji":"…","name":"2-4 word title","text":"..."}]},
+  {"key":"money","title":"money","items":[...]},
+${focus ? `  {"key":"${focus.extra.key}","title":"${focus.extra.title}","items":[...]},   // ${focus.extra.hint}, with real place names\n` : ""}  {"key":"watch","title":"watch out for","items":[...]},
+  {"key":"local","title":"how it works here","items":[...]},
+  {"key":"first","title":"your first night","items":[...]}
  ]}
-3-5 items per section. write like a friend who lives there: lowercase, plain, specific, max 22 words per item. no em dashes, no hype words.`
+every item has all three: "emoji" (exactly one emoji that fits the item), "name" (a bold 1-4 word title, like "InDrive" or "cash for taxis") and "text" (one short line, max 16 words).
+3-5 items per section. write like a friend who lives there: lowercase, plain, specific. no em dashes, no hype words, no markup, no citation tags.`
+}
+
+// model text sometimes carries <cite index="..."> tags or markdown: keep the
+// words, drop the markup. used on save and on every read.
+const EMOJI = /\p{Extended_Pictographic}/u
+const strip = (x) => String(x ?? "")
+  .replace(/<\/?[a-z][^>]*>/gi, "")
+  .replace(/\[(\d+(-\d+)?(,\s*)?)+\]/g, "")
+  .replace(/\*\*|__|`/g, "")
+  .replace(/\s+([,.;:!?])/g, "$1")
+  .replace(/\s+/g, " ")
+  .trim()
+const firstEmoji = (x) => (String(x || "").match(/\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*/u) || [""])[0]
+const isCompetitor = (x) => COMPETITORS.some((c) => String(x || "").toLowerCase().includes(c.toLowerCase()))
+const SECTION_EMOJI = { apps: "📲", around: "🛺", money: "💸", watch: "👀", local: "🤝", first: "🌙", lockin: "🧘" }
+
+export function cleanBrief(b) {
+  if (!b?.sections) return b
+  return {
+    ...b,
+    headline: strip(b.headline),
+    sections: b.sections.map((sec) => ({
+      key: sec.key,
+      title: strip(sec.title),
+      items: (sec.items || [])
+        .map((it) => {
+          let name = strip(it.name)
+          let text = strip(it.text)
+          // old kits: "name: the rest" folded into text, or no title at all
+          if (!name) {
+            const m = text.match(/^([^,.:]{2,32}):\s+(.+)$/)
+            if (m) { name = m[1]; text = m[2] }
+          }
+          const emoji = firstEmoji(it.emoji) || SECTION_EMOJI[sec.key] || "✦"
+          // emojis belong in the emoji slot only
+          name = name.replace(new RegExp(EMOJI.source, "gu"), "").trim()
+          text = text.replace(new RegExp(EMOJI.source, "gu"), "").replace(/\s+/g, " ").trim()
+          return { emoji, name, text }
+        })
+        .filter((it) => it.text && !isCompetitor(it.name) && !isCompetitor(it.text)),
+    })).filter((sec) => sec.items.length),
+  }
+}
 
 async function stored(city) {
   const { data: row } = await db.from("app_settings").select("value, updated_at").eq("key", `brief:${city}`).maybeSingle()
-  if (row?.value && Date.now() - new Date(row.updated_at).getTime() < FRESH_MS) return JSON.parse(row.value)
+  if (row?.value && Date.now() - new Date(row.updated_at).getTime() < FRESH_MS) {
+    const v = JSON.parse(row.value)
+    return v?.sections ? { ...cleanBrief(v), v: v.v || 1 } : v
+  }
   return null
 }
 
@@ -40,10 +106,13 @@ export async function getBrief(city) {
   return v?.sections ? v : null
 }
 
-export async function ensureBrief(city) {
+// a kit in the old format is served (cleaned) right away and remade behind it
+export const isStale = (b) => !!b?.sections && (b.v || 1) < KIT_VERSION
+
+export async function ensureBrief(city, { force = false } = {}) {
   const have = await stored(city)
   if (have?.skip) return null
-  if (have?.sections) return have
+  if (have?.sections && !force) return have
   if (inFlight.has(city)) return inFlight.get(city)
   const job = (async () => {
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -60,7 +129,7 @@ export async function ensureBrief(city) {
         model: "claude-haiku-4-5-20251001",
         max_tokens: 4000,
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
-        messages: [{ role: "user", content: PROMPT(cityLabel(city)) }],
+        messages: [{ role: "user", content: PROMPT(cityLabel(city), city) }],
       }),
     })
     let r = await call()
@@ -80,6 +149,7 @@ export async function ensureBrief(city) {
       if (brief?.sections?.length) break
     }
     if (!brief?.sections?.length) throw new Error("no brief")
+    brief = { ...cleanBrief(brief), v: KIT_VERSION }
     await db.from("app_settings").upsert({ key: `brief:${city}`, value: JSON.stringify(brief), updated_at: new Date().toISOString() }, { onConflict: "key" })
     return brief
   })().finally(() => inFlight.delete(city))

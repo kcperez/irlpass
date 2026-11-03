@@ -47,6 +47,12 @@ export const rowToMember = (r) =>
     compUntil: r.comp_until || null,
     hidePhoto: !!r.hide_photo,
     referredBy: r.referred_by || null,
+    // v5: budget is private (matching + venue totals only, never on a profile)
+    budget: r.budget || null,
+    notifyPrefs: r.notify_prefs || {},
+    installedAt: r.installed_at || null,
+    foundingBadge: !!r.founding_badge,
+    downUntil: r.down_until || null,
   }
 
 // look up an accepted person by token (paid or not)

@@ -52,5 +52,10 @@ export default async function handler(req, res) {
     memberView: !!member.modOff,
     needsName: nameIsHandle(member.name, member.ig),
     hidePhoto: !!member.hidePhoto,
+    budget: member.budget && member.budget !== "skip" ? member.budget : null,
+    budgetAsked: !!member.budget,
+    notifyPrefs: member.notifyPrefs || {},
+    installed: !!member.installedAt,
+    foundingBadge: !!member.foundingBadge,
   })
 }

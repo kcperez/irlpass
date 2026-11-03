@@ -18,6 +18,15 @@ export default async function handler(req, res) {
   if (typeof req.body?.hidePhoto === "boolean") patch.hide_photo = req.body.hidePhoto
   // leave yourself out of other people's connections
   if (typeof req.body?.hideConnections === "boolean") patch.hide_connections = req.body.hideConnections
+  // v5: "what's your usual night out?" ($-$$$$, optional, never shown on a profile)
+  if (req.body?.budget === null || ["$", "$$", "$$$", "$$$$", "skip"].includes(req.body?.budget)) patch.budget = req.body.budget
+  // which alerts they want (down, nudge, plans, groups, runs, digest)
+  if (req.body?.notifyPrefs && typeof req.body.notifyPrefs === "object") {
+    const keys = ["down", "nudge", "plans", "groups", "runs", "digest"]
+    patch.notify_prefs = Object.fromEntries(keys.map((k) => [k, req.body.notifyPrefs[k] !== false]))
+  }
+  // opened from the home screen icon at least once
+  if (req.body?.installed === true && !me.installedAt) patch.installed_at = new Date().toISOString()
   if (typeof req.body?.testAsMember === "boolean" && isMod(me.memberNo)) {
     patch.test_as_member = req.body.testAsMember
   }
