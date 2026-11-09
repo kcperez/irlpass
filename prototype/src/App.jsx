@@ -18,6 +18,7 @@ const Invite = lazy(() => import("./screens/Invite"))
 const SharedDay = lazy(() => import("./components/DayPlan").then((m) => ({ default: m.SharedDay })))
 const Redeem = lazy(() => import("./screens/Redeem"))
 const Pro = lazy(() => import("./screens/Pro"))
+const Traction = lazy(() => import("./screens/Traction"))
 
 // filming helper: /?screen=pass&name=maya&ig=@maya.travels jumps straight to a screen
 const params = new URLSearchParams(window.location.search)
@@ -31,10 +32,14 @@ const dayParam = (() => {
 })()
 // irlpass for venues: its own landing + onboarding at /pro
 const isProPath = /^\/pro\/?$/.test(window.location.pathname)
+// shareable traction numbers (aggregates only)
+const isTractionPath = /^\/traction\/?$/.test(window.location.pathname)
 const initialScreen = isAdminPath
   ? "admin"
   : isProPath
   ? "pro"
+  : isTractionPath
+  ? "traction"
   : ["pass", "info", "app", "auth", "invite", "redeem", "join", "offer", "ops"].includes(params.get("screen"))
     ? params.get("screen")
     : "welcome"
@@ -77,7 +82,7 @@ export default function App() {
     <div className="relative min-h-[100dvh] overflow-hidden bg-cream">
       {/* the wash lives on the page, not on a column, so it reaches every edge */}
       <div aria-hidden className="wash pointer-events-none fixed inset-0 z-0" />
-      <div className={`relative z-10 mx-auto w-full ${screen === "welcome" || screen === "pro" ? "max-w-[460px] lg:max-w-[1040px]" : "max-w-[460px]"}`}>
+      <div className={`relative z-10 mx-auto w-full ${screen === "welcome" || screen === "pro" || screen === "traction" ? "max-w-[460px] lg:max-w-[1040px]" : "max-w-[460px]"}`}>
         <div className="grain h-full w-full">
           {/* everything but the homepage loads on demand: members never download signup */}
           <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-ink" /></div>}>
@@ -132,6 +137,7 @@ export default function App() {
               )}
               {screen === "admin" && <Admin />}
               {screen === "pro" && <Pro />}
+              {screen === "traction" && <Traction />}
               {screen === "ops" && <Ops token={params.get("t")} />}
               {screen === "auth" && <Auth />}
               {screen === "invite" && <Invite activityId={params.get("a")} onApply={() => setScreen("apply")} />}
