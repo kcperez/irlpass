@@ -4,20 +4,30 @@ import { ensureBrief, isStale } from "./_brief.js"
 import { waitUntil } from "@vercel/functions"
 import { db } from "./_db.js"
 import { cityInfo } from "./_place.js"
+import { storePhoto } from "./_guide.js"
 
 // the starter kit card's thumbnail: the city's own photo (wikipedia's lead
 // image), looked up once and kept
 export async function cityPhoto(city) {
   const key = `cityphoto:${city}`
   const { data: row } = await db.from("app_settings").select("value").eq("key", key).maybeSingle()
-  if (row) return row.value || null
+  // kept copies live in our storage. older rows point at wikimedia directly
+  // (their 720px size now 400s), so those get redone below
+  if (row && (!row.value || row.value.includes("/storage/v1/"))) return row.value || null
   const info = await cityInfo(city)
+  const ua = { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" }
   let url = null
   for (const title of [info.name, `${info.name}, ${info.country}`]) {
-    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`, { headers: { "user-agent": "irlpass/1.0 (hello@irlpass.xyz)" } }).catch(() => null)
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`, { headers: ua }).catch(() => null)
     const d = r?.ok ? await r.json().catch(() => null) : null
     const src = d?.type !== "disambiguation" ? d?.thumbnail?.source || d?.originalimage?.source : null
-    if (src && !/flag|coat_of_arms|map|locator|seal|logo/i.test(src)) { url = src.replace(/\/\d+px-/, "/720px-").replace(/\?.*$/, ""); break }
+    if (src && !/flag|coat_of_arms|map|locator|seal|logo/i.test(src)) {
+      // wikimedia only serves its standard thumb widths (960 is one), then we
+      // keep our own copy so the card never depends on their cdn
+      const wiki = src.replace(/\/\d+px-/, "/960px-").replace(/\?.*$/, "")
+      url = await storePhoto(wiki, `cities/${city}.jpg`, ua) || await storePhoto(d?.originalimage?.source, `cities/${city}.jpg`, ua)
+      if (url) break
+    }
   }
   await db.from("app_settings").upsert({ key, value: url || "", updated_at: new Date().toISOString() }, { onConflict: "key" })
   return url

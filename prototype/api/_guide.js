@@ -6,9 +6,9 @@ import { cityInfo } from "./_place.js"
 // photos copied to our own storage so they never expire or hit quotas.
 const ACTOR = "compass~crawler-google-places"
 
-async function storePhoto(url, path) {
+export async function storePhoto(url, path, headers) {
   try {
-    const r = await fetch(url)
+    const r = await fetch(url, headers ? { headers } : undefined)
     if (!r.ok) return null
     const img = await sharp(Buffer.from(await r.arrayBuffer())).rotate().resize(1200, 900, { fit: "cover" }).jpeg({ quality: 74 }).toBuffer()
     const up = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/avatars/${path}`, {
