@@ -6,6 +6,21 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "what's on in": "qué hay en",
+  "find your people": "encuentra tu gente",
+  "what are you into? football, techno, a run club": "¿qué te gusta? fútbol, techno, un club de running",
+  "techno tonight": "techno esta noche",
+  "run club": "club de running",
+  "dinner with new people": "cena con gente nueva",
+  "live music this weekend": "música en vivo este finde",
+  "looking around": "buscando en",
+  "for": "para",
+  "see everything this week": "ver todo esta semana",
+  "we're still filling this city. ask above and we'll look around.": "todavía estamos llenando esta ciudad. pregunta arriba y buscamos.",
+  "who's going": "quién va",
+  "entry": "entrada",
+  "search is down for a sec. try again.": "la búsqueda está caída un segundo. intenta otra vez.",
+  "search": "buscar",
   "everyone from irlpass going": "todos los de irlpass que van",
   "events": "eventos",
   "what's on": "qué hay",
