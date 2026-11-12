@@ -1,3 +1,4 @@
+import { actsAsMod } from "./_mods.js"
 import { getUser, lockedPhoto, rowToMember, safeFirstName } from "./_lib.js"
 import { db } from "./_db.js"
 import { dmState } from "./_dmstate.js"
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
       if (!m || m.banned) continue
       // safety: a member who only accepts women/non-binary dms stays masked to men
       const blocked = me.gender === "man" && m.allowDmFromMen === false
-      const open = access.ok || known.has(m.memberNo)
+      const open = access.ok || known.has(m.memberNo) || actsAsMod(me)
       // give to get: these are your own dates, so you see faces unless they hid theirs
       const faceOpen = open || (!m.hidePhoto && !blocked)
       people.push({
@@ -127,7 +128,7 @@ export default async function handler(req, res) {
       .map(rowToMember)
       .filter((m) => m && !listed.has(m.memberNo))
       .map((m) => {
-        const open = access.ok || known.has(m.memberNo)
+        const open = access.ok || known.has(m.memberNo) || actsAsMod(me)
         const faceOpen = open || (!m.hidePhoto && !(me.gender === "man" && m.allowDmFromMen === false))
         return {
           memberNo: m.memberNo,

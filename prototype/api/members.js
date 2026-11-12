@@ -1,3 +1,4 @@
+import { actsAsMod } from "./_mods.js"
 import { getUser, lockedPhoto, rowToMember, safeFirstName } from "./_lib.js"
 import { db } from "./_db.js"
 import { dmState } from "./_dmstate.js"
@@ -119,7 +120,7 @@ export default async function handler(req, res) {
 
       const mineOverlap = (mine || []).find((x) => overlaps(x.starts, x.ends, trip.starts, trip.ends))
       const access = mineOverlap ? await reachFor(mineOverlap) : { ok: false }
-      const open = access.ok || known.has(m.memberNo)
+      const open = access.ok || known.has(m.memberNo) || actsAsMod(me)
       const blocked = me.gender === "man" && m.allowDmFromMen === false
       // give to get: post your dates here and you see real faces (unless they hid theirs)
       const faceOpen = open || ((mine || []).length > 0 && !m.hidePhoto && !blocked)
@@ -166,20 +167,21 @@ export default async function handler(req, res) {
       const m = rowToMember(r)
       const blocked = me.gender === "man" && m.allowDmFromMen === false
       const anyTrip = (trips || []).find((tr) => tr.member_no === m.memberNo)
+      const seen = known.has(m.memberNo) || actsAsMod(me)
       others.push({
         memberNo: m.memberNo,
         // same rules as the dated list: people you haven't talked to are a
         // preview (first name + soft photo) until you share dates or unlock
-        first: known.has(m.memberNo) ? String(m.name || "").trim().split(/\s+/)[0] || "someone" : safeFirstName(m.name, m.ig),
-        name: known.has(m.memberNo) ? m.name : null,
-        photo: known.has(m.memberNo) ? m.photo : lockedPhoto(m.photo),
-        locked: !known.has(m.memberNo),
+        first: seen ? String(m.name || "").trim().split(/\s+/)[0] || "someone" : safeFirstName(m.name, m.ig),
+        name: seen ? m.name : null,
+        photo: seen ? m.photo : lockedPhoto(m.photo),
+        locked: !seen,
         verified: m.verified,
         hasDates: !!anyTrip,
         shared: sharedWith(me.interests, m.interests),
         starts: anyTrip?.starts || null,
         ends: anyTrip?.ends || null,
-        canMessage: known.has(m.memberNo) && !blocked,
+        canMessage: seen && !blocked,
         talked: !!dms.get(m.memberNo)?.talked,
         out: outTonight.get(m.memberNo) || null,
         downNights: downBy.get(m.memberNo) || [],

@@ -306,7 +306,7 @@ export default async function handler(req, res) {
     ])
     const otherNos = [...new Set((same || []).map((x) => x.member_no))].slice(0, 12)
     const { data: rows } = otherNos.length ? await db.from("members").select("member_no, name, photo_url, banned").in("member_no", otherNos) : { data: [] }
-    const others = (rows || []).filter((r) => !r.banned).map((r) => ({ memberNo: r.member_no, first: safeFirstName(r.name, ""), photo: lockedPhoto(r.photo_url) }))
+    const others = (rows || []).filter((r) => !r.banned).map((r) => ({ memberNo: r.member_no, first: safeFirstName(r.name, ""), photo: actsAsMod(me) ? r.photo_url : lockedPhoto(r.photo_url) }))
     const days = new Set((mine || []).map((x) => x.created_at.slice(0, 10)))
     let streak = 0
     for (let d = new Date(); days.has(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() - 1)) streak++

@@ -1,3 +1,4 @@
+import { actsAsMod } from "./_mods.js"
 import { getUser, lockedPhoto } from "./_lib.js"
 import { db } from "./_db.js"
 import { today } from "./_access.js"
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
       const room = (msgs || []).filter((m) => m.channel === c.slug)
       const people = new Set([...visiting, ...locals])
       if (!people.size && !room.length) continue
-      const faces = [...people].filter((no) => photoOf.get(no) && no !== me.memberNo).slice(0, 5).map((no) => lockedPhoto(photoOf.get(no))).filter(Boolean)
+      const faces = [...people].filter((no) => photoOf.get(no) && no !== me.memberNo).slice(0, 5).map((no) => (actsAsMod(me) ? photoOf.get(no) : lockedPhoto(photoOf.get(no)))).filter(Boolean)
       out2.push({
         slug: c.slug,
         name: c.name,
