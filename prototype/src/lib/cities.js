@@ -12,7 +12,7 @@ export const CITY_INDEX = [
   ["lisboa", "Lisbon", "🇵🇹"], ["porto", "Porto", "🇵🇹"], ["madrid", "Madrid", "🇪🇸"],
   ["barcelona", "Barcelona", "🇪🇸"], ["valencia", "Valencia", "🇪🇸"], ["sevilla", "Seville", "🇪🇸"],
   ["paris", "Paris", "🇫🇷"], ["london", "London", "🇬🇧"], ["berlin", "Berlin", "🇩🇪"],
-  ["amsterdam", "Amsterdam", "🇳🇱"], ["rome", "Rome", "🇮🇹"], ["milan", "Milan", "🇮🇹"],
+  ["amsterdam", "Amsterdam", "🇳🇱"], ["rome", "Rome", "🇮🇹"], ["milan", "Milan", "🇮🇹"], ["palermo", "Palermo", "🇮🇹"],
   ["athens", "Athens", "🇬🇷"], ["split", "Split", "🇭🇷"], ["budapest", "Budapest", "🇭🇺"],
   ["prague", "Prague", "🇨🇿"], ["warsaw", "Warsaw", "🇵🇱"], ["istanbul", "Istanbul", "🇹🇷"],
   ["tbilisi", "Tbilisi", "🇬🇪"], ["dubai", "Dubai", "🇦🇪"], ["cape-town", "Cape Town", "🇿🇦"],
@@ -29,6 +29,9 @@ export const CITY_INDEX = [
   ["sydney", "Sydney", "🇦🇺"], ["melbourne", "Melbourne", "🇦🇺"], ["auckland", "Auckland", "🇳🇿"],
   ["toronto", "Toronto", "🇨🇦"], ["vancouver", "Vancouver", "🇨🇦"], ["montreal", "Montreal", "🇨🇦"],
 ].map(([slug, name, emoji]) => ({ slug, name, emoji }))
+
+// cities with events listed every day (keep in sync with api/_events.js)
+export const EVENT_CITY_SLUGS = ["miami", "new-york", "los-angeles", "medellin", "palermo"]
 
 export const slugify = (name) =>
   String(name || "")

@@ -2,7 +2,7 @@ import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { CircleNotch } from "@phosphor-icons/react"
 import { t } from "../lib/i18n"
-import { cityChip, CITY_INDEX, rememberCity } from "../lib/cities"
+import { cityChip, rememberCity, EVENT_CITY_SLUGS } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
 
 // "i'm in ___ now". one tap moves you: no dates to learn. under the hood it
@@ -34,7 +34,8 @@ export default function CityNow({ token, city, open, onClose, onMoved }) {
     onClose()
   }
 
-  const list = typed.trim() ? found.results : CITY_INDEX.slice(0, 8)
+  // where you are first, then the cities that have something on
+  const list = typed.trim() ? found.results : [...new Set([city, ...EVENT_CITY_SLUGS].filter(Boolean))].map((s) => cityChip(s))
 
   return (
     <AnimatePresence>
