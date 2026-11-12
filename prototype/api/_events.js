@@ -3,11 +3,11 @@ import { db } from "./_db.js"
 // the cities we seed every week. luma finds events by coordinates, eventbrite
 // by its own city path.
 export const EVENT_CITIES = [
-  { slug: "miami", lat: 25.7617, lng: -80.1918, eb: "fl--miami" },
-  { slug: "new-york", lat: 40.7128, lng: -74.006, eb: "ny--new-york" },
-  { slug: "los-angeles", lat: 34.0522, lng: -118.2437, eb: "ca--los-angeles" },
-  { slug: "medellin", lat: 6.2442, lng: -75.5812, eb: "colombia--medellín" },
-  { slug: "palermo", lat: 38.1157, lng: 13.3615, eb: "italy--palermo" },
+  { slug: "miami", lat: 25.7617, lng: -80.1918, eb: "fl--miami", ra: 38, tz: "America/New_York" },
+  { slug: "new-york", lat: 40.7128, lng: -74.006, eb: "ny--new-york", ra: 8, tz: "America/New_York" },
+  { slug: "los-angeles", lat: 34.0522, lng: -118.2437, eb: "ca--los-angeles", ra: 23, tz: "America/Los_Angeles" },
+  { slug: "medellin", lat: 6.2442, lng: -75.5812, eb: "colombia--medellín", ra: 374, tz: "America/Bogota" },
+  { slug: "palermo", lat: 38.1157, lng: 13.3615, eb: "italy--palermo", ra: 302, raOnly: /palermo/i, tz: "Europe/Rome" },
 ]
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
@@ -112,13 +112,67 @@ export async function eventbrite(c) {
   return out
 }
 
+// resident advisor lists times in the city's local clock: turn them into utc
+function localToUtc(local, tz) {
+  const guess = Date.parse(`${local.slice(0, 19)}Z`)
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(new Date(guess)).map((p) => [p.type, p.value]))
+  const asLocal = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second)
+  return new Date(guess - (asLocal - guess)).toISOString()
+}
+
+// nightlife: resident advisor's own listings api, one area per city
+export async function residentAdvisor(c) {
+  if (!c.ra) return []
+  const out = []
+  const from = new Date().toISOString().slice(0, 10)
+  const to = new Date(Date.now() + DAYS_AHEAD * 864e5).toISOString().slice(0, 10)
+  for (let page = 1; page <= 3; page++) {
+    const r = await fetch("https://ra.co/graphql", {
+      method: "POST",
+      headers: { "user-agent": UA, "content-type": "application/json", referer: "https://ra.co/events" },
+      body: JSON.stringify({
+        query: "query($f: FilterInputDtoInput, $p: Int){ eventListings(filters: $f, pageSize: 50, page: $p){ totalResults data{ event{ id title startTime endTime contentUrl images{ filename } venue{ name address } attending } } } }",
+        variables: { p: page, f: { areas: { eq: c.ra }, listingDate: { gte: `${from}T00:00:00.000Z`, lte: `${to}T00:00:00.000Z` } } },
+      }),
+    })
+    if (!r.ok) break
+    const rows = (await r.json())?.data?.eventListings?.data || []
+    for (const { event: e } of rows) {
+      if (!e?.startTime) continue
+      if (c.raOnly && !c.raOnly.test(`${e.venue?.address || ""} ${e.venue?.name || ""}`)) continue
+      out.push({
+        source: "ra",
+        source_id: String(e.id),
+        city: c.slug,
+        title: e.title,
+        starts_at: localToUtc(e.startTime, c.tz),
+        ends_at: e.endTime ? localToUtc(e.endTime, c.tz) : null,
+        venue: e.venue?.name || null,
+        address: e.venue?.address || null,
+        lat: null,
+        lng: null,
+        cover: e.images?.[0]?.filename || null,
+        url: `https://ra.co${e.contentUrl}`,
+        price_cents: null,
+        currency: null,
+        is_free: null,
+        guests: e.attending || null,
+        host: null,
+        forceKind: "party",
+      })
+    }
+    if (rows.length < 50) break
+  }
+  return out
+}
+
 // pull every source for every city, keep the next two weeks of real nights out
 export async function seedEvents() {
   const now = Date.now()
   const until = now + DAYS_AHEAD * 864e5
   const report = {}
   for (const c of EVENT_CITIES) {
-    const got = (await Promise.all([luma(c).catch(() => []), eventbrite(c).catch(() => [])])).flat()
+    const got = (await Promise.all([luma(c).catch(() => []), eventbrite(c).catch(() => []), residentAdvisor(c).catch(() => [])])).flat()
     const keep = []
     const seen = new Set()
     for (const e of got) {
@@ -129,7 +183,8 @@ export async function seedEvents() {
       const key = `${String(e.title).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40)}|${e.starts_at.slice(0, 10)}`
       if (seen.has(key)) continue
       seen.add(key)
-      keep.push({ ...e, title: String(e.title).slice(0, 200), category: kindOf(e.title, e.host || ""), updated_at: new Date().toISOString() })
+      const { forceKind, ...row } = e
+      keep.push({ ...row, title: String(e.title).slice(0, 200), category: forceKind || kindOf(e.title, e.host || ""), updated_at: new Date().toISOString() })
     }
     for (let i = 0; i < keep.length; i += 100) {
       const { error } = await db.from("events").upsert(keep.slice(i, i + 100), { onConflict: "source,source_id" })
