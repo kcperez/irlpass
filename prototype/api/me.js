@@ -17,12 +17,14 @@ export default async function handler(req, res) {
   // (a trip happening now sorts first, since it started earliest)
   const { data: trips } = await db
     .from("trips")
-    .select("city")
+    .select("city, starts")
     .eq("member_no", member.memberNo)
     .gte("ends", today())
     .order("starts")
     .limit(12)
-  const trip = trips?.[0]
+  // only a trip that has started moves you. a miami trip next month doesn't put
+  // you in miami today: until then you're home.
+  const trip = (trips || []).find((x) => x.starts <= today())
 
   return res.status(200).json({
     name: member.name,
