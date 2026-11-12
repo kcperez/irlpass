@@ -74,6 +74,14 @@ export default async function handler(req, res) {
       if (starts < today()) starts = today()
       if (nights(starts, ends) > MAX_NIGHTS) return res.status(400).json({ error: "keep a trip under 120 days" })
 
+      // "i'm in ___ now": you can only be in one place, so whatever trip you're
+      // on somewhere else ends yesterday (or goes, if it only started today)
+      if (req.body?.now === true) {
+        const y = addDays(today(), -1)
+        await db.from("trips").update({ ends: y }).eq("member_no", me.memberNo).neq("city", city).lt("starts", today()).gte("ends", today())
+        await db.from("trips").delete().eq("member_no", me.memberNo).neq("city", city).eq("starts", today())
+      }
+
       // the same trip twice (a double tap, or re-running signup) is one trip
       const { data: dupe } = await db
         .from("trips")

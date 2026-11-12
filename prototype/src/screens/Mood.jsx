@@ -10,6 +10,7 @@ import InvitePrompt from "../components/InvitePrompt"
 import { askPush } from "../lib/push"
 import { MoreList } from "../lib/more"
 import { cityChip } from "../lib/cities"
+import CityNow from "../components/CityNow"
 import AddSpot from "../components/AddSpot"
 
 // the guide: your city right now, the way a good city guide reads. pick a
@@ -281,8 +282,9 @@ function SpotSheet({ s, token, busy, onToggle, onOpenRoom, onClose }) {
   )
 }
 
-export default function Mood({ token, me, city: cityProp, onOpenRoom, focusSpot, onFocused, onBuyRide, planWith, onPlanDone, onPaywall }) {
+export default function Mood({ token, me, city: cityProp, onOpenRoom, focusSpot, onFocused, onBuyRide, planWith, onPlanDone, onPaywall, onCityMoved }) {
   const city = cityProp || me?.city || "medellin"
+  const [whereOpen, setWhereOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [priceOn, setPriceOn] = useState(undefined) // undefined = their budget from onboarding
   const [downBusy, setDownBusy] = useState(false)
@@ -470,7 +472,15 @@ export default function Mood({ token, me, city: cityProp, onOpenRoom, focusSpot,
     <div className="relative px-4 pb-28 pt-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[12px] text-ink-soft font-semibold">{t("the guide")} · {cityChip(city).emoji} {cityName} · {dateLine}</p>
+          <p className="flex min-w-0 items-center gap-1 text-[12px] text-ink-soft font-semibold">
+            <span className="shrink-0">{t("the guide")} ·</span>
+            {/* your city is a button: tap it to say where you are now */}
+            <button onClick={() => setWhereOpen(true)} className="flex min-w-0 items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-0.5 font-bold text-ink active:scale-95">
+              <span className="truncate">{cityChip(city).emoji} {cityName}</span><span aria-hidden className="text-[10px]">▾</span>
+            </button>
+            <span className="truncate">· {dateLine}</span>
+          </p>
+          <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
           <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{t(meta?.title || "tonight")}</h2>
         </div>
         {/* know a spot? add it (crowdsourced, a mod approves it) */}

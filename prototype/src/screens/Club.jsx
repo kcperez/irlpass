@@ -2485,7 +2485,7 @@ export default function Club({ token }) {
             onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
         )}
-        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={planCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => { setPlanWith(null); setPlanCity(null) }} onPaywall={setPaywall} />}
+        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={planCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => { setPlanWith(null); setPlanCity(null) }} onCityMoved={() => { setPlanCity(null); setPlanWith(null); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onPaywall={setPaywall} />}
         {!cityRoom && tab === "mood" && spotRoom && (
           <Thread
             token={token}

@@ -6,6 +6,11 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "where are you now?": "¿dónde estás ahora?",
+  "the guide and the people around you follow you there.": "la guía y la gente cerca de ti te siguen hasta allá.",
+  "type a city": "escribe una ciudad",
+  "no city by that name": "no hay ciudad con ese nombre",
+  "couldn't switch. try again.": "no se pudo cambiar. intenta otra vez.",
   "meet people tonight, wherever you are": "conoce gente esta noche, donde sea que estés",
   "what's good near me": "qué hay bueno cerca",
   "say your mood. three spots open right now, and who from irlpass is already there.": "dinos tu mood. tres lugares abiertos ahora, y quién de irlpass ya está ahí.",
