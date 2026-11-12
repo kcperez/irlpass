@@ -18,7 +18,6 @@ const KINDS = [
   ["social", "💬", "social"],
   ["tech", "💻", "tech"],
 ]
-const TRY = ["football", "techno tonight", "run club", "dinner with new people", "live music this weekend"]
 const PAGE = 20
 const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
 const dayKey = (iso, tz) => new Date(iso).toLocaleDateString("en-CA", { timeZone: tz })
@@ -99,7 +98,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const city = cityProp || me?.city || "medellin"
   const tz = TZ[city]
   const [data, setData] = useState(null)
-  const [kind, setKind] = useState(null)
+  const [kind, setKind] = useState(() => { try { return localStorage.getItem("ev-kind") } catch { return null } })
   const [open, setOpen] = useState(null)
   const [busy, setBusy] = useState(null)
   const [whereOpen, setWhereOpen] = useState(false)
@@ -110,7 +109,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
 
   const load = () => fetch(`/api/events?t=${token}&city=${city}`).then((r) => r.json()).then(setData).catch(() => {})
   useEffect(() => {
-    setData(null); setSearch(null); setKind(null); setShown(PAGE)
+    setData(null); setSearch(null); setShown(PAGE)
     cachedJson(`/api/events?t=${token}&city=${city}`, setData)
   }, [token, city])
 
@@ -120,8 +119,9 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const tomorrowKey = dayKey(new Date(Date.now() + 864e5).toISOString(), tz)
   const kinds = KINDS.filter(([k]) => events.some((e) => e.category === k))
   const mine = events.filter((e) => e.going)
+  const kindOn = kinds.some(([k]) => k === kind) ? kind : null
 
-  const list = search?.ids ? search.ids.map((id) => byId.get(id)).filter(Boolean) : events.filter((e) => !kind || e.category === kind)
+  const list = search?.ids ? search.ids.map((id) => byId.get(id)).filter(Boolean) : events.filter((e) => !kindOn || e.category === kindOn)
   const visible = search?.ids ? list : list.slice(0, shown)
   const groups = useMemo(() => {
     if (search?.ids) return [{ key: "results", items: visible }]
@@ -150,6 +150,10 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     await load()
     setSearch({ q: query, reply: r.reply, ids: r.ids || [] })
   }
+  const pickKind = (k) => {
+    setKind(k); setShown(PAGE)
+    try { k ? localStorage.setItem("ev-kind", k) : localStorage.removeItem("ev-kind") } catch {}
+  }
   const clear = () => { setSearch(null); setQ("") }
 
   const toggle = async (e) => {
@@ -177,15 +181,26 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
       <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{t("find your people")}</h2>
       <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
 
+      {/* one row: what you're into. filters instantly, remembered for next time */}
+      {!search && kinds.length > 1 && (
+        <div className="no-scrollbar -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4">
+          {kinds.map(([k, emoji, label]) => (
+            <button key={k} onClick={() => pickKind(kindOn === k ? null : k)} className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-bold active:scale-95 ${kindOn === k ? "bg-ink text-cream" : "bg-white/70 text-ink-soft"}`}>
+              {emoji} {t(label)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ask, don't scroll */}
-      <form onSubmit={(ev) => { ev.preventDefault(); ask() }} className="mt-4 flex items-center gap-2 rounded-full bg-white px-4 py-1.5 shadow-[0_1px_2px_rgba(58,50,44,0.06),0_10px_28px_-16px_rgba(58,50,44,0.35)] focus-within:ring-2 focus-within:ring-lime-deep">
+      <form onSubmit={(ev) => { ev.preventDefault(); ask() }} className="mt-3 flex items-center gap-2 rounded-full bg-white px-4 py-1.5 shadow-[0_1px_2px_rgba(58,50,44,0.06),0_10px_28px_-16px_rgba(58,50,44,0.35)] focus-within:ring-2 focus-within:ring-lime-deep">
         <Sparkle size={18} weight="fill" className="shrink-0 text-lime-deep" />
         <input
           ref={inputRef}
           value={q}
           onChange={(ev) => setQ(ev.target.value)}
           enterKeyHint="search"
-          placeholder={t("what are you into? football, techno, a run club")}
+          placeholder={t("or ask: football, techno tonight, a run club")}
           className="min-w-0 flex-1 bg-transparent py-2 text-[15px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/55"
         />
         {search || q ? (
@@ -194,16 +209,6 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
           <button type="submit" aria-label={t("search")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-cream"><MagnifyingGlass size={15} weight="bold" /></button>
         )}
       </form>
-
-      {!search && (
-        <div className="no-scrollbar -mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4">
-          {TRY.map((x) => (
-            <button key={x} onClick={() => ask(t(x))} className="shrink-0 rounded-full border border-line bg-white/50 px-3 py-1.5 text-[12.5px] font-semibold text-ink-soft active:scale-95">
-              {t(x)}
-            </button>
-          ))}
-        </div>
-      )}
 
       {search?.loading && (
         <div className="mt-6 flex items-center gap-3 rounded-[1.3rem] bg-white/80 px-4 py-4">
@@ -232,16 +237,6 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {!search && kinds.length > 1 && (
-        <div className="no-scrollbar -mx-4 mt-5 flex gap-1.5 overflow-x-auto px-4">
-          {kinds.map(([k, emoji, label]) => (
-            <button key={k} onClick={() => { setKind(kind === k ? null : k); setShown(PAGE) }} className={`shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-bold ${kind === k ? "bg-ink text-cream" : "bg-white/60 text-ink-soft"}`}>
-              {emoji} {t(label)}
-            </button>
-          ))}
         </div>
       )}
 

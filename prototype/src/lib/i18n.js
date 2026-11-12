@@ -9,6 +9,7 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "what's on in": "qué hay en",
   "find your people": "encuentra tu gente",
   "what are you into? football, techno, a run club": "¿qué te gusta? fútbol, techno, un club de running",
+  "or ask: football, techno tonight, a run club": "o pregunta: fútbol, techno esta noche, un club de running",
   "techno tonight": "techno esta noche",
   "run club": "club de running",
   "dinner with new people": "cena con gente nueva",
