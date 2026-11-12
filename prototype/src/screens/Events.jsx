@@ -186,7 +186,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
               <button onClick={() => setOpen(null)} aria-label={t("close")} className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90"><X size={16} weight="bold" /></button>
               <div className="px-5 pt-4">
                 <p className="text-[12.5px] font-bold text-ink-soft">
-                  {dayLabel(dayKey(open.startsAt, tz), todayKey, tomorrowKey)} · {timeOf(open.startsAt, tz)}{open.endsAt ? `–${timeOf(open.endsAt, tz)}` : ""}{priceOf(open) ? ` · ${priceOf(open)}` : ""}
+                  {dayLabel(dayKey(open.startsAt, tz), todayKey, tomorrowKey)} · {timeOf(open.startsAt, tz)}{open.endsAt && timeOf(open.endsAt, tz) !== timeOf(open.startsAt, tz) ? `–${timeOf(open.endsAt, tz)}` : ""}{priceOf(open) ? ` · ${priceOf(open)}` : ""}
                 </p>
                 <h2 className="display mt-1 text-[26px] font-bold leading-tight">{open.title}</h2>
                 {open.host && <p className="mt-1 text-[13px] text-ink-soft">{t("by")} {open.host}</p>}

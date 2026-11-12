@@ -1100,7 +1100,9 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
               ? t("private · joined members only")
               : channel.startsWith("spot-")
                 ? t("everyone going tonight")
-                : t("everyone in town right now")}
+                : channel.startsWith("ev-")
+                  ? t("everyone from irlpass going")
+                  : t("everyone in town right now")}
           </p>
         </div>
       </div>

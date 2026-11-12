@@ -6,6 +6,7 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "everyone from irlpass going": "todos los de irlpass que van",
   "events": "eventos",
   "what's on": "qué hay",
   "tap i'm going and you're in the group chat with everyone from irlpass going.": "toca voy y entras al chat con todos los de irlpass que van.",
