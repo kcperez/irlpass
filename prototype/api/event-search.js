@@ -17,10 +17,10 @@ const DAYS = 14
 
 const SYSTEM = `you help people find things to do in a city through irlpass, an app for meeting people at events.
 you get the person's request and the list of events we already have for the next ${DAYS} days.
-1. pick the listed events that genuinely fit the request, best first. read intent generously: "football" in europe means soccer matches, watch parties and five-a-side; "party" includes club nights and raves; "running" includes run clubs and races.
+1. pick the listed events that genuinely fit the request, best first. read intent generously: "football" in europe means soccer matches, watch parties and five-a-side; "party" includes club nights, raves and live music; "food" includes wine and food festivals; "running" includes run clubs and races.
 2. if fewer than 3 listed events fit, use web search to find real, specific upcoming events in this city in the next ${DAYS} days that fit (official club fixtures, venue calendars, ticket sites). only include events with a confirmed date. never invent anything.
 3. answer with only this json, no prose around it:
-{"reply": "one short lowercase line for the person, no em dashes", "picks": [listed event ids, best first], "found": [{"title": "", "starts_at": "iso 8601 with timezone offset", "venue": "", "address": "", "url": "page you found it on"}]}`
+{"reply": "one short lowercase line for the person, no em dashes", "picks": [listed event ids, best first], "found": [{"title": "", "starts_at": "iso 8601 with timezone offset", "ends_at": "iso 8601 or null", "venue": "", "address": "", "url": "page you found it on"}]}`
 
 const pickJson = (text) => {
   const m = text.match(/\{[\s\S]*\}/)
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     .select("id, title, category, host, venue, starts_at")
     .eq("city", city)
     .eq("hidden", false)
-    .gte("starts_at", new Date(now - 3 * 3600e3).toISOString())
+    .or(`starts_at.gte.${new Date(now - 3 * 3600e3).toISOString()},ends_at.gte.${new Date(now).toISOString()}`)
     .lte("starts_at", new Date(now + DAYS * 864e5).toISOString())
     .order("starts_at")
     .limit(300)
@@ -79,7 +79,8 @@ export default async function handler(req, res) {
   const fresh = []
   for (const f of (out.found || []).slice(0, 6)) {
     const t = Date.parse(f.starts_at)
-    if (!f.title || !t || t < now - 3 * 3600e3 || t > now + DAYS * 864e5) continue
+    const end = Date.parse(f.ends_at || "") || t + 3 * 3600e3
+    if (!f.title || !t || end < now || t > now + DAYS * 864e5) continue
     if (!/^https?:\/\//.test(String(f.url || ""))) continue
     fresh.push({
       source: "web",
@@ -87,6 +88,7 @@ export default async function handler(req, res) {
       city,
       title: String(f.title).slice(0, 200),
       starts_at: new Date(t).toISOString(),
+      ends_at: Date.parse(f.ends_at || "") ? new Date(Date.parse(f.ends_at)).toISOString() : null,
       venue: f.venue ? String(f.venue).slice(0, 120) : null,
       address: f.address ? String(f.address).slice(0, 200) : null,
       url: String(f.url).slice(0, 500),

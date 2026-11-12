@@ -1,3 +1,5 @@
+import Anthropic from "@anthropic-ai/sdk"
+import crypto from "crypto"
 import { db } from "./_db.js"
 
 // the cities we seed every week. luma finds events by coordinates, eventbrite
@@ -17,9 +19,8 @@ const DAYS_AHEAD = 14
 const KINDS = [
   ["run", /\b(run|runs|running|5k|10k|half marathon|marathon|jog|run club|trot|corsa|carrera|correr)\b/i],
   ["wellness", /\b(yoga|pilates|wellness|meditat|breathwork|sound bath|sauna|cold plunge|fitness|workout|hike|hiking|matcha|retreat|yoga|bienestar|benessere)\b/i],
-  ["party", /\b(party|rave|dj|club night|techno|house music|afterparty|nightlife|disco|reggaeton|fiesta|rumba|festa|serata|bar crawl)\b/i],
-  ["music", /\b(concert|live music|jazz|band|festival|salsa|zouk|bachata|dance|concierto|concerto|musica|música)\b/i],
-  ["food", /\b(dinner|brunch|supper|tasting|wine|food|coffee|cocktail|degustazione|aperitivo|cena|pranzo|vino|cata|comida)\b/i],
+  ["party", /\b(party|rave|dj|club night|techno|house music|afterparty|nightlife|disco|reggaeton|fiesta|rumba|festa|serata|bar crawl|concert|live music|jazz|band|salsa|zouk|bachata|dance|concierto|concerto|musica|música|rooftop|karaoke)\b/i],
+  ["food", /\b(dinner|brunch|supper|tasting|wine|food|coffee|cocktail|degustazione|aperitivo|cena|pranzo|vino|vini|calice|sagra|cata|comida|street food)\b/i],
   ["art", /\b(art|gallery|exhibit|museum|film|cinema|theater|theatre|poetry|book|mostra|arte|cine|teatro|libro)\b/i],
   ["tech", /\b(ai|startup|founder|tech|hackathon|developer|web3|crypto|workshop|build day|claude|pitch)\b/i],
 ]
@@ -166,31 +167,112 @@ export async function residentAdvisor(c) {
   return out
 }
 
+const CATS = ["run", "wellness", "party", "food", "art", "social", "tech"]
+const ai = () => (process.env.ANTHROPIC_API_KEY ? new Anthropic() : null)
+const jsonIn = (text) => {
+  const m = String(text || "").match(/\{[\s\S]*\}/)
+  try { return m ? JSON.parse(m[0]) : null } catch { return null }
+}
+const textOf = (msg) => msg.content.filter((b) => b.type === "text").map((b) => b.text).join("\n")
+
+// keywords miss "in un calice" or "CLUB ROOFTOP": claude reads the titles and
+// sorts them. falls back to the keyword guess when it can't.
+export async function classify(rows) {
+  const client = ai()
+  if (!client || !rows.length) return
+  for (let i = 0; i < rows.length; i += 150) {
+    const chunk = rows.slice(i, i + 150)
+    try {
+      const msg = await client.messages.create({
+        model: "claude-opus-5-5",
+        max_tokens: 6000,
+        output_config: { effort: "low" },
+        system: `sort events into one category each: run (runs, races, run clubs), wellness (yoga, fitness, hikes, retreats), party (music of any kind: concerts, dj, clubs, rooftops, karaoke, dancing, nightlife), food (food and drink: wine, tastings, dinners, markets, sagre, aperitivo), art (art, film, theatre, books, culture, talks about culture), tech (startups, ai, business, networking for founders), social (meetups, games, quizzes, language exchanges, anything else social). titles may be in any language. answer with only json: {"<index>": "<category>"}`,
+        messages: [{ role: "user", content: chunk.map((e, j) => `${j} | ${e.title}${e.venue ? ` | ${e.venue}` : ""}${e.host ? ` | by ${e.host}` : ""}`).join("\n") }],
+      })
+      const out = jsonIn(textOf(msg)) || {}
+      chunk.forEach((e, j) => { if (CATS.includes(out[j])) e.category = out[j] })
+    } catch (err) {
+      console.error("classify failed:", err?.status, err?.message)
+    }
+  }
+}
+
+// the big stuff our feeds miss (a wine festival, the derby, a sagra): one web
+// search per city per day
+export async function discover(c, until) {
+  const client = ai()
+  if (!client) return []
+  const name = c.slug.replace(/-/g, " ")
+  try {
+    const msg = await client.messages.create({
+      model: "claude-opus-5-5",
+      max_tokens: 6000,
+      output_config: { effort: "low" },
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 4 }],
+      system: `you find real, notable public events in a city that a traveler would want to go to with new friends: festivals (food, wine, music, film), big concerts, club nights, markets, sports matches, races, cultural nights. search local-language sources too. only events with a confirmed date between today and ${new Date(until).toISOString().slice(0, 10)}, including multi-day events already running. never invent anything. answer with only json: {"events": [{"title": "", "starts_at": "iso 8601 with offset", "ends_at": "iso 8601 with offset or null", "venue": "", "address": "", "url": "page you found it on", "category": "${CATS.join("|")}"}]}`,
+      messages: [{ role: "user", content: `city: ${name}\ntoday: ${new Date().toISOString().slice(0, 10)}\nfind up to 15.` }],
+    })
+    const out = jsonIn(textOf(msg))
+    return (out?.events || []).filter((f) => f.title && Date.parse(f.starts_at) && /^https?:\/\//.test(String(f.url || ""))).map((f) => {
+      const starts = new Date(Date.parse(f.starts_at)).toISOString()
+      return {
+        source: "web",
+        source_id: crypto.createHash("sha1").update(`${c.slug}|${String(f.title).toLowerCase()}|${starts.slice(0, 10)}`).digest("hex").slice(0, 20),
+        city: c.slug,
+        title: String(f.title),
+        starts_at: starts,
+        ends_at: Date.parse(f.ends_at) ? new Date(Date.parse(f.ends_at)).toISOString() : null,
+        venue: f.venue ? String(f.venue).slice(0, 120) : null,
+        address: f.address ? String(f.address).slice(0, 200) : null,
+        lat: null, lng: null, cover: null,
+        url: String(f.url).slice(0, 500),
+        price_cents: null, currency: null, is_free: null, guests: null, host: null,
+        forceKind: CATS.includes(f.category) ? f.category : null,
+      }
+    })
+  } catch (err) {
+    console.error("discover failed:", c.slug, err?.status, err?.message)
+    return []
+  }
+}
+
+// still on: started already but hasn't ended (a 3-day festival on day 2)
+const live = (e, now) => {
+  const t = Date.parse(e.starts_at)
+  const end = Date.parse(e.ends_at || "") || t + 3 * 3600e3
+  return end >= now
+}
+
 // pull every source for every city, keep the next two weeks of real nights out
 export async function seedEvents() {
   const now = Date.now()
   const until = now + DAYS_AHEAD * 864e5
   const report = {}
-  for (const c of EVENT_CITIES) {
-    const got = (await Promise.all([luma(c).catch(() => []), eventbrite(c).catch(() => []), residentAdvisor(c).catch(() => [])])).flat()
+  // the web searches are the slow part: run every city's at once
+  const found = await Promise.all(EVENT_CITIES.map((c) => discover(c, until)))
+  for (const [ci, c] of EVENT_CITIES.entries()) {
+    const got = [...found[ci], ...(await Promise.all([luma(c).catch(() => []), eventbrite(c).catch(() => []), residentAdvisor(c).catch(() => [])])).flat()]
     const keep = []
     const seen = new Set()
     for (const e of got) {
       const t = Date.parse(e.starts_at)
-      if (!e.title || !t || t < now - 3 * 3600e3 || t > until) continue
+      if (!e.title || !t || !live(e, now) || t > until) continue
       if (SKIP.test(e.title)) continue
       // the same night listed twice (luma and eventbrite) is one event
       const key = `${String(e.title).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40)}|${e.starts_at.slice(0, 10)}`
       if (seen.has(key)) continue
       seen.add(key)
       const { forceKind, ...row } = e
-      keep.push({ ...row, title: String(e.title).slice(0, 200), category: forceKind || kindOf(e.title, e.host || ""), updated_at: new Date().toISOString() })
+      keep.push({ ...row, title: String(e.title).slice(0, 200), category: forceKind || kindOf(e.title, `${e.host || ""} ${e.venue || ""}`), updated_at: new Date().toISOString(), _ai: !forceKind })
     }
+    await classify(keep.filter((e) => e._ai))
+    for (const e of keep) delete e._ai
     for (let i = 0; i < keep.length; i += 100) {
       const { error } = await db.from("events").upsert(keep.slice(i, i + 100), { onConflict: "source,source_id" })
       if (error) throw error
     }
-    report[c.slug] = { found: got.length, listed: keep.length }
+    report[c.slug] = { found: got.length, web: found[ci].length, listed: keep.length }
   }
   return report
 }

@@ -11,9 +11,8 @@ import CityNow from "../components/CityNow"
 const KINDS = [
   ["run", "🏃", "run"],
   ["wellness", "🧘", "wellness"],
-  ["party", "🪩", "party"],
-  ["music", "🎶", "music"],
-  ["food", "🍝", "food"],
+  ["party", "🪩", "music & party"],
+  ["food", "🍷", "food & drink"],
   ["art", "🎨", "art"],
   ["social", "💬", "social"],
   ["tech", "💻", "tech"],
@@ -127,7 +126,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     if (search?.ids) return [{ key: "results", items: visible }]
     const g = []
     for (const e of visible) {
-      const k = dayKey(e.startsAt, tz)
+      const k = dayKey(new Date(Math.max(Date.parse(e.startsAt), Date.now())).toISOString(), tz)
       if (!g.length || g[g.length - 1].key !== k) g.push({ key: k, items: [] })
       g[g.length - 1].items.push(e)
     }

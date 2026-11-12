@@ -36,7 +36,7 @@ async function withGoing(rows, me) {
       priceCents: e.price_cents,
       currency: e.currency,
       isFree: e.is_free,
-      category: e.category,
+      category: e.category === "music" ? "party" : e.category,
       host: e.host,
       featured: e.featured,
       claimed: !!e.claimed_by,
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         .select("*")
         .eq("city", city)
         .eq("hidden", false)
-        .gte("starts_at", from)
+        .or(`starts_at.gte.${from},ends_at.gte.${new Date().toISOString()}`)
         .lte("starts_at", to)
         .order("featured", { ascending: false })
         .order("starts_at")
