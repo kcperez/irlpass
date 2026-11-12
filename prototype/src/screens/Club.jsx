@@ -14,6 +14,7 @@ import {
   CheckCircle,
   SignOut,
   PushPin,
+  Ticket,
 } from "@phosphor-icons/react"
 import QRCode from "qrcode"
 import { Logo } from "../components/bits"
@@ -21,6 +22,7 @@ import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
 import Mood from "./Mood"
+import Events from "./Events"
 import PersonSheet from "../components/PersonSheet"
 import World from "../components/World"
 import WhatsNew, { WHATS_NEW } from "../components/WhatsNew"
@@ -892,7 +894,7 @@ function WithMentions({ text }) {
 // @[name](s12) in the message, which renders as a tappable spot chip.
 // a city's own room is named after the city ("miami"); spot rooms, group
 // chats and plan threads have their own prefixes
-const isCityChannel = (c) => /^[a-z][a-z0-9-]+$/.test(String(c || "")) && !/^(spot|g|run)-/.test(c)
+const isCityChannel = (c) => /^[a-z][a-z0-9-]+$/.test(String(c || "")) && !/^(spot|g|run|ev)-/.test(c)
 const spotCaches = {}
 function SpotSuggest({ token, text, setText, city = "medellin" }) {
   const [spots, setSpots] = useState(spotCaches[city] || [])
@@ -2135,8 +2137,8 @@ export default function Club({ token }) {
   const [tab, setTab] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("dm")) return "dms"
-    const wanted = { chat: "dms", people: "members", dates: "trips", mood: "mood" }[p.get("tab")]
-    return wanted || "trips"
+    const wanted = { chat: "dms", people: "members", dates: "trips", mood: "mood", events: "events" }[p.get("tab")]
+    return wanted || "events"
   })
   const [activeChat, setActiveChat] = useState(null)
   const [dmWith, setDmWith] = useState(() => {
@@ -2433,13 +2435,15 @@ export default function Club({ token }) {
 
   // josh's order: dates and chat together, tonight's mood next to people
   // josh's funnel order: the two discovery tabs lead, chat is the pipe, mood is lightest
+  // events first (nov 12): what's on leads, everything else follows from going
   const TABS = [
+    { key: "events", label: t("events"), icon: Ticket },
     { key: "trips", label: t("dates"), icon: CalendarPlus },
     { key: "members", label: t("people"), icon: UsersThree },
     { key: "dms", label: t("chat"), icon: ChatsCircle },
     { key: "mood", label: t("mood"), icon: Sparkle },
   ]
-  const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || (tab === "mood" && spotRoom) || cityRoom
+  const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || ((tab === "mood" || tab === "events") && spotRoom) || cityRoom
 
   return (
     <SpotLink.Provider value={(id) => { setCityRoom(null); setSpotRoom(null); setDmWith(null); setActiveChat(null); setFocusSpot(id); setTab("mood") }}>
@@ -2485,8 +2489,9 @@ export default function Club({ token }) {
             onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
         )}
+        {!cityRoom && tab === "events" && !spotRoom && <Events token={token} me={me} city={me.city} onOpenRoom={setSpotRoom} onCityMoved={() => fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {})} />}
         {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={planCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => { setPlanWith(null); setPlanCity(null) }} onCityMoved={() => { setPlanCity(null); setPlanWith(null); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onPaywall={setPaywall} />}
-        {!cityRoom && tab === "mood" && spotRoom && (
+        {!cityRoom && (tab === "mood" || tab === "events") && spotRoom && (
           <Thread
             token={token}
             me={me}

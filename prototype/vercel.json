@@ -41,6 +41,10 @@
     {
       "path": "/api/cron-warm",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron-events",
+      "schedule": "0 9 * * *"
     }
   ],
   "fluid": true

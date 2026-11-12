@@ -79,6 +79,17 @@ export default async function handler(req, res) {
           const reach = await canReach(me, "medellin", `${spotRoom[2]}-${spotRoom[3]}-${spotRoom[4]}`, `${spotRoom[2]}-${spotRoom[3]}-${spotRoom[4]}`)
           if (!reach.ok) return res.status(402).json({ error: "your message is ready. start your free month to deliver it.", gate: "deliver" })
         }
+        // an event's chat (ev-<id>) is for people who tapped going
+        else if (/^ev-\d+$/.test(channel)) {
+          if (!actsAsMod(me)) {
+            const { count } = await db
+              .from("event_going")
+              .select("event_id", { count: "exact", head: true })
+              .eq("event_id", Number(channel.slice(3)))
+              .eq("member_no", me.memberNo)
+            if (!count) return res.status(402).json({ error: "tap going to write here", gate: "going" })
+          }
+        }
         // a city room is for people who are actually going to be there, or who
         // hold the pass (every city's chat is part of it)
         else if (!actsAsMod(me) && !me.paid && !hasComp(me) && /^[a-z0-9][a-z0-9-]{1,39}$/.test(channel) && !/^[a-f0-9]{16}$/.test(channel)) {
