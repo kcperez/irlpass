@@ -2150,7 +2150,10 @@ export default function Club({ token }) {
   const [unlockRequest, setUnlockRequest] = useState(0)
   const [closeSheets, setCloseSheets] = useState(0)
   const [postCity, setPostCity] = useState(null)
-  const [viewCity, setViewCity] = useState(null) // the city you last added or opened
+  const [viewCity, setViewCity] = useState(null) // the city you last added or opened (people tab)
+  // mood is about where you are tonight. it only leaves your city while you're
+  // making a plan somewhere else, and snaps back once you leave the tab.
+  const [planCity, setPlanCity] = useState(null)
   const [unreadTotal, setUnreadTotal] = useState(0)
   const [vibesOpen, setVibesOpen] = useState(false)
   const [spotRoom, setSpotRoom] = useState(null) // { channel, title } of a spot's room tonight
@@ -2161,7 +2164,7 @@ export default function Club({ token }) {
   const [planWith, setPlanWith] = useState(null) // { memberNo, first, photo, nights }
   const makePlan = (p, nights = null, city = null) => {
     // every city has a guide now (josh v5): the plan opens that city's board
-    if (city) setViewCity(city)
+    if (city) { setViewCity(city); setPlanCity(city) }
     setPersonNo(null)
     setDmWith(null)
     setCityRoom(null)
@@ -2170,6 +2173,7 @@ export default function Club({ token }) {
     if (p.out?.spotId) setFocusSpot(p.out.spotId)
     setTab("mood")
   }
+  useEffect(() => { if (tab !== "mood") setPlanCity(null) }, [tab])
   const [dmReturn, setDmReturn] = useState(null) // the tab "say hi" was tapped on, so back goes there
   const [personNo, setPersonNo] = useState(null) // whose profile is open
   const [hostOpen, setHostOpen] = useState(false)
@@ -2481,7 +2485,7 @@ export default function Club({ token }) {
             onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
         )}
-        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={viewCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => setPlanWith(null)} onPaywall={setPaywall} />}
+        {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={planCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => { setPlanWith(null); setPlanCity(null) }} onPaywall={setPaywall} />}
         {!cityRoom && tab === "mood" && spotRoom && (
           <Thread
             token={token}

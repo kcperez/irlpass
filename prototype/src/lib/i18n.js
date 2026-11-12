@@ -6,6 +6,13 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "meet people tonight, wherever you are": "conoce gente esta noche, donde sea que estés",
+  "what's good near me": "qué hay bueno cerca",
+  "say your mood. three spots open right now, and who from irlpass is already there.": "dinos tu mood. tres lugares abiertos ahora, y quién de irlpass ya está ahí.",
+  "never go out alone": "nunca salgas solo",
+  "pick a spot and a night. a group chat forms and the people you like get invited.": "elige un lugar y una noche. se forma un chat de grupo y la gente que te cae bien recibe la invitación.",
+  "keep the people you meet": "no pierdas a la gente que conoces",
+  "everyone you've hung out with, stamped by city, and where they're headed next.": "todos con quien saliste, con sello de cada ciudad, y a dónde van después.",
   "post your dates for this city to see who you'd overlap with.": "pon tus fechas para esta ciudad y mira con quién coincides.",
   "here now": "aquí ahora",
   "there right now": "ahí ahora mismo",

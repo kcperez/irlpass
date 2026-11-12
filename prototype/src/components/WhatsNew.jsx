@@ -6,10 +6,9 @@ import { t } from "../lib/i18n"
 export const WHATS_NEW = "whatsnew-2026-10b"
 
 const ITEMS = [
-  { key: "now", emoji: "🎲", title: "what should i do right now?", body: "say how you feel. three picks open near you, with who from irlpass is going." },
-  { key: "mood", emoji: "🔥", title: "make a plan", body: "pick a spot and a night. a group chat forms and the people you want get asked along." },
-  { key: "profile", emoji: "🛂", title: "your connections", body: "everyone you've met or gone out with on irlpass, with stamps for the cities you shared." },
-  { key: "world", emoji: "🌍", title: "travel map", body: "see where the people you've met are headed next, and who's already there." },
+  { key: "now", emoji: "📍", title: "what's good near me", body: "say your mood. three spots open right now, and who from irlpass is already there." },
+  { key: "mood", emoji: "🔥", title: "never go out alone", body: "pick a spot and a night. a group chat forms and the people you like get invited." },
+  { key: "profile", emoji: "🛂", title: "keep the people you meet", body: "everyone you've hung out with, stamped by city, and where they're headed next." },
 ]
 
 export default function WhatsNew({ onGo, onClose }) {
@@ -25,7 +24,7 @@ export default function WhatsNew({ onGo, onClose }) {
       >
         <div className="mx-auto h-1.5 w-11 rounded-full bg-line" />
         <p className="mt-4 text-[12px] text-ink-soft font-semibold">{t("new on irlpass")}</p>
-        <h2 className="display text-[28px] font-bold leading-tight">{t("your trip, planned in a tap")}</h2>
+        <h2 className="display text-[28px] font-bold leading-tight">{t("meet people tonight, wherever you are")}</h2>
         <div className="mt-4 space-y-2">
           {ITEMS.map((it, i) => (
             <motion.button
