@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import crypto from "crypto"
 import { db } from "./_db.js"
 import { getUser } from "./_lib.js"
-import { kindOf } from "./_events.js"
+import { kindOf, sourcesFor } from "./_events.js"
 import { cityLabel } from "./_cities.js"
 
 // "football", "techno tonight", "a run club this weekend": claude reads what we
@@ -56,10 +56,10 @@ export default async function handler(req, res) {
       max_tokens: 4000,
       output_config: { effort: "low" },
       system: SYSTEM,
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 4 }],
       messages: [{
         role: "user",
-        content: `city: ${place}\ntoday: ${new Date().toISOString().slice(0, 10)}\nrequest: ${q}\n\nlisted events (id | starts | kind | title):\n${listed || "(none yet)"}`,
+        content: `city: ${place}\n${sourcesFor(city)}\ntoday: ${new Date().toISOString().slice(0, 10)}\nrequest: ${q}\n\nlisted events (id | starts | kind | title):\n${listed || "(none yet)"}`,
       }],
     })
     if (msg.stop_reason === "refusal") return res.status(200).json({ reply: "can't help with that one. try something else.", ids: [] })

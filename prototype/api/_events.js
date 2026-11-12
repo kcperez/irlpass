@@ -4,6 +4,42 @@ import { db } from "./_db.js"
 
 // the cities we seed every week. luma finds events by coordinates, eventbrite
 // by its own city path.
+// where locals actually look. the daily web search and the ask bar start here
+// before going wide. add to these as we learn a city.
+export const CITY_SOURCES = {
+  palermo: {
+    lang: "italian",
+    sites: ["balarm.it (palermo's what's on)", "palermotoday.it/eventi", "eventiesagre.it and sagritaly.com (sagre, wine and food festivals in sicily)", "ticketone.it", "teatromassimo.it", "comune.palermo.it", "palermofc.com (home matches at the renzo barbera)", "dice.fm", "ra.co"],
+    ideas: "sagre, wine and food festivals (vino, degustazioni, cantine), palermo fc home matches, teatro massimo, live music at the politeama, club nights and rooftops, street food tours are not events",
+  },
+  medellin: {
+    lang: "spanish",
+    sites: ["medellin.travel and medellin.gov.co (agenda cultural)", "tuboleta.com", "eticketablanca.com", "plazamayor.com.co", "dimayor.com.co (atlético nacional and independiente medellín home matches at the atanasio girardot)", "dice.fm", "ra.co", "instagram pages of el poblado and laureles venues"],
+    ideas: "nacional or DIM matches, reggaeton and techno nights, salsa nights, ferias and festivals, run clubs, language exchanges",
+  },
+  miami: {
+    lang: "english and spanish",
+    sites: ["miaminewtimes.com (events)", "timeout.com/miami", "dice.fm", "ra.co", "ticketmaster.com", "seetickets.us", "inter miami and heat home schedules"],
+    ideas: "art basel and satellite fairs in december, inter miami and heat home games, club nights, run clubs, food and wine festivals",
+  },
+  "new-york": {
+    lang: "english",
+    sites: ["timeout.com/newyork", "theskint.com (cheap and free)", "nonsensenyc.com", "ohmyrockness.com", "dice.fm", "ra.co", "ticketmaster.com"],
+    ideas: "concerts, club nights, comedy, gallery openings, run clubs, food festivals, knicks, nets, yankees, mets and nycfc home games",
+  },
+  "los-angeles": {
+    lang: "english and spanish",
+    sites: ["timeout.com/los-angeles", "laweekly.com", "discoverla.com", "dice.fm", "ra.co", "ticketmaster.com"],
+    ideas: "concerts, club nights, comedy, gallery openings, run clubs, food festivals, lakers, dodgers, lafc and galaxy home games",
+  },
+}
+export const sourcesFor = (slug) => {
+  const s = CITY_SOURCES[slug]
+  return s
+    ? `where to look in this city (search in ${s.lang} too): ${s.sites.join("; ")}. what's usually worth finding here: ${s.ideas}.`
+    : "where to look: the city's main local news site's what's on page, the tourism board's agenda, local ticketing sites, festival and food event aggregators, club and stadium fixtures, dice.fm and ra.co. search in the local language too."
+}
+
 export const EVENT_CITIES = [
   { slug: "miami", lat: 25.7617, lng: -80.1918, eb: "fl--miami", ra: 38, tz: "America/New_York" },
   { slug: "new-york", lat: 40.7128, lng: -74.006, eb: "ny--new-york", ra: 8, tz: "America/New_York" },
@@ -209,8 +245,9 @@ export async function discover(c, until) {
       model: "claude-opus-5-5",
       max_tokens: 6000,
       output_config: { effort: "low" },
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 4 }],
-      system: `you find real, notable public events in a city that a traveler would want to go to with new friends: festivals (food, wine, music, film), big concerts, club nights, markets, sports matches, races, cultural nights. search local-language sources too. only events with a confirmed date between today and ${new Date(until).toISOString().slice(0, 10)}, including multi-day events already running. never invent anything. answer with only json: {"events": [{"title": "", "starts_at": "iso 8601 with offset", "ends_at": "iso 8601 with offset or null", "venue": "", "address": "", "url": "page you found it on", "category": "${CATS.join("|")}"}]}`,
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 6 }],
+      system: `you find real, notable public events in a city that a traveler would want to go to with new friends: festivals (food, wine, music, film), big concerts, club nights, markets, sports matches, races, cultural nights.
+${sourcesFor(c.slug)} only events with a confirmed date between today and ${new Date(until).toISOString().slice(0, 10)}, including multi-day events already running. never invent anything. answer with only json: {"events": [{"title": "", "starts_at": "iso 8601 with offset", "ends_at": "iso 8601 with offset or null", "venue": "", "address": "", "url": "page you found it on", "category": "${CATS.join("|")}"}]}`,
       messages: [{ role: "user", content: `city: ${name}\ntoday: ${new Date().toISOString().slice(0, 10)}\nfind up to 15.` }],
     })
     const out = jsonIn(textOf(msg))
