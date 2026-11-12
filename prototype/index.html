@@ -11,7 +11,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#f7f3ed" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- an iphone home-screen app gets its own empty storage, so the install
+         carries the member's token in start_url. otherwise opening the new icon
+         logs you out. -->
+    <script>
+      (function () {
+        var t = null
+        try { t = new URLSearchParams(location.search).get("t") || localStorage.getItem("irlpass_member_token") } catch (e) {}
+        var l = document.createElement("link")
+        l.rel = "manifest"
+        l.href = t && /^[A-Za-z0-9]{16,64}$/.test(t) ? "/api/manifest?t=" + t : "/manifest.webmanifest"
+        document.head.appendChild(l)
+      })()
+    </script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>irlpass — never travel alone</title>
     <meta name="description" content="post the dates you'll be in a city, see every traveler whose trip overlaps yours, say hi." />
