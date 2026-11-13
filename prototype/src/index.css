@@ -63,6 +63,12 @@ textarea {
     --app-h: 94dvh;
   }
 }
+@media (min-width: 1024px) {
+  /* a real desktop layout from here up: the app fills the window again */
+  .desk-app {
+    --app-h: 100dvh;
+  }
+}
 
 /* paper grain over everything, fixed so it never repaints on scroll */
 .grain::after {

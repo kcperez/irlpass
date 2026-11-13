@@ -520,7 +520,7 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
 // from real places, pinned to the city the plan is being created in)
 function TopBar({ me, onProfile, dot }) {
   return (
-    <header className={`sticky top-0 z-10 flex items-center justify-between border-b border-line/70 bg-cream/95 px-5 pb-3 backdrop-blur ${me?.isMod ? "pt-3" : "pt-[max(1rem,env(safe-area-inset-top))] md:pt-12"}`}>
+    <header className={`sticky top-0 z-10 flex items-center justify-between border-b border-line/70 bg-cream/95 px-5 pb-3 backdrop-blur lg:hidden ${me?.isMod ? "pt-3" : "pt-[max(1rem,env(safe-area-inset-top))] md:pt-12"}`}>
       <Logo h="h-9" />
       <button
         onClick={onProfile}
@@ -2480,7 +2480,36 @@ export default function Club({ token }) {
   return (
     <SpotLink.Provider value={(id) => { setCityRoom(null); setSpotRoom(null); setDmWith(null); setActiveChat(null); setFocusSpot(id); setTab("mood") }}>
     <MotionConfig reducedMotion="user">
-    <div className="relative flex h-[var(--app-h)] flex-col">
+    <div className="relative flex h-[var(--app-h)] flex-col lg:pl-[236px]">
+      {/* on a computer: the tabs live in a sidebar, the bottom bar goes away */}
+      <aside className={`fixed inset-y-0 left-0 z-30 hidden w-[236px] flex-col border-r px-4 py-6 lg:flex ${tab === "events" ? "border-white/10 bg-[#15110f] text-white" : "border-line/70 bg-cream text-ink"}`}>
+        <span className={`px-3 ${tab === "events" ? "[&_img]:invert" : ""}`}><Logo h="h-9" /></span>
+        <nav className="mt-8 flex flex-col gap-1">
+          {TABS.map((tb) => {
+            const on = tab === tb.key
+            const dark = tab === "events"
+            return (
+              <button key={tb.key} onClick={() => { if (tb.key === "mood") clearMoodNew(); setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }}
+                className={`relative flex items-center gap-3 rounded-full px-3.5 py-2.5 text-left text-[15px] font-bold transition-colors ${on ? (dark ? "bg-white text-ink" : "bg-ink text-cream") : dark ? "text-white/65 hover:bg-white/10 hover:text-white" : "text-ink-soft hover:bg-ink/5 hover:text-ink"}`}>
+                <span className="relative">
+                  <tb.icon size={21} weight={on ? "fill" : "regular"} />
+                  {tb.key === "mood" && moodNew && !on && <NewDot className="-right-1 -top-0.5" />}
+                  {tb.key === "dms" && unreadTotal > 0 && <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#c4453d]" />}
+                </span>
+                {tb.label}
+              </button>
+            )
+          })}
+        </nav>
+        <span className="flex-1" />
+        <button onClick={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} className={`flex items-center gap-2.5 rounded-full p-1.5 pr-3 text-left ${tab === "events" ? "hover:bg-white/10" : "hover:bg-ink/5"}`}>
+          <span className="relative"><Avatar member={me} photo={me.photo} size="h-9 w-9 text-[14px]" />{profileNew && <NewDot className="-right-0.5 -top-0.5" />}</span>
+          <span className="min-w-0">
+            <span className="block truncate text-[14px] font-bold">{String(me.name || "").split(/\s+/)[0].toLowerCase() || t("you")}</span>
+            <span className={`block text-[12px] ${tab === "events" ? "text-white/50" : "text-ink-soft"}`}>nº {me.memberNo}</span>
+          </span>
+        </button>
+      </aside>
       <ModeStrip token={token} me={me} />
       {!inThread && tab !== "events" && <TopBar me={me} dot={profileNew} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <motion.div
@@ -2488,7 +2517,7 @@ export default function Club({ token }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab !== "events" ? "lg:mx-auto lg:w-full lg:max-w-[680px]" : ""}`}
       >
         {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => { setViewCity(c); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} onPaywall={setPaywall} onJoinTrip={(p, nights, city) => makePlan(p, nights, city)} onPostCityUsed={() => setPostCity(null)} />}
         {!cityRoom && tab === "members" && (
@@ -2658,7 +2687,7 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       {!inThread && (
-        <nav className={`z-10 px-3 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 ${tab === "events" ? "bg-[#15110f]" : "bg-cream"}`}>
+        <nav className={`z-10 px-3 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 lg:hidden ${tab === "events" ? "bg-[#15110f]" : "bg-cream"}`}>
           {/* one frosted capsule, like a pass in your pocket */}
           <div className={`mx-auto flex max-w-[440px] rounded-full p-1 backdrop-blur-xl ${tab === "events" ? "border border-white/15 bg-white/10" : "border border-white/80 bg-white/70 shadow-[0_10px_30px_-14px_rgba(58,50,44,0.35)]"}`}>
             {TABS.map((tb) => {

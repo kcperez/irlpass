@@ -171,9 +171,63 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
   )
 }
 
+// a computer gets a browsable grid; a phone gets the one-at-a-time feed
+function useDesktop() {
+  const q = "(min-width: 1024px)"
+  const [desk, setDesk] = useState(() => typeof window !== "undefined" && window.matchMedia(q).matches)
+  useEffect(() => {
+    const m = window.matchMedia(q)
+    const on = () => setDesk(m.matches)
+    m.addEventListener("change", on)
+    return () => m.removeEventListener("change", on)
+  }, [])
+  return desk
+}
+
+function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, onChat }) {
+  const [broken, setBroken] = useState(false)
+  const img = e.cover && !broken ? e.cover : null
+  const [a, b] = MOOD[e.category] || MOOD.social
+  const day = dayKey(new Date(Math.max(Date.parse(e.startsAt), Date.now())).toISOString(), tz)
+  return (
+    <motion.article layout initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      className="group flex flex-col overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.05] text-white transition-colors hover:bg-white/[0.08]">
+      <button onClick={() => onOpen(e)} className="relative block aspect-square overflow-hidden" style={{ background: `radial-gradient(80% 70% at 30% 20%, ${b}66, transparent 70%), ${a}` }}>
+        {img ? (
+          <img src={img} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-[72px]">{kindEmoji(e.category)}</span>
+        )}
+        {alt && <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
+        {e.perk && <span className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/40 px-2.5 py-1 text-[11.5px] font-bold backdrop-blur-md">🎁 {e.perk.item}</span>}
+      </button>
+      <div className="flex flex-1 flex-col p-4">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[e.category] || "#ddd0f6" }} />
+          {dayLabel(day, todayKey, tomorrowKey)} · {timeOf(e.startsAt, tz)}{priceOf(e) ? ` · ${priceOf(e)}` : ""}
+        </span>
+        <button onClick={() => onOpen(e)} className="mt-2 text-left">
+          <span className="serif-display line-clamp-2 block text-[24px] leading-[1.05]">{e.title}</span>
+          {(e.venue || e.host) && <span className="mt-1 block truncate text-[13px] text-white/55">{e.venue || e.host}</span>}
+        </button>
+        <span className="flex-1" />
+        <div className="mt-3 flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-white/60">{e.goingCount ? `${e.goingCount} ${t("going")}` : t("go first, the chat is yours")}</span>
+          <motion.button whileTap={{ scale: 0.96 }} disabled={busy || (!e.going && e.spotsLeft === 0)} onClick={() => (e.going ? onChat(e) : onToggle(e))}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold ${e.going ? "bg-lime text-ink" : "bg-white text-ink"}`}>
+            {busy ? <CircleNotch size={14} className="animate-spin" /> : e.going ? <ChatsCircle size={15} weight="fill" /> : null}
+            {e.going ? t("chat") : e.hosted && e.priceCents ? t("get a ticket") : t("i'm going")}
+          </motion.button>
+        </div>
+      </div>
+    </motion.article>
+  )
+}
+
 export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMoved, onProfile, profileDot }) {
   const city = cityProp || me?.city || "medellin"
   const tz = TZ[city]
+  const desk = useDesktop()
   const [data, setData] = useState(null)
   const [kind, setKind] = useState(() => { try { return localStorage.getItem("ev-kind") } catch { return null } })
   const [open, setOpen] = useState(null)
@@ -330,6 +384,72 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
       <HostEvent token={token} city={city} open={hostOpen} onClose={() => setHostOpen(false)} onCreated={async (id) => { setHostOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
 
+      {desk && (
+        <div className="no-scrollbar absolute inset-0 overflow-y-auto">
+          <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(40% 40% at 20% 0%, rgba(221,208,246,.14), transparent 70%), radial-gradient(40% 40% at 90% 10%, rgba(248,217,198,.10), transparent 70%)" }} />
+          <div className="relative mx-auto max-w-[1180px] px-8 pb-16 pt-8 text-white">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setWhereOpen(true)} className="serif-display flex items-center gap-2 text-[44px] leading-none">
+                {t("what's on in")} <span className="italic text-[#ddd0f6]">{String(cityChip(city).name || city).toLowerCase()}</span> <CaretDown size={18} weight="bold" className="mt-2 opacity-50" />
+              </button>
+              <span className="flex-1" />
+              {mine.length > 0 && (
+                <button onClick={() => setPlansOpen((x) => !x)} className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-[14px] font-bold ${glass}`}>
+                  <ChatsCircle size={17} weight="fill" /> {t("your plans")} <span className="rounded-full bg-lime px-1.5 text-[11px] text-ink">{mine.length}</span>
+                </button>
+              )}
+              <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[14px] font-bold text-ink"><Plus size={16} weight="bold" /> {t("add an event")}</button>
+            </div>
+            <AnimatePresence>
+              {plansOpen && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="mt-4 flex flex-wrap gap-2">
+                  {mine.map((e) => (
+                    <button key={e.id} onClick={() => chat(e)} className={`flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-[13.5px] font-bold ${glass}`}>
+                      <Thumb e={e} className="h-8 w-8 rounded-full" /> <span className="max-w-[220px] truncate">{e.title}</span> <ChatsCircle size={15} weight="fill" />
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <form onSubmit={(ev) => { ev.preventDefault(); ask() }} className={`mt-6 flex items-center gap-3 rounded-full py-1.5 pl-5 pr-1.5 ${glass}`}>
+              <Sparkle size={18} weight="fill" className="shrink-0" />
+              <input value={q} onChange={(ev) => setQ(ev.target.value)} placeholder={t("ask for anything: football, techno tonight, a run club")} className="min-w-0 flex-1 bg-transparent py-2 text-[16px] font-semibold text-white outline-none placeholder:text-white/45" />
+              {search && <button type="button" onClick={clear} aria-label={t("clear")} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><X size={15} weight="bold" /></button>}
+              <button className="rounded-full bg-white px-5 py-2.5 text-[14px] font-bold text-ink">{t("ask")}</button>
+            </form>
+
+            {!search && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {order.map((k) => (
+                  <button key={k || "all"} onClick={() => pickKind(k)} className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-bold transition-colors ${kindOn === k ? "border-white bg-white text-ink" : "border-white/15 bg-white/[0.04] text-white/80 hover:bg-white/10"}`}>
+                    {kindName(k)} <span className="text-[12px] opacity-50">{countOf(k)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {search?.reply && <p className="serif-display mt-6 text-[26px] leading-tight">{search.reply}</p>}
+            {search?.error && <p className="mt-6 text-[15px] font-semibold text-[#ff8a7a]">{search.error}</p>}
+
+            {search?.loading ? (
+              <div className="flex flex-col items-center gap-3 py-24 text-center">
+                <CircleNotch size={24} className="animate-spin text-white/60" />
+                <p className="serif-display text-[26px]">{t("looking around")} {String(cityChip(city).name || city).toLowerCase()} {t("for")} “{search.q}”</p>
+              </div>
+            ) : (
+              <div className="mt-7 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5">
+                {feed.map((e) => (
+                  <GridCard key={e.id} e={e} tz={tz} alt={isNear(e.id) ? search.q : ""} todayKey={todayKey} tomorrowKey={tomorrowKey}
+                    busy={busy === e.id} onOpen={setOpen} onToggle={toggle} onChat={chat} />
+                ))}
+              </div>
+            )}
+            {data && !search?.loading && !feed.length && <p className="serif-display py-20 text-center text-[30px]">{t("nothing here yet")}</p>}
+          </div>
+        </div>
+      )}
+
+      {!desk && <>
       <motion.div
         key={`${kindOn || "all"}-${search?.q || ""}`}
         ref={feedRef}
@@ -438,8 +558,10 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
         </div>
       )}
 
+      </>}
+
       <AnimatePresence>
-        {flash && (
+        {flash && !desk && (
           <motion.p key={flash} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center">
             <span className="display inline-block rounded-full bg-white px-5 py-2.5 text-[22px] text-ink shadow-2xl">{flash}</span>
           </motion.p>
