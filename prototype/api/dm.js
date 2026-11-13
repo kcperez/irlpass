@@ -25,6 +25,14 @@ async function shareActivity(aNo, bNo) {
   return !!(data && data.length)
 }
 
+// chats you deleted, kept on your account (not per device): a chat stays gone
+// until there's a message newer than when you deleted it
+const hiddenKey = (no) => `hidden-chats:${no}`
+async function hiddenOf(no) {
+  const { data } = await db.from("app_settings").select("value").eq("key", hiddenKey(no)).maybeSingle()
+  try { return JSON.parse(data?.value || "{}") } catch { return {} }
+}
+
 const lite = (m) => m && { name: m.name, ig: m.ig, memberNo: m.memberNo, photo: m.photo, verified: m.verified, repScore: m.repScore }
 
 // GET  ?t=                 -> my threads (latest first)
@@ -65,10 +73,13 @@ export default async function handler(req, res) {
           if (m.from_no !== me.memberNo && !m.read_at) unreadOf.set(m.thread_id, (unreadOf.get(m.thread_id) || 0) + 1)
         }
         const out = []
+        const hidden = await hiddenOf(me.memberNo)
         for (const th of threads || []) {
           const other = byNo.get(th.a_no === me.memberNo ? th.b_no : th.a_no)
           if (!other || other.banned) continue
           const last = lastOf.get(th.id)
+          const gone = hidden[other.memberNo]
+          if (gone && Date.parse(last?.created_at || th.last_at) <= Date.parse(gone)) continue
           out.push({
             with: lite(other),
             last: last?.deleted ? "" : last?.body || "",
@@ -118,6 +129,17 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       const { to, text, action } = req.body || {}
+
+      // delete a chat from your list, on every device
+      if (action === "hide") {
+        const withNo = String(req.body?.with || "")
+        if (!/^\d{3}$/.test(withNo)) return res.status(400).json({ error: "who?" })
+        const hidden = await hiddenOf(me.memberNo)
+        const at = Date.parse(req.body?.at || "") ? new Date(req.body.at).toISOString() : new Date().toISOString()
+        if (!hidden[withNo] || at > hidden[withNo]) hidden[withNo] = at
+        await db.from("app_settings").upsert({ key: hiddenKey(me.memberNo), value: JSON.stringify(hidden) })
+        return res.status(200).json({ ok: true })
+      }
 
       // react / edit / delete one message in a thread you're in
       if (action === "react" || action === "edit" || action === "delete") {

@@ -1512,6 +1512,15 @@ function DeniedScreen() {
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
 function DMScreen({ token, me, viewing, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld, onBuyRide, onOpenRoom }) {
+  // chats deleted on this device before deletes lived on the account: send them up once
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("irl:hidden-synced")) return
+      const list = Object.entries(hiddenChats())
+      Promise.all(list.map(([no, at]) => fetch("/api/dm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, action: "hide", with: no, at }) })))
+        .then(() => localStorage.setItem("irl:hidden-synced", "1")).catch(() => {})
+    } catch { /* private mode */ }
+  }, [token])
   const [pickEvent, setPickEvent] = useState(false)
   const [roomOpen, setRoomOpen] = useState(false)
   const [rooms, setRooms] = useState([])
@@ -2088,7 +2097,7 @@ function DMScreen({ token, me, viewing, openWith, setOpenWith, onPaywall, photoM
               <p className="mt-3 px-5 text-[15px] font-bold">{chatMenu.with.name?.toLowerCase()}</p>
               <div className="mt-2 divide-y divide-line/60 border-t border-line/60">
                 <button onClick={() => { setOpenWith(chatMenu.with); setChatMenu(null) }} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold">💬 {t("open chat")}</button>
-                <button onClick={() => { hideChat(chatMenu.with.memberNo); setChatMenu(null); bumpChats((x) => x + 1) }} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold text-[#b3461f]">🗑 {t("delete chat")}</button>
+                <button onClick={() => { const no = chatMenu.with.memberNo; hideChat(no); setChatMenu(null); bumpChats((x) => x + 1); fetch("/api/dm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, action: "hide", with: no }) }).catch(() => {}) }} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold text-[#b3461f]">🗑 {t("delete chat")}</button>
                 <button onClick={() => setChatMenu(null)} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold text-ink-soft">{t("cancel")}</button>
               </div>
             </motion.div>
