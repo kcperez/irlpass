@@ -2332,7 +2332,18 @@ export default function Club({ token }) {
         .then((r) => { if (r?.ok) { setTab("events"); setSpotRoom({ channel: r.channel, title: t("you're in") }) } })
         .catch(() => {})
     }
-    if (p.get("go") || p.get("ticket")) window.history.replaceState({}, "", `/?screen=app&t=${token}`)
+    // back from buying story slots: add them and reopen the event
+    if (p.get("slots") && p.get("session_id")) {
+      fetch(`/api/perks?t=${token}&session_id=${encodeURIComponent(p.get("session_id"))}`)
+        .then((r) => r.json())
+        .then((r) => {
+          if (!r?.ok) return
+          setTab("events")
+          if (r.id) setTimeout(() => window.dispatchEvent(new CustomEvent("irl:open-event", { detail: String(r.id) })), 600)
+        })
+        .catch(() => {})
+    }
+    if (p.get("go") || p.get("ticket") || p.get("slots")) window.history.replaceState({}, "", `/?screen=app&t=${token}`)
   }, [state, token])
 
   // what to do after someone unlocks: deliver the message they wrote, or buy the ride

@@ -13,6 +13,14 @@
       "destination": "/api/event-page?id=:id"
     },
     {
+      "source": "/p/:id",
+      "destination": "/api/perk-page?id=:id"
+    },
+    {
+      "source": "/pass/:code",
+      "destination": "/api/perk-page?code=:code"
+    },
+    {
       "source": "/d/:id",
       "destination": "/api/day-page?id=:id"
     },

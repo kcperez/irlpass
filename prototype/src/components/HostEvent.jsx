@@ -103,7 +103,7 @@ export default function HostEvent({ token, city, open, onClose, onCreated }) {
               <button onClick={() => setPerkOn((x) => !x)} className="flex w-full items-center justify-between text-left">
                 <span>
                   <span className="block text-[14.5px] font-bold">🎁 {t("give perks for posts")}</span>
-                  <span className="block text-[12.5px] text-ink-soft">{t("guests post about it, you give them something. we check the posts.")}</span>
+                  <span className="block text-[12.5px] text-ink-soft">{t("guests post a story tagging you, staff see it at the counter and give the perk. 20 free stories a month.")}</span>
                 </span>
                 <span className={`h-6 w-10 shrink-0 rounded-full p-0.5 transition-colors ${perkOn ? "bg-ink" : "bg-line"}`}><span className={`block h-5 w-5 rounded-full bg-white transition-transform ${perkOn ? "translate-x-4" : ""}`} /></span>
               </button>
@@ -114,11 +114,11 @@ export default function HostEvent({ token, city, open, onClose, onCreated }) {
                     <input inputMode="numeric" value={perk.qty} onChange={(ev) => setPerk((p) => ({ ...p, qty: ev.target.value }))} className={`${field} max-w-[84px]`} />
                   </div>
                   <div className="flex gap-1.5">
-                    {[["story", t("1 story")], ["post", t("1 post")], ["reel", t("1 reel or tiktok")]].map(([k, label]) => (
+                    {[["story", t("1 story")], ["post", t("1 post")], ["reel", t("1 reel")]].map(([k, label]) => (
                       <button key={k} onClick={() => setPerk((p) => ({ ...p, ask: k }))} className={`rounded-full px-3 py-1.5 text-[13px] font-bold ${perk.ask === k ? "bg-ink text-cream" : "bg-white text-ink-soft"}`}>{label}</button>
                     ))}
                   </div>
-                  <input value={perk.tags} onChange={(ev) => setPerk((p) => ({ ...p, tags: ev.target.value }))} placeholder={t("tag: @paraisomarket @irlpass.xyz")} className={field} />
+                  <input value={perk.tags} onChange={(ev) => setPerk((p) => ({ ...p, tags: ev.target.value }))} placeholder={t("your instagram: @paraisomarket")} className={field} />
                 </div>
               )}
             </div>
