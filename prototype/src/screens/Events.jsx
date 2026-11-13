@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, Plus, ShareNetwork, Sparkle, Ticket, X } from "@phosphor-icons/react"
+import { ArrowUpRight, CaretDown, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, Plus, ShareNetwork, SlidersHorizontal, Sparkle, Ticket, X } from "@phosphor-icons/react"
 import { cachedJson } from "../lib/cached"
 import { t, LANG } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
+import { haptic } from "../lib/haptic"
 import CityNow from "../components/CityNow"
 import HostEvent from "../components/HostEvent"
 import PerkCard from "../components/PerkCard"
@@ -78,8 +79,23 @@ const DOT = { run: "#cdee45", wellness: "#a7e3c4", party: "#ff7ad9", food: "#f6a
 const MOOD = { run: ["#3d4a12", "#cdee45"], wellness: ["#1f4636", "#a7e3c4"], party: ["#4a1240", "#ff7ad9"], food: ["#4f2a12", "#f6a76b"], art: ["#1d2a5c", "#9fb4ff"], social: ["#3a2f52", "#ddd0f6"], tech: ["#0f3a46", "#7fe0ff"] }
 
 // one event per screen: the cover floats on its own blur, the facts sit on frosted glass
-function Card({ e, tz, near, first, todayKey, tomorrowKey, busy, onOpen, onToggle, onShare, onChat, copied }) {
+const spring = { type: "spring", stiffness: 260, damping: 26 }
+
+function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, onOpen, onToggle, onShare, onChat, copied }) {
   const [broken, setBroken] = useState(false)
+  // tap opens it, double tap says you're going (with a little burst), like a like
+  const [burst, setBurst] = useState(0)
+  const tapT = useRef(null)
+  const tap = () => {
+    if (tapT.current) {
+      clearTimeout(tapT.current); tapT.current = null
+      haptic("pop"); setBurst((n) => n + 1)
+      if (!e.going) onToggle(e)
+      return
+    }
+    tapT.current = setTimeout(() => { tapT.current = null; onOpen(e) }, 260)
+  }
+  useEffect(() => () => clearTimeout(tapT.current), [])
   const img = e.cover && !broken ? e.cover : null
   const [a, b] = MOOD[e.category] || MOOD.social
   const day = dayKey(new Date(Math.max(Date.parse(e.startsAt), Date.now())).toISOString(), tz)
@@ -88,20 +104,31 @@ function Card({ e, tz, near, first, todayKey, tomorrowKey, busy, onOpen, onToggl
     <section className="relative h-full snap-start snap-always overflow-hidden">
       {/* backdrop: the cover blown up and blurred, or the category's mood */}
       <div className="absolute inset-0" style={{ background: `radial-gradient(80% 60% at 30% 20%, ${b}55, transparent 70%), radial-gradient(70% 60% at 80% 80%, ${b}33, transparent 70%), ${a}` }} />
-      {img && near && <img src={img} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-150 object-cover opacity-70 blur-3xl" />}
+      {/* blur a quarter-size copy and scale it up: same look, a fraction of the gpu work */}
+      {img && near && <img src={img} alt="" aria-hidden style={{ width: "25%", height: "25%", transform: "scale(5.2) translateZ(0)", transformOrigin: "0 0", filter: "blur(10px)" }} className="absolute left-0 top-0 object-cover opacity-70" />}
       <div className="absolute inset-0 opacity-[0.18] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
 
       <div className="relative flex h-full flex-col">
-      <button onClick={() => onOpen(e)} className="flex min-h-0 flex-1 items-center justify-center px-8 pt-16">
-        {img ? (
-          near && <img src={img} alt="" onError={() => setBroken(true)} style={{ width: "min(84%, 360px, 44vh)" }} className="aspect-square rounded-[1.6rem] object-cover shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]" />
-        ) : (
-          <span style={{ width: "min(84%, 360px, 44vh)" }} className="flex aspect-square items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-[84px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">{kindEmoji(e.category)}</span>
-        )}
+      <button onClick={tap} className="relative flex min-h-0 flex-1 items-center justify-center px-8 pt-16 [touch-action:manipulation]">
+        <motion.span animate={{ scale: active ? 1 : 0.9, rotate: active ? 0 : -2, opacity: active ? 1 : 0.6 }} transition={spring} style={{ width: "min(84%, 360px, 44vh)" }} className="block">
+          {img ? (
+            near && <img src={img} alt="" draggable={false} onError={() => setBroken(true)} className="aspect-square w-full rounded-[1.6rem] object-cover shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]" />
+          ) : (
+            <span className="flex aspect-square w-full items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-[84px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">{kindEmoji(e.category)}</span>
+          )}
+        </motion.span>
+        <AnimatePresence>
+          {burst > 0 && (
+            <motion.span key={burst} initial={{ scale: 0.2, opacity: 0, rotate: -18 }} animate={{ scale: [0.2, 1.25, 1], opacity: [0, 1, 1], rotate: [-18, 8, 0] }} exit={{ scale: 1.6, opacity: 0, y: -40 }}
+              transition={{ duration: 0.45 }} onAnimationComplete={() => setTimeout(() => setBurst(0), 350)}
+              className="pointer-events-none absolute text-[110px] drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]">🙌</motion.span>
+          )}
+        </AnimatePresence>
       </button>
 
-      <div className="px-5 pb-5 text-white">
+      <motion.div initial={false} animate={{ opacity: active ? 1 : 0, y: active ? 0 : 28 }} transition={{ ...spring, delay: active ? 0.05 : 0 }} className="px-5 pb-5 text-white">
+        {alt && <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
         <button onClick={() => onOpen(e)} className="block w-full text-left">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/40 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em]">
             <span className="h-2 w-2 rounded-full" style={{ background: DOT[e.category] || "#ddd0f6" }} />
@@ -127,7 +154,7 @@ function Card({ e, tz, near, first, todayKey, tomorrowKey, busy, onOpen, onToggl
           <motion.button
             whileTap={{ scale: 0.97 }}
             disabled={busy || (!e.going && e.spotsLeft === 0)}
-            onClick={() => (e.going ? onChat(e) : onToggle(e))}
+            onClick={() => { haptic(e.going ? "soft" : "pop"); e.going ? onChat(e) : onToggle(e) }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-3.5 text-[15px] font-bold ${e.going ? "bg-lime text-ink" : "bg-white text-ink"}`}
           >
             {busy ? <CircleNotch size={16} className="animate-spin" /> : e.going ? <ChatsCircle size={17} weight="fill" /> : e.hosted && e.priceCents ? <Ticket size={17} weight="fill" /> : null}
@@ -137,8 +164,8 @@ function Card({ e, tz, near, first, todayKey, tomorrowKey, busy, onOpen, onToggl
             {copied ? <CheckCircle size={19} weight="fill" /> : <ShareNetwork size={19} weight="bold" />}
           </button>
         </div>
-        {first && <p className="mt-3 text-center text-[11.5px] font-semibold text-white/50">{t("swipe up for more · left or right to change the vibe")}</p>}
-      </div>
+        {first && <p className="mt-3 text-center text-[11.5px] font-semibold text-white/50">{t("swipe up for more · double tap to go · left or right to change the vibe")}</p>}
+      </motion.div>
       </div>
     </section>
   )
@@ -188,7 +215,8 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const mine = events.filter((e) => e.going)
   const kindOn = kinds.some(([k]) => k === kind) ? kind : null
 
-  const list = search?.ids ? search.ids.map((id) => byId.get(id)).filter(Boolean) : events.filter((e) => !kindOn || e.category === kindOn)
+  const list = search?.ids ? [...search.ids, ...(search.near || [])].map((id) => byId.get(id)).filter(Boolean) : events.filter((e) => !kindOn || e.category === kindOn)
+  const isNear = (id) => !!search?.near?.includes(id) && !search.ids.includes(id)
   const ask = async (text) => {
     const query = String(text ?? q).trim()
     if (query.length < 2) return
@@ -203,7 +231,9 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     if (r.error) return setSearch({ q: query, error: r.error })
     // the web may have added new listings: reload so they show up with going buttons
     await load()
-    setSearch({ q: query, reply: r.reply, ids: r.ids || [] })
+    haptic("soft")
+    setSearch({ q: query, reply: r.reply, ids: r.ids || [], near: r.near || [] })
+    feedRef.current?.scrollTo({ top: 0 }); setIdx(0)
   }
   const pickKind = (k) => {
     setKind(k)
@@ -246,6 +276,16 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     } catch { /* closed the share sheet */ }
   }
   const [copied, setCopied] = useState(null)
+  // the two-line "what is this", written the first time anyone opens the event
+  const [abouts, setAbouts] = useState({})
+  useEffect(() => {
+    if (!open || open.about || open.hosted || abouts[open.id] !== undefined) return
+    setAbouts((a) => ({ ...a, [open.id]: null }))
+    fetch(`/api/event-about?t=${token}&id=${open.id}`).then((r) => r.json())
+      .then((r) => setAbouts((a) => ({ ...a, [open.id]: r?.about ? r.about[LANG] || r.about.en : "" })))
+      .catch(() => setAbouts((a) => ({ ...a, [open.id]: "" })))
+  }, [open, token]) // eslint-disable-line react-hooks/exhaustive-deps
+  const SOURCE = { ra: "resident advisor", luma: "luma", eventbrite: "eventbrite" }
   const chat = (e) => { setOpen(null); onOpenRoom?.({ channel: e.channel, title: e.title }) }
 
   // the feed: one event per screen, swipe up for the next, left/right to change vibe
@@ -257,11 +297,19 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const [flash, setFlash] = useState(null)
   const touch = useRef(null)
   const order = [null, ...kinds.map(([k]) => k)]
-  const kindName = (k) => (k ? `${kindEmoji(k)} ${t((KINDS.find(([x]) => x === k) || [])[2])}` : `✨ ${t("everything")}`)
-  const switchKind = (k) => {
-    pickKind(k); clear(); setKindOpen(false)
+  const kindName = (k) => (k ? `${kindEmoji(k)} ${t((KINDS.find(([x]) => x === k) || [])[2])}` : `✨ ${t("all vibes")}`)
+  const countOf = (k) => (k ? events.filter((e) => e.category === k).length : events.length)
+  const [dir, setDir] = useState(0)
+  const switchKind = (k, d = 0) => {
+    haptic()
+    setDir(d); pickKind(k); clear(); setKindOpen(false)
     setFlash(kindName(k)); setTimeout(() => setFlash(null), 900)
     feedRef.current?.scrollTo({ top: 0 }); setIdx(0)
+  }
+  const onFeedScroll = (ev) => {
+    const el = ev.currentTarget
+    const i = Math.round(el.scrollTop / Math.max(1, el.clientHeight))
+    if (i !== idx) { setIdx(i); haptic("soft") }
   }
   const onTouchStart = (ev) => { const p = ev.touches[0]; touch.current = { x: p.clientX, y: p.clientY } }
   const onTouchEnd = (ev) => {
@@ -271,7 +319,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     const dx = p.clientX - s0.x, dy = p.clientY - s0.y
     if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2 || order.length < 2) return
     const at = order.indexOf(kindOn)
-    switchKind(order[(at + (dx < 0 ? 1 : -1) + order.length) % order.length])
+    switchKind(order[(at + (dx < 0 ? 1 : -1) + order.length) % order.length], dx < 0 ? 1 : -1)
   }
   const feed = list
   const glass = "border border-white/20 bg-white/15 text-white backdrop-blur-xl"
@@ -282,15 +330,19 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
       <HostEvent token={token} city={city} open={hostOpen} onClose={() => setHostOpen(false)} onCreated={async (id) => { setHostOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
 
-      <div
+      <motion.div
+        key={`${kindOn || "all"}-${search?.q || ""}`}
         ref={feedRef}
-        onScroll={(ev) => setIdx(Math.round(ev.currentTarget.scrollTop / Math.max(1, ev.currentTarget.clientHeight)))}
+        initial={dir ? { x: `${dir * 40}%`, opacity: 0 } : { opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 32 }}
+        onScroll={onFeedScroll}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="no-scrollbar absolute inset-0 snap-y snap-mandatory overflow-y-auto overscroll-contain"
+        className="no-scrollbar absolute inset-0 snap-y snap-mandatory overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
         {!search?.loading && feed.map((e, i) => (
-          <Card key={e.id} e={e} tz={tz} near={Math.abs(i - idx) <= 2} first={i === 0 && !search} todayKey={todayKey} tomorrowKey={tomorrowKey}
+          <Card key={e.id} e={e} tz={tz} near={Math.abs(i - idx) <= 1} active={i === idx} alt={isNear(e.id) ? search.q : ""} first={i === 0 && !search} todayKey={todayKey} tomorrowKey={tomorrowKey}
             busy={busy === e.id} onOpen={setOpen} onToggle={toggle} onShare={share} onChat={chat} copied={copied === e.id} />
         ))}
         {data && !search?.loading && (
@@ -301,7 +353,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
             <button onClick={() => setAddOpen(true)} className="mt-3 text-[13px] font-bold text-white/60 underline underline-offset-4">{t("know something good? add it")}</button>
           </section>
         )}
-      </div>
+      </motion.div>
 
       {/* frosted top bar: where, what, ask, add */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-black/45 to-transparent px-3 pb-8 pt-3">
@@ -313,11 +365,13 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
           </form>
         ) : (
           <div className="pointer-events-auto flex items-center gap-1.5">
-            <button onClick={() => setWhereOpen(true)} className={`flex items-center gap-1 rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
+            <button onClick={() => setWhereOpen(true)} className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
               {cityChip(city).emoji} {String(cityChip(city).name || city).toLowerCase()}
             </button>
-            <button onClick={() => setKindOpen((x) => !x)} className={`flex min-w-0 items-center gap-1 rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
-              <span className="truncate">{search ? `“${search.q}”` : kindName(kindOn)}</span> <span aria-hidden className="text-[9px] opacity-70">▾</span>
+            <button onClick={() => { haptic("soft"); setKindOpen((x) => !x) }} aria-label={t("pick a vibe")} className={`flex min-w-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
+              <SlidersHorizontal size={14} weight="bold" className="shrink-0" />
+              <span className="truncate">{search ? `“${search.q}”` : kindName(kindOn)}</span>
+              <CaretDown size={11} weight="bold" className={`shrink-0 opacity-70 transition-transform ${kindOpen ? "rotate-180" : ""}`} />
             </button>
             <span className="flex-1" />
             {mine.length > 0 && (
@@ -339,10 +393,14 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
 
         <AnimatePresence>
           {kindOpen && !searchOpen && (
-            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={`pointer-events-auto mt-2 w-56 overflow-hidden rounded-[1.3rem] p-1.5 ${glass} bg-black/40`}>
+            <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={spring} style={{ transformOrigin: "top left" }} className={`pointer-events-auto mt-2 w-64 overflow-hidden rounded-[1.3rem] p-1.5 ${glass} bg-black/45`}>
+              <p className="px-3 pb-1 pt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white/60">{t("what are you into?")}</p>
               {order.map((k) => (
-                <button key={k || "all"} onClick={() => switchKind(k)} className={`block w-full rounded-full px-3 py-2 text-left text-[14px] font-bold ${kindOn === k && !search ? "bg-white text-ink" : ""}`}>{kindName(k)}</button>
+                <button key={k || "all"} onClick={() => switchKind(k)} className={`flex w-full items-center justify-between rounded-full px-3 py-2 text-left text-[14px] font-bold ${kindOn === k && !search ? "bg-white text-ink" : ""}`}>
+                  <span>{kindName(k)}</span><span className="text-[12px] opacity-60">{countOf(k)}</span>
+                </button>
               ))}
+              <p className="px-3 pb-1 pt-1.5 text-[11px] font-semibold text-white/50">{t("or swipe left and right on the feed")}</p>
             </motion.div>
           )}
           {plansOpen && !searchOpen && (
@@ -409,6 +467,14 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                   <Thumb e={open} className="mx-auto aspect-square w-[62%] rounded-[1.4rem] shadow-[0_24px_50px_-18px_rgba(58,50,44,0.55)]" />
                   <h2 className="display mt-5 text-[26px] font-bold leading-[1.08] tracking-tight">{open.title}</h2>
                   {open.host && <p className="mt-1 text-[13px] font-semibold text-ink-soft">{t("by")} {open.host}</p>}
+                  {!open.hosted && (open.about || abouts[open.id]) ? (
+                    <p className="mt-3 text-[15px] leading-snug">{open.about || abouts[open.id]}</p>
+                  ) : !open.hosted && abouts[open.id] === null ? (
+                    <span className="mt-3 block space-y-2" aria-label={t("loading")}>
+                      <span className="block h-3.5 w-full animate-pulse rounded-full bg-ink/10" />
+                      <span className="block h-3.5 w-4/5 animate-pulse rounded-full bg-ink/10" />
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
@@ -433,6 +499,16 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1 text-[14.5px] font-bold"><span className="truncate">{open.venue || open.address}</span> <ArrowUpRight size={13} className="shrink-0" /></span>
                       {open.venue && open.address && open.address !== open.venue && <span className="block truncate text-[13px] text-ink-soft">{open.address}</span>}
+                    </span>
+                  </a>
+                )}
+
+                {open.url && !open.hosted && (
+                  <a href={open.url} target="_blank" rel="noreferrer" className="mt-3 flex items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.8rem] bg-lime"><Ticket size={19} weight="fill" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1 text-[14.5px] font-bold">{open.isFree ? t("rsvp on") : t("tickets on")} {open.source === "web" ? new URL(open.url).hostname.replace(/^www\./, "") : SOURCE[open.source] || open.source} <ArrowUpRight size={13} className="shrink-0" /></span>
+                      <span className="block text-[13px] text-ink-soft">{priceOf(open) ? `${priceOf(open)} · ` : ""}{t("then tap i'm going here to meet people")}</span>
                     </span>
                   </a>
                 )}
@@ -469,11 +545,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                   </div>
                 </div>
 
-                {open.url && (
-                  <a href={open.url} target="_blank" rel="noreferrer" className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-[13.5px] font-bold text-ink-soft">
-                    {open.isFree ? t("rsvp on") : t("tickets on")} {open.source === "web" ? new URL(open.url).hostname.replace(/^www\./, "") : open.source} <ArrowUpRight size={14} />
-                  </a>
-                )}
+                <div className="h-3" />
                 {open.addedBy && !open.hosted && <p className="pb-2 text-center text-[12px] text-ink-soft">{t("added by")} {open.addedBy}</p>}
                 {(open.mine || open.mineAdded || (me?.isMod && (open.hosted || open.addedBy))) && (
                   <button onClick={() => takeDown(open)} className="block w-full pb-2 text-center text-[12px] font-bold text-red-600">{t("take it down")}</button>

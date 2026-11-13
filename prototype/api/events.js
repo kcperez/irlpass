@@ -43,6 +43,7 @@ async function withGoing(rows, me, lang = "en") {
       featured: e.featured,
       hosted: e.source === "irlpass",
       details: e.details || null,
+      about: e.about ? e.about[lang] || e.about.en : null,
       capacity: e.capacity || null,
       spotsLeft: e.capacity ? Math.max(0, e.capacity - who.length) : null,
       mine: !!e.host_no && e.host_no === me.memberNo,

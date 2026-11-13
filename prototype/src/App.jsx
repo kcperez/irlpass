@@ -79,10 +79,16 @@ export default function App() {
   return (
     // one layout everywhere: the app fills a phone, and on bigger screens it
     // stays a single centered column on the same ground (no second panel).
-    <div className="relative min-h-[100dvh] overflow-hidden bg-cream">
+    <div className={`relative min-h-[100dvh] overflow-hidden bg-cream ${screen === "app" ? "desk-app md:bg-[#15110f]" : ""}`}>
       {/* the wash lives on the page, not on a column, so it reaches every edge */}
-      <div aria-hidden className="wash pointer-events-none fixed inset-0 z-0" />
-      <div className={`relative z-10 mx-auto w-full ${screen === "welcome" || screen === "pro" || screen === "traction" ? "max-w-[460px] lg:max-w-[1040px]" : "max-w-[460px]"}`}>
+      <div aria-hidden className={`wash pointer-events-none fixed inset-0 z-0 ${screen === "app" ? "md:hidden" : ""}`} />
+      {/* on a computer the app sits framed in the middle of a dark room, like a phone on a table */}
+      {screen === "app" && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 hidden md:block" style={{ background: "radial-gradient(40% 50% at 30% 30%, rgba(221,208,246,.18), transparent 70%), radial-gradient(40% 50% at 75% 70%, rgba(248,217,198,.14), transparent 70%)" }}>
+          <p className="absolute bottom-8 left-8 hidden max-w-[240px] text-[13px] leading-snug text-white/45 lg:block">irlpass lives on your phone. open irlpass.xyz there and add it to your home screen.</p>
+        </div>
+      )}
+      <div className={`relative z-10 mx-auto w-full ${screen === "welcome" || screen === "pro" || screen === "traction" ? "max-w-[460px] lg:max-w-[1040px]" : screen === "app" ? "max-w-[460px] md:mt-[3vh] md:max-w-[430px] md:overflow-hidden md:rounded-[2.4rem] md:shadow-[0_50px_140px_-30px_rgba(0,0,0,0.9)] md:ring-1 md:ring-white/10 md:[transform:translateZ(0)]" : "max-w-[460px]"}`}>
         <div className="grain h-full w-full">
           {/* everything but the homepage loads on demand: members never download signup */}
           <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-ink" /></div>}>

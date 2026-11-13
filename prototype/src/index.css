@@ -58,6 +58,10 @@ textarea {
   :root {
     --app-h: 100dvh;
   }
+  /* framed on a computer: leave room above and below the phone */
+  .desk-app {
+    --app-h: 94dvh;
+  }
 }
 
 /* paper grain over everything, fixed so it never repaints on scroll */
