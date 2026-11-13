@@ -3,7 +3,7 @@ import { notifyMemberNo } from "./_notify.js"
 import { sendEmail } from "./_email.js"
 
 // story slots: every host gets FREE verified stories a month, then prepaid
-// packs. a slot is used when staff double tap a pass at the counter.
+// packs. a slot is used when staff tap give on their list.
 export const FREE = 20
 export const PACKS = { 50: 5000, 200: 15000 } // slots -> cents
 export const ASK = { story: "a story", post: "a post", reel: "a reel" }

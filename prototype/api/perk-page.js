@@ -5,11 +5,13 @@ import { ASK, cleanHandle, okHandle, perksLeft, slots, standing, tellHostOut, us
 
 // the story perk, for anyone. no irlpass account needed.
 // GET  /p/<event id>    -> claim page: what to post, type your instagram, get a pass
-// GET  /pass/<code>     -> the pass: live clock, staff double tap to give it
+// GET  /pass/<code>     -> the pass: live clock, flips to given when staff tap give on their list
 // POST { action: "claim", id, handle } -> { code }
 // POST { action: "given", code }       -> { ok } (uses one of the host's story slots)
 const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
 const over = (e) => !standing(e) && Date.now() > Date.parse(e.ends_at || e.starts_at) + 12 * 3600e3
+// the irlpass ticket tile, for passes without a venue picture
+const MARK_TILE = `<svg viewBox="0 0 64 64" width="46" height="46" aria-hidden="true"><defs><linearGradient id="pt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a8dff"/><stop offset="1" stop-color="#2c45e6"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#pt)"/><path d="M17 22h30a3 3 0 0 1 3 3v4a4 4 0 0 0 0 8v4a3 3 0 0 1-3 3H17a3 3 0 0 1-3-3v-4a4 4 0 0 0 0-8v-4a3 3 0 0 1 3-3z" fill="#fff"/><path d="M38 24v18" stroke="#4a66ff" stroke-width="2" stroke-dasharray="2.5 3"/></svg>`
 const tagsOf = (e) => [...new Set([...(e.perk?.tags || []), "@irlpass.xyz"])]
 
 async function getEvent(id) {
@@ -94,29 +96,31 @@ async function passPage(code) {
 <p class="k">${esc(e.venue || e.titles?.en || e.title)}</p>
 <div id="pass" style="margin-top:10px;border-radius:24px;padding:22px;box-shadow:0 30px 70px -20px rgba(74,102,255,.6);user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer;
 ${given ? "background:#f4eee7;color:#15110f" : "color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 4s linear infinite"}">
+  <div style="float:right;margin:0 0 8px 12px">${e.cover ? `<img src="${esc(e.cover)}" alt="" style="display:block;width:76px;height:76px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px rgba(255,255,255,.95)">` : MARK_TILE.replace(/width="46" height="46"/, 'width="76" height="76"')}</div>
   <p class="k" style="margin:0;color:inherit;opacity:.75">${given ? "given" : "unlocked · show this + your story"}</p>
   <p class="perk" style="margin:6px 0 2px">${esc(e.perk.item)}</p>
   <p style="margin:0;font-size:22px;font-weight:700">@${esc(c.handle)}</p>
-  <p id="clock" style="margin:8px 0 0;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">${given ? new Date(c.given_at).toLocaleTimeString("en-US", { timeZone: TZ[e.city] || "UTC", hour: "numeric", minute: "2-digit" }).toLowerCase() : ""}</p>
+  <p id="clock" style="clear:both;margin:8px 0 0;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">${given ? new Date(c.given_at).toLocaleTimeString("en-US", { timeZone: TZ[e.city] || "UTC", hour: "numeric", minute: "2-digit" }).toLowerCase() : ""}</p>
 </div>
-<p id="msg" style="text-align:center;font-weight:600;margin:14px 0 0">${given ? "enjoy it ✨" : `staff: check <b>@${esc(c.handle)}</b>'s story tagging ${tags.map(esc).join(" ")} in their instagram app, then double tap the pass`}</p>
+<p id="msg" style="text-align:center;font-weight:600;margin:14px 0 0">${given ? "enjoy it ✨" : `show staff this pass and your story tagging ${tags.map(esc).join(" ")}. they give it from their list.`}</p>
 ${upsell(e, await goingCount(e.id))}
 <style>@keyframes mv{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}</style>`
   const script = given ? "" : `
 const clock=document.getElementById("clock"),pass=document.getElementById("pass"),msg=document.getElementById("msg");
 const tick=()=>clock.textContent=new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit",second:"2-digit"}).toLowerCase();tick();const iv=setInterval(tick,1000);
-let last=0,busy=false;
-pass.addEventListener("click",async()=>{const now=Date.now();if(now-last>450){last=now;return}last=0;if(busy)return;busy=true;
-msg.textContent="one sec…";
-const r=await fetch("/api/perk-page",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"given",code:${JSON.stringify(code)}})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
-busy=false;
-if(r.ok){clearInterval(iv);pass.style.animation="none";pass.style.background="#f4eee7";pass.style.color="#15110f";pass.querySelector(".k").textContent="given";msg.textContent="enjoy it ✨"}else{msg.textContent=r.error||"try again"}});`
+// staff give it from their list: watch for it and flip the pass
+const done=()=>{clearInterval(iv);clearInterval(poll);pass.style.animation="none";pass.style.background="#f4eee7";pass.style.color="#15110f";pass.querySelector(".k").textContent="given";clock.textContent=new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).toLowerCase();msg.textContent="enjoy it ✨";try{navigator.vibrate&&navigator.vibrate([12,40,18])}catch(e){}};
+const poll=setInterval(async()=>{if(document.hidden)return;const r=await fetch("/api/perk-page?code=${code}&json=1").then(x=>x.json()).catch(()=>null);if(r&&r.given)done()},3000);`
   return glass(`${e.perk.item} · your pass`, body, { script })
 }
 
 export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
+      if (req.query?.code && req.query?.json) {
+        const { data: c } = await db.from("perk_claims").select("status").eq("code", String(req.query.code).slice(0, 40)).maybeSingle()
+        return res.status(200).json({ given: c?.status === "given" })
+      }
       if (req.query?.code) return send(res, await passPage(String(req.query.code).slice(0, 40)))
       const e = await getEvent(Number(req.query?.id))
       if (!e) return send(res, gone("that perk is gone"))
@@ -144,17 +148,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ code })
     }
 
-    if (action === "given") {
-      const { data: c } = await db.from("perk_claims").select("*").eq("code", String(req.body?.code || "")).maybeSingle()
-      if (!c) return res.status(404).json({ error: "that pass is gone" })
-      if (c.status === "given") return res.status(409).json({ error: "already given" })
-      const e = await getEvent(c.event_id)
-      if (!e) return res.status(404).json({ error: "that perk is gone" })
-      if (!(await useSlot(e.host_no))) { await tellHostOut(e); return res.status(402).json({ error: "the venue is out of story slots. ask the host to add more." }) }
-      const { data: done } = await db.from("perk_claims").update({ status: "given", given_at: new Date().toISOString() }).eq("id", c.id).eq("status", "claimed").select("id")
-      if (!done?.length) return res.status(409).json({ error: "already given" })
-      return res.status(200).json({ ok: true })
-    }
+    // giving happens on the host's list only, never from the guest's phone
+    if (action === "given") return res.status(403).json({ error: "staff give it from their list" })
     return res.status(400).json({ error: "unknown action" })
   } catch (err) {
     console.error("perk page error:", err)

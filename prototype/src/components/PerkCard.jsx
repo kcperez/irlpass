@@ -5,7 +5,7 @@ import { t } from "../lib/i18n"
 
 // the story perk on a hosted event. guests get it on a public page (no
 // account needed): post a story, type your instagram, show the story + pass at
-// the counter, staff double tap. hosts see who claimed, their story slots, the
+// the counter, staff tap give on this list. hosts see who claimed, their story slots, the
 // qr to print, and can top up slots.
 const ASK = { story: "a story", post: "a post", reel: "a reel" }
 const usd = (c) => `$${Math.round(c / 100)}`
@@ -17,6 +17,18 @@ export default function PerkCard({ token, e, me }) {
   const [qr, setQr] = useState("")
   const load = () => fetch(`/api/perks?t=${token}&id=${e.id}`).then((r) => r.json()).then((x) => !x.error && setD(x)).catch(() => {})
   useEffect(() => { load() }, [e.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // hosts watch the list at the door: keep it fresh while it's on screen
+  useEffect(() => {
+    const iv = setInterval(() => { if (!document.hidden && d?.host) load() }, 5000)
+    return () => clearInterval(iv)
+  }, [d?.host, e.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const give = async (id) => {
+    setBusy(`g${id}`); setErr("")
+    const r = await fetch("/api/perks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, action: "give", claim: id }) }).then((x) => x.json()).catch(() => ({ error: t("something broke. try again.") }))
+    setBusy(0)
+    if (!r.ok) return setErr(r.error || t("something broke. try again."))
+    load()
+  }
 
   const perk = d?.perk || e.perk
   const link = d?.link || `https://irlpass.xyz/p/${e.id}`
@@ -91,13 +103,15 @@ export default function PerkCard({ token, e, me }) {
             {h.claims.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-2 text-[13.5px]">
                 <a href={`https://instagram.com/${c.handle}`} target="_blank" rel="noreferrer" className="truncate font-bold">@{c.handle}</a>
-                <span className={`shrink-0 text-[12px] font-semibold ${c.status === "given" ? "text-lime-deep" : "text-ink-soft"}`}>
-                  {c.status === "given" ? `${t("given")} ${new Date(c.given_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()}` : t("claimed")}
-                </span>
+                {c.status === "given" ? (
+                  <span className="shrink-0 text-[12px] font-semibold text-lime-deep">{t("given")} {new Date(c.given_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()}</span>
+                ) : (
+                  <button onClick={() => give(c.id)} disabled={busy === `g${c.id}`} className="shrink-0 rounded-full bg-lime px-3.5 py-1.5 text-[12.5px] font-bold text-white disabled:opacity-60">{busy === `g${c.id}` ? "…" : t("give")}</button>
+                )}
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[11.5px] leading-snug text-ink-soft">{t("first 20 verified stories each month are free. a story is used when staff double tap a pass.")}</p>
+          <p className="mt-3 text-[11.5px] leading-snug text-ink-soft">{t("first 20 verified stories each month are free. check their story is live, then tap give next to their name.")}</p>
         </div>
       )}
     </div>

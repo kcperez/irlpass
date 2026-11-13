@@ -5,6 +5,8 @@ import { db } from "./_db.js"
 import { esc, glass, send as sendPage } from "./_page.js"
 import { sendEmail } from "./_email.js"
 import { kindOf } from "./_events.js"
+import { venueAvatar } from "./_instagram.js"
+import { waitUntil } from "@vercel/functions"
 import { ASK, FREE, PACKS, addCredits, cleanHandle, monthStart, okHandle, slots, useSlot } from "./_perks.js"
 
 // getty by irlpass (getty.irlpass.xyz, also irlpass.xyz/venues). a venue signs up in a minute, gets an
@@ -80,7 +82,7 @@ async function demo() {
   const qr = await QRCode.toDataURL(`${GETTY}/`, { width: 300, margin: 1, color: { dark: "#15110f", light: "#ffffff" } })
   const beats = [
     ["set the perk", "pick what a story is worth: a smoothie, a shot, a free class. print the qr for the counter."],
-    ["they post, you tap", "a guest posts a story tagging you and shows it at the counter. staff double tap their pass. done."],
+    ["they post, you tap", "a guest posts a story tagging you and shows it at the counter. staff tap give next to their name. done."],
     ["watch it spread", "every story lands with hundreds of locals who trust the person posting. it adds up fast."],
   ]
   return `<section id="demo" class="demo" style="padding:40px 0 56px">
@@ -106,7 +108,7 @@ async function demo() {
         <p class="pk">unlocked</p>
         <p class="pi">free smoothie</p>
         <p class="ph">for @dani_vlz's story</p>
-        <p class="pg" id="pg">staff: double tap</p>
+        <p class="pg" id="pg">staff: tap give</p>
       </div>
       <span class="tap" id="tap"></span>
     </div>
@@ -176,7 +178,7 @@ ${await demo()}
   <div class="card" style="padding:28px">
     <span class="tag">pricing</span>
     <p style="margin:18px 0 4px"><span class="num" style="font-size:54px">20</span> <span class="soft">stories a month, free</span></p>
-    <p class="soft" style="margin:0 0 18px">a story counts when staff tap a pass. need more?</p>
+    <p class="soft" style="margin:0 0 18px">a story counts when staff tap give. need more?</p>
     <div class="row">
       ${Object.entries(PACKS).map(([n, c]) => `<div style="border:1px solid var(--line);border-radius:18px;padding:14px"><p class="num" style="font-size:26px;margin:0">+${n}</p><p class="soft" style="margin:0">${usd(c)}</p></div>`).join("")}
     </div>
@@ -189,7 +191,7 @@ ${await demo()}
   <div style="margin-top:12px">
     ${q("how much does it cost?", "your first 20 stories every month are free. after that it's 50 more for $50, or 200 for $150. no subscription, no contract.")}
     ${q("do my guests need to download an app?", "no. they scan the qr on your counter, type their instagram and the pass opens on their phone. ten seconds.")}
-    ${q("what does my staff actually do?", "look at the story on the guest's phone, see it tags you, tap the pass twice. that's the whole training.")}
+    ${q("what does my staff actually do?", "look at the story on the guest's phone, see it tags you, tap give next to their name on your list. that's the whole training.")}
     ${q("what if someone posts and deletes it right after?", "they have to post before they get anything, and you keep a list of every handle. most people leave it up anyway: it's their night out.")}
     ${q("can the same person keep coming back?", "once a day each. a regular who posts you every week is the best ad you'll ever run.")}
     ${q("what happens when we run out?", "the page tells guests it's all claimed for now and we let you know. top up in two taps.")}
@@ -298,7 +300,7 @@ var sc=document.querySelector(".scatter");setInterval(function(){var s=document.
 var beats=[].slice.call(document.querySelectorAll(".beat")),scrs=[].slice.call(document.querySelectorAll(".scr")),cur=0,timer=null,DUR=5200,run=[];
 run[0]=function(){var el=document.getElementById("typed"),txt="a free smoothie",i=0;el.textContent="";document.getElementById("c50").classList.remove("hot");document.getElementById("qrpop").classList.remove("on");
  var iv=setInterval(function(){el.textContent=txt.slice(0,++i);if(i>=txt.length){clearInterval(iv);setTimeout(function(){document.getElementById("c50").classList.add("hot")},350);setTimeout(function(){document.getElementById("qrpop").classList.add("on")},1000)}},75)};
-run[1]=function(){var p=document.getElementById("pass"),g=document.getElementById("pg"),tap=document.getElementById("tap");p.classList.remove("up","given");g.textContent="staff: double tap";tap.classList.remove("go");
+run[1]=function(){var p=document.getElementById("pass"),g=document.getElementById("pg"),tap=document.getElementById("tap");p.classList.remove("up","given");g.textContent="staff: tap give";tap.classList.remove("go");
  setTimeout(function(){p.classList.add("up")},700);setTimeout(function(){void tap.offsetWidth;tap.classList.add("go")},2100);setTimeout(function(){p.classList.add("given");p.querySelector(".pk").textContent="given";g.textContent="✓ enjoy it · 9:41 pm"},3000)};
 run[2]=function(){var imgs=["hero","bar","yoga2","party","cafe2","run","cafe","yoga"],t=document.getElementById("tiles");t.innerHTML="";document.getElementById("pass").querySelector(".pk").textContent="unlocked";count(document.getElementById("wk"),18240,3600);count(document.getElementById("wkn"),46,3600);
  for(var i=0;i<20;i++)(function(i){setTimeout(function(){var s=document.createElement("span");s.style.backgroundImage="url(/getty/"+imgs[i%imgs.length]+".jpg)";t.appendChild(s)},i*160)})(i)};
@@ -336,7 +338,7 @@ function startPage() {
   <button class="block" id="go" style="margin-top:20px">get my qr</button>
   <p class="err" id="err"></p>
 </form>
-<p class="faint" style="font-size:12.5px;text-align:center;margin-top:14px">first 20 stories every month are free. a story counts when staff tap a pass.</p>
+<p class="faint" style="font-size:12.5px;text-align:center;margin-top:14px">first 20 stories every month are free. a story counts when staff tap give.</p>
 </div><div class="side desk" style="padding-top:96px">
   <p class="faint" style="font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;text-align:center">what your guests see</p>
   <div class="card" style="padding:14px;border-radius:30px;max-width:360px;margin:0 auto">
@@ -425,7 +427,7 @@ ${flash ? `<div class="card" style="border-color:rgba(74,102,255,.5);margin:10px
 <div class="card" style="margin-top:14px;padding:18px 18px 8px">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
     <p class="serif" style="font-size:28px;margin:0">tonight</p>
-    <span class="faint" style="font-size:12px">updates on its own</span>
+    <span class="faint" style="font-size:12px">new guests pop up here. tap give after you see their story</span>
   </div>
   <div id="list" style="margin-top:6px;min-height:120px"></div>
 </div>
@@ -441,7 +443,7 @@ ${flash ? `<div class="card" style="border-color:rgba(74,102,255,.5);margin:10px
 <div class="card" style="margin-top:14px">
   <span class="tag" style="--dot:var(--peach)">stories</span>
   <p style="margin:14px 0 4px"><span class="num" style="font-size:28px">${d.slots.free}</span> <span class="soft">free left this month</span>${d.slots.credits ? ` · <span class="num" style="font-size:20px">${d.slots.credits}</span> <span class="soft">bought</span>` : ""}</p>
-  <p class="faint" style="font-size:12.5px;margin:0 0 14px">${FREE} free every month. a story counts when staff tap a pass.</p>
+  <p class="faint" style="font-size:12.5px;margin:0 0 14px">${FREE} free every month. a story counts when staff tap give.</p>
   <div class="row">${Object.entries(PACKS).map(([n, c]) => `<button class="ghost buy" data-n="${n}">+${n} · ${usd(c)}</button>`).join("")}</div>
   <p class="err" id="buyerr"></p>
 </div>
@@ -461,7 +463,7 @@ ${flash ? `<div class="card" style="border-color:rgba(74,102,255,.5);margin:10px
   <summary style="cursor:pointer;font-weight:600">how staff check a story</summary>
   <p class="soft" style="margin:12px 0 6px">1. the guest opens their pass and their instagram story.</p>
   <p class="soft" style="margin:0 0 6px">2. you see the story is live and tags @${esc(v.instagram || "you")}.</p>
-  <p class="soft" style="margin:0">3. double tap the pass, or tap give next to their name here. that's it.</p>
+  <p class="soft" style="margin:0">3. tap give next to their name here. their pass flips to given. that's it.</p>
 </details>
 </div></div>
 <p class="faint" style="text-align:center;font-size:12px;margin-top:24px">bookmark this page. it's your sign in.</p>`
@@ -474,14 +476,14 @@ const post=b=>fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"ap
 function draw(d){
   document.getElementById("st-today").textContent=d.todayPosted;document.getElementById("st-month").textContent=d.monthPosted;document.getElementById("st-left").textContent=d.slots.left;
   const low=document.getElementById("low");low.style.display=d.slots.left<=5?"":"none";low.textContent=d.slots.left?"almost out of stories for the month. top up below so guests can keep claiming.":"out of stories: guests can't claim until you top up.";
-  const t=d.list.filter(c=>c.today),old=d.list.filter(c=>!c.today);
-  const row=c=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--line)"><a href="https://instagram.com/'+esc(c.handle)+'" target="_blank" rel="noreferrer" style="font-weight:600;text-decoration:none;overflow:hidden;text-overflow:ellipsis">@'+esc(c.handle)+'</a>'+(c.given?'<span class="faint" style="font-size:13px;white-space:nowrap"><span style="color:var(--lime)">●</span> posted '+(c.today?c.at:c.day)+'</span>':'<button class="ghost give" data-id="'+c.id+'" style="padding:8px 14px;font-size:13px">give</button>')+'</div>';
+  const t=d.list.filter(c=>c.today).sort((a,b)=>(a.given?1:0)-(b.given?1:0)),old=d.list.filter(c=>!c.today);
+  const row=c=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--line)"><a href="https://instagram.com/'+esc(c.handle)+'" target="_blank" rel="noreferrer" style="font-weight:600;text-decoration:none;overflow:hidden;text-overflow:ellipsis">@'+esc(c.handle)+'</a>'+(c.given?'<span class="faint" style="font-size:13px;white-space:nowrap"><span style="color:var(--lime)">●</span> posted '+(c.today?c.at:c.day)+'</span>':'<button class="give" data-id="'+c.id+'" style="padding:9px 16px;font-size:13.5px">give</button>')+'</div>';
   document.getElementById("list").innerHTML=(t.length?t.map(row).join(""):'<p class="soft" style="padding:12px 0;margin:0;border-top:1px solid var(--line)">nobody yet tonight. put the qr where people wait.</p>')+(old.length?'<details style="padding:12px 0;border-top:1px solid var(--line)"><summary class="soft" style="cursor:pointer">earlier this month · '+old.length+'</summary>'+old.map(row).join("")+'</details>':"");
   document.querySelectorAll(".give").forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent="…";const r=await post({action:"give",id:+b.dataset.id});if(r.ok)refresh();else{b.disabled=false;b.textContent=r.error||"try again"}});
 }
 const first=${JSON.stringify(d)};draw(first);
 async function refresh(){const d=await fetch("/api/venues-hub?view=dash&json=1&k="+K).then(x=>x.json()).catch(()=>null);if(d&&d.list)draw(d)}
-setInterval(()=>{if(!document.hidden)refresh()},20000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+setInterval(()=>{if(!document.hidden)refresh()},4000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
 document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await post({action:"buy",slots:+b.dataset.n});if(r.url)location.href=r.url;else{b.disabled=false;document.getElementById("buyerr").textContent=r.error||"try again"}});
 document.getElementById("pf").onsubmit=async e=>{e.preventDefault();const s=document.getElementById("save"),er=document.getElementById("perr");s.disabled=true;er.textContent="";
 const r=await post({action:"perk",item:document.getElementById("item").value,ask:document.getElementById("ask").value,qty:+document.getElementById("qty").value});
@@ -553,6 +555,8 @@ async function create(b) {
   }).select("id").single()
   if (ee) throw ee
   await db.from("venues").update({ perk_event_id: e.id }).eq("slug", slug)
+  // their instagram picture goes on every pass (in the background, signup never waits)
+  waitUntil(venueAvatar(ig, slug).then((url) => url && db.from("events").update({ cover: url }).eq("id", e.id)).catch(() => {}))
 
   await sendEmail({
     to: email,

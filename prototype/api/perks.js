@@ -1,7 +1,7 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { isMod } from "./_mods.js"
-import { PACKS, FREE, addCredits, perksLeft, slots } from "./_perks.js"
+import { PACKS, FREE, addCredits, perksLeft, slots, useSlot, tellHostOut } from "./_perks.js"
 
 // the host side of story perks (the guest side is public: api/perk-page.js)
 // GET  ?t&id                        -> { perk, left, link, mine?, host?: { claims, slots, packs } }
@@ -41,6 +41,17 @@ export default async function handler(req, res) {
     }
 
     if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
+    // the host marks a guest's perk as given, from their own list (like a door
+    // check-in). the guest's pass flips to given on its own.
+    if (req.body?.action === "give") {
+      const { data: c } = await db.from("perk_claims").select("id, status, event_id").eq("id", Number(req.body?.claim)).maybeSingle()
+      const { data: e } = c ? await db.from("events").select("id, perk, host_no, title, venue, city").eq("id", c.event_id).maybeSingle() : { data: null }
+      if (!c || !e || (e.host_no !== me.memberNo && !isMod(me.memberNo))) return res.status(404).json({ error: "not on your list" })
+      if (c.status === "given") return res.status(200).json({ ok: true })
+      if (!(await useSlot(e.host_no))) { await tellHostOut(e).catch(() => {}); return res.status(402).json({ error: "out of story slots. add more below." }) }
+      await db.from("perk_claims").update({ status: "given", given_at: new Date().toISOString() }).eq("id", c.id).eq("status", "claimed")
+      return res.status(200).json({ ok: true })
+    }
     if (req.body?.action === "buy") {
       const n = Number(req.body?.slots)
       if (!PACKS[n]) return res.status(400).json({ error: "pick a pack" })

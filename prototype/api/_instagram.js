@@ -237,3 +237,25 @@ export async function backfillNames() {
   }
   return { missing: todo.length, named, none }
 }
+
+// a venue's instagram picture for its pass and guestlist, kept in our storage
+export async function venueAvatar(handle, slug) {
+  const p = await fetchIgProfile(handle)
+  if (!p?.photo) return null
+  try {
+    const r = await fetch(p.photo)
+    if (!r.ok) return null
+    const buf = Buffer.from(await r.arrayBuffer())
+    if (buf.length > 4_000_000) return null
+    const path = `avatars/v-${String(slug).replace(/[^a-z0-9-]/g, "")}.jpg`
+    const up = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/${path}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`, "content-type": r.headers.get("content-type") || "image/jpeg", "x-upsert": "true" },
+      body: buf,
+    })
+    return up.ok ? `${process.env.SUPABASE_URL}/storage/v1/object/public/${path}?v=${Date.now()}` : null
+  } catch (e) {
+    console.error("venue avatar error:", e.message)
+    return null
+  }
+}
