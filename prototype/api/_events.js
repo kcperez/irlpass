@@ -216,8 +216,9 @@ const textOf = (msg) => msg.content.filter((b) => b.type === "text").map((b) => 
 export async function classify(rows) {
   const client = ai()
   if (!client || !rows.length) return
-  for (let i = 0; i < rows.length; i += 100) {
-    const chunk = rows.slice(i, i + 100)
+  const chunks = []
+  for (let i = 0; i < rows.length; i += 60) chunks.push(rows.slice(i, i + 60))
+  await Promise.all(chunks.map(async (chunk) => {
     try {
       const msg = await client.messages.create({
         model: "claude-opus-5-5",
@@ -235,7 +236,7 @@ export async function classify(rows) {
     } catch (err) {
       console.error("classify failed:", err?.status, err?.message)
     }
-  }
+  }))
 }
 
 // the big stuff our feeds miss (a wine festival, the derby, a sagra): one web
@@ -290,30 +291,35 @@ export async function seedEvents() {
   const now = Date.now()
   const until = now + DAYS_AHEAD * 864e5
   const report = {}
-  // the web searches are the slow part: run every city's at once
-  const found = await Promise.all(EVENT_CITIES.map((c) => discover(c, until)))
-  for (const [ci, c] of EVENT_CITIES.entries()) {
-    const got = [...found[ci], ...(await Promise.all([luma(c).catch(() => []), eventbrite(c).catch(() => []), residentAdvisor(c).catch(() => [])])).flat()]
-    const keep = []
-    const seen = new Set()
-    for (const e of got) {
-      const t = Date.parse(e.starts_at)
-      if (!e.title || !t || !live(e, now) || t > until) continue
-      if (SKIP.test(e.title)) continue
-      // the same night listed twice (luma and eventbrite) is one event
-      const key = `${String(e.title).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40)}|${e.starts_at.slice(0, 10)}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      const { forceKind, ...row } = e
-      keep.push({ ...row, title: String(e.title).slice(0, 200), _fixed: !!forceKind, category: forceKind || kindOf(e.title, `${e.host || ""} ${e.venue || ""}`), updated_at: new Date().toISOString(), _ai: true })
+  // every city at once (feeds, web search, sorting): one at a time ran past
+  // vercel's 5 minute limit
+  await Promise.all(EVENT_CITIES.map(async (c) => {
+    try {
+      const web = await discover(c, until)
+      const got = [...web, ...(await Promise.all([luma(c).catch(() => []), eventbrite(c).catch(() => []), residentAdvisor(c).catch(() => [])])).flat()]
+      const keep = []
+      const seen = new Set()
+      for (const e of got) {
+        const t = Date.parse(e.starts_at)
+        if (!e.title || !t || !live(e, now) || t > until) continue
+        if (SKIP.test(e.title)) continue
+        // the same night listed twice (luma and eventbrite) is one event
+        const key = `${String(e.title).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40)}|${e.starts_at.slice(0, 10)}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        const { forceKind, ...row } = e
+        keep.push({ ...row, title: String(e.title).slice(0, 200), _fixed: !!forceKind, category: forceKind || kindOf(e.title, `${e.host || ""} ${e.venue || ""}`), updated_at: new Date().toISOString() })
+      }
+      await classify(keep)
+      for (const e of keep) { delete e._fixed; if (!e.titles) e.titles = null }
+      for (let i = 0; i < keep.length; i += 100) {
+        const { error } = await db.from("events").upsert(keep.slice(i, i + 100), { onConflict: "source,source_id" })
+        if (error) throw error
+      }
+      report[c.slug] = { found: got.length, web: web.length, listed: keep.length }
+    } catch (err) {
+      report[c.slug] = { error: err.message }
     }
-    await classify(keep.filter((e) => e._ai))
-    for (const e of keep) { delete e._ai; delete e._fixed; if (!e.titles) e.titles = null }
-    for (let i = 0; i < keep.length; i += 100) {
-      const { error } = await db.from("events").upsert(keep.slice(i, i + 100), { onConflict: "source,source_id" })
-      if (error) throw error
-    }
-    report[c.slug] = { found: got.length, web: found[ci].length, listed: keep.length }
-  }
+  }))
   return report
 }
