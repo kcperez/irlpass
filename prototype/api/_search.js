@@ -35,7 +35,7 @@ const pickJson = (text) => {
 // the photo a place's own page (michelin guide, its website) shows when shared
 async function pagePhoto(url) {
   try {
-    const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36" }, signal: AbortSignal.timeout(5000) })
+    const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36" }, signal: AbortSignal.timeout(3000) })
     if (!r.ok) return null
     const html = (await r.text()).slice(0, 300000)
     const m = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*content=["']([^"']+)["']/i) || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image|twitter:image)["']/i)
@@ -70,6 +70,22 @@ async function enrich(p, place) {
 }
 
 export async function askCity(city, q) {
+  // the same question in the same city gets the same answer for a few hours:
+  // the chips and common asks come back instantly
+  const ckey = `ask:${city}:${crypto.createHash("sha1").update(String(q).toLowerCase().replace(/\s+/g, " ").trim()).digest("hex").slice(0, 16)}`
+  try {
+    const { data: hit } = await db.from("app_settings").select("value").eq("key", ckey).maybeSingle()
+    const c = hit?.value ? JSON.parse(hit.value) : null
+    if (c?.at && Date.now() - c.at < 6 * 3600e3) return c.out
+  } catch { /* fall through */ }
+  const res = await askCityFresh(city, q)
+  if (!res.error && (res.places?.length || res.ids?.length)) {
+    await db.from("app_settings").upsert({ key: ckey, value: JSON.stringify({ at: Date.now(), out: res }) }).then(() => {}, () => {})
+  }
+  return res
+}
+
+async function askCityFresh(city, q) {
   const now = Date.now()
   const { data: rows } = await db
     .from("events")
@@ -95,11 +111,11 @@ export async function askCity(city, q) {
     // web search can pause a long turn: hand it back so the server finishes it
     for (let i = 0; i < 3; i++) {
       msg = await client.messages.create({
-        model: "claude-opus-5-5",
-        max_tokens: 4000,
+        model: "claude-sonnet-5-5",
+        max_tokens: 3000,
         output_config: { effort: "low" },
         system: SYSTEM,
-        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 6 }],
+        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
         messages,
       })
       for (const b of msg.content) if (b.type === "web_search_tool_result" && b.content?.error_code) console.error("event search web error:", b.content.error_code)

@@ -593,6 +593,7 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "i'm in": "me apunto",
   "full": "lleno",
   "open chat": "abrir chat",
+  "message": "escribir a",
   "leave": "salir",
   "delete": "eliminar",
   "invite": "invitar",

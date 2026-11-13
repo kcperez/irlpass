@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk"
 import { getUser, lockedPhoto, safeFirstName, rowToMember } from "./_lib.js"
 import { db } from "./_db.js"
 import { canReach, today } from "./_access.js"
@@ -76,8 +77,19 @@ export default async function handler(req, res) {
     // the slow, complete search: google maps itself (~20s). for spots the map
     // data doesn't have, or a pasted google maps link
     if (req.method === "GET" && req.query?.google) {
-      const out = await googleSearch(String(req.query.google), here)
-      if (out.error) return res.status(502).json({ error: "google maps search isn't available right now" })
+      const asked = String(req.query.google)
+      const out = await googleSearch(asked, here).catch((e) => ({ error: String(e?.message || e) }))
+      if (out.error || !out.places?.length) {
+        // the scraper is down or found nothing: the open map, typo-forgiving
+        console.error("google search fallback:", out.error || "empty")
+        let found = await searchPlaces(asked, here)
+        if (!found.length) {
+          const fixed = await spellPlace(asked, here)
+          if (fixed && fixed.toLowerCase() !== asked.toLowerCase()) found = await searchPlaces(fixed, here)
+        }
+        if (found.length) return res.status(200).json({ places: found })
+        if (out.error) return res.status(200).json({ places: [], error: "couldn't find that one. try the full name, or drop a pin" })
+      }
       return res.status(200).json({ places: out.places.map((p) => ({ ...p, mood: moodFor(guessKind(p.kind)) })) })
     }
 
@@ -511,6 +523,19 @@ function moodFor(kind) {
   if (["bar", "pub", "biergarten", "restaurant", "hotel"].includes(kind)) return "pregame"
   return "chill"
 }
+// "buata" -> "Buatta": one quick fix of a misspelled spot name, for the open map
+async function spellPlace(q, here) {
+  if (!process.env.ANTHROPIC_API_KEY) return null
+  try {
+    const d = await new Anthropic().messages.create({
+      model: "claude-haiku-5-5",
+      max_tokens: 40,
+      messages: [{ role: "user", content: `someone in ${here?.name || "the city"} typed this to find a bar, restaurant, cafe or venue there: "${String(q).slice(0, 60)}". reply with only the place's correctly spelled name, nothing else.` }],
+    }, { timeout: 4000 })
+    return String(d?.content?.[0]?.text || "").replace(/["\n]/g, "").trim().slice(0, 60) || null
+  } catch { return null }
+}
+
 async function searchPlaces(q, here) {
   const text = q.trim().slice(0, 60)
   if (text.length < 2) return []

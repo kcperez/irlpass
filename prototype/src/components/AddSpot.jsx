@@ -117,6 +117,7 @@ export default function AddSpot({ token, city, cityName, center, mood: startMood
     const d = await fetch(`/api/mood?t=${token}&city=${city}&google=${encodeURIComponent(q.trim())}`).then((r) => r.json()).catch(() => null)
     setBusy(false)
     if (!d?.places) return setErr(d?.error || t("couldn't reach google maps. try again"))
+    if (!d.places.length && d.error) return setErr(d.error)
     setResults(d.places)
   }
 

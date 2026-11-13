@@ -28,6 +28,7 @@ import Trips from "./Trips"
 import Around from "./Around"
 import Mood from "./Mood"
 import Events from "./Events"
+import PlanDeck from "../components/PlanDeck"
 import PersonSheet from "../components/PersonSheet"
 import World from "../components/World"
 import WhatsNew, { WHATS_NEW } from "../components/WhatsNew"
@@ -2358,6 +2359,7 @@ export default function Club({ token }) {
   // the board (on her spot if she's out somewhere), you pick the spot and night,
   // a group chat forms, and she gets asked along.
   const [planWith, setPlanWith] = useState(null) // { memberNo, first, photo, nights }
+  const [deckWith, setDeckWith] = useState(null) // the tinder-simple plan picker: { person, city }
   const makePlan = (p, nights = null, city = null) => {
     // every city has a guide now (josh v5): the plan opens that city's board
     if (city) { setViewCity(city); setPlanCity(city) }
@@ -2841,13 +2843,26 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       <AnimatePresence>
+        {deckWith && (
+          <PlanDeck
+            token={token}
+            me={me}
+            person={deckWith.person}
+            city={deckWith.city}
+            onClose={() => setDeckWith(null)}
+            onSent={() => { const p = deckWith.person; setDeckWith(null); setDmWith({ memberNo: p.memberNo, name: p.first, photo: p.photo }); setDmReturn(tab); setTab("dms") }}
+            onPaywall={(r) => { setDeckWith(null); setPaywall(r) }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {personNo && (
           <PersonSheet
             token={token}
             memberNo={personNo}
             onClose={() => setPersonNo(null)}
-            onMessage={(p) => {
-              if (!p.talked) return makePlan(p, null, p.trips?.[0]?.city || me.city)
+            onMessage={(p, how) => {
+              if (how === "plan") { setPersonNo(null); return setDeckWith({ person: { memberNo: p.memberNo, first: p.first || String(p.name || "").split(/\s+/)[0], photo: p.photo || null }, city: p.trips?.[0]?.city || viewing || me.city }) }
               setPersonNo(null); setDmWith({ memberNo: p.memberNo, name: p.name || p.first, ig: p.ig, photo: p.photo }); setDmReturn(tab); setTab("dms")
             }}
             onUnlock={() => { setPersonNo(null); setPaywall("dm") }}

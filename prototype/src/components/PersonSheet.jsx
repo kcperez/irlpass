@@ -252,15 +252,15 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
             )}
             {!p.self && !p.blocked && (
               <div className="border-t border-line/70 bg-cream/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-                {p.canMessage ? (
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => onMessage?.(p)} className="w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]">
-                    {p.talked ? t("open chat") : `${t("make a plan with")} ${p.first}`}
-                  </motion.button>
-                ) : (
-                  // open the chat and write; the paywall shows when they hit send
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => onMessage?.(p)} className="w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]">
+                {/* say hi first: the chat opens right away, and if a pass is
+                    needed the paywall shows when they hit send */}
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => onMessage?.(p, "dm")} className="w-full rounded-full bg-ink py-4 text-[15px] font-bold text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)]">
+                  {p.talked ? t("open chat") : `${t("message")} ${p.first}`}
+                </motion.button>
+                {!p.talked && (
+                  <button onClick={() => onMessage?.(p, "plan")} className="mt-2 w-full rounded-full border border-line py-3 text-[14px] font-bold text-ink-soft">
                     {t("make a plan with")} {p.first}
-                  </motion.button>
+                  </button>
                 )}
               </div>
             )}
