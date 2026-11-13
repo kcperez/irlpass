@@ -20,6 +20,10 @@ export default async function handler(req, res) {
   if (typeof req.body?.hideConnections === "boolean") patch.hide_connections = req.body.hideConnections
   // v5: "what's your usual night out?" ($-$$$$, optional, never shown on a profile)
   if (req.body?.budget === null || ["$", "$$", "$$$", "$$$$", "skip"].includes(req.body?.budget)) patch.budget = req.body.budget
+  // onboarding: what would make this trip a 10/10, and would they post for perks
+  const WHY = ["crew", "dating", "business", "active", "culture"]
+  if (WHY.includes(req.body?.whyHere)) patch.why_here = req.body.whyHere
+  if (["yes", "maybe", "no"].includes(req.body?.earn)) patch.earn = req.body.earn
   // which alerts they want (down, nudge, plans, groups, runs, digest)
   if (req.body?.notifyPrefs && typeof req.body.notifyPrefs === "object") {
     const keys = ["down", "nudge", "plans", "groups", "runs", "digest"]

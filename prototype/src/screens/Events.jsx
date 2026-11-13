@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, Sparkle, X } from "@phosphor-icons/react"
+import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, ShareNetwork, Sparkle, X } from "@phosphor-icons/react"
 import { cachedJson } from "../lib/cached"
-import { t } from "../lib/i18n"
+import { t, LANG } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import CityNow from "../components/CityNow"
 
@@ -106,10 +106,10 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const [search, setSearch] = useState(null) // { q, reply, ids } | { q, loading } | { q, error }
   const inputRef = useRef(null)
 
-  const load = () => fetch(`/api/events?t=${token}&city=${city}`).then((r) => r.json()).then(setData).catch(() => {})
+  const load = () => fetch(`/api/events?t=${token}&city=${city}&lang=${LANG}`).then((r) => r.json()).then(setData).catch(() => {})
   useEffect(() => {
     setData(null); setSearch(null); setShown(PAGE)
-    cachedJson(`/api/events?t=${token}&city=${city}`, setData)
+    cachedJson(`/api/events?t=${token}&city=${city}&lang=${LANG}`, setData)
   }, [token, city])
 
   const events = useMemo(() => data?.events || [], [data])
@@ -160,13 +160,24 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     const r = await fetch("/api/events", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, id: e.id, going: !e.going }),
+      body: JSON.stringify({ t: token, id: e.id, going: !e.going, lang: LANG }),
     }).then((x) => x.json()).catch(() => null)
     setBusy(null)
     if (!r?.event) return
     setData((d) => ({ ...d, events: d.events.map((x) => (x.id === e.id ? r.event : x)) }))
     if (open?.id === e.id) setOpen(r.event)
   }
+  // the way in for everyone not on irlpass yet: a public page for the event that
+  // drops them in this chat after signup, credited to you
+  const share = async (e) => {
+    const url = `https://irlpass.xyz/e/${e.id}${me?.memberNo ? `?ref=${me.memberNo}` : ""}`
+    const text = `${e.title}: ${t("who's going? join the group chat")}`
+    try {
+      if (navigator.share) await navigator.share({ title: e.title, text, url })
+      else { await navigator.clipboard.writeText(`${text} ${url}`); setCopied(e.id) }
+    } catch { /* closed the share sheet */ }
+  }
+  const [copied, setCopied] = useState(null)
   const chat = (e) => { setOpen(null); onOpenRoom?.({ channel: e.channel, title: e.title }) }
 
   return (
@@ -325,6 +336,9 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                           <ChatsCircle size={18} weight="fill" /> {t("open the group chat")}
                         </button>
                       )}
+                      <button onClick={() => share(open)} className="flex w-full items-center justify-center gap-2 rounded-full bg-lime py-3 text-[14.5px] font-bold">
+                        <ShareNetwork size={18} weight="bold" /> {copied === open.id ? t("link copied") : t("bring people: share the chat")}
+                      </button>
                     </div>
                   </div>
                 </div>

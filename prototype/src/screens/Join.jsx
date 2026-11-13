@@ -94,6 +94,11 @@ export default function Join({ ig, onBack, onDone }) {
   const [month, setMonth] = useState(null)
   const [local, setLocal] = useState(false)
   const [vibes, setVibes] = useState([])
+  // three taps: why you're here (who we match you with), what a night costs you
+  // (which plans and perks we show), and whether you'd post for perks
+  const [why, setWhy] = useState(null)
+  const [budget, setBudget] = useState(null)
+  const [earn, setEarn] = useState(null)
   const [already, setAlready] = useState(false) // handle belongs to an existing member
   // where they live. locals are what fill an empty calendar, so it's asked of everyone
   const [home, setHome] = useState(null) // { slug, name, emoji } | "nomad"
@@ -158,6 +163,11 @@ export default function Join({ ig, onBack, onDone }) {
           body: JSON.stringify({ t: d.token, city: home.slug, starts: todayIso(), ends: addDays(todayIso(), 89), local: true, flexible: true }),
         }).catch(() => {})
       }
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ t: d.token, whyHere: why, budget, earn }),
+      }).catch(() => {})
       localStorage.setItem("irlpass_member_token", d.token)
       onDone(d.token)
     } catch (e) {
@@ -413,6 +423,32 @@ export default function Join({ ig, onBack, onDone }) {
           <p className="text-center text-[12.5px] font-semibold text-ink-soft">
             {vibes.length < MIN_VIBES ? `${vibes.length} / ${MIN_VIBES}` : `${vibes.length} ${t("picked")} ✓`}
           </p>
+        </div>
+      ),
+    },
+    {
+      key: "night",
+      hideArt: true,
+      valid: !!why && !!budget && !!earn,
+      body: (
+        <div className="flex flex-col gap-5">
+          {[
+            [t("what would make this a 10/10?"), why, setWhy, [["crew", t("a crew to go out with")], ["dating", t("meeting someone")], ["business", t("people in my field")], ["active", t("workout and run buddies")], ["culture", t("food, art and music")]]],
+            [t("a great night out costs you"), budget, setBudget, [["$", t("under $20")], ["$$", "$20–60"], ["$$$", "$60–150"], ["$$$$", t("whatever it takes")]]],
+            [t("want perks for posting your nights?"), earn, setEarn, [["yes", t("yes, i post")], ["maybe", t("maybe")], ["no", t("not for me")]]],
+          ].map(([q, val, set, opts]) => (
+            <div key={q}>
+              <h2 className="display text-[24px] font-bold leading-tight">{q}</h2>
+              {q === t("want perks for posting your nights?") && <p className="mt-0.5 text-[13px] text-ink-soft">{t("free entry, drinks and months of the pass, from the places you go.")}</p>}
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {opts.map(([k, label]) => (
+                  <motion.button key={k} whileTap={{ scale: 0.95 }} onClick={() => set(k)} className={`rounded-full border px-3.5 py-2 text-[14px] font-bold ${val === k ? "border-transparent bg-ink text-cream" : "border-line bg-white/70"}`}>
+                    {label}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ),
     },

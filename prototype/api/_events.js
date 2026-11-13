@@ -216,18 +216,22 @@ const textOf = (msg) => msg.content.filter((b) => b.type === "text").map((b) => 
 export async function classify(rows) {
   const client = ai()
   if (!client || !rows.length) return
-  for (let i = 0; i < rows.length; i += 150) {
-    const chunk = rows.slice(i, i + 150)
+  for (let i = 0; i < rows.length; i += 100) {
+    const chunk = rows.slice(i, i + 100)
     try {
       const msg = await client.messages.create({
         model: "claude-opus-5-5",
-        max_tokens: 6000,
+        max_tokens: 16000,
         output_config: { effort: "low" },
-        system: `sort events into one category each: run (runs, races, run clubs), wellness (yoga, fitness, hikes, retreats), party (music of any kind: concerts, dj, clubs, rooftops, karaoke, dancing, nightlife), food (food and drink: wine, tastings, dinners, markets, sagre, aperitivo), art (art, film, theatre, books, culture, talks about culture), tech (startups, ai, business, networking for founders), social (meetups, games, quizzes, language exchanges, anything else social). titles may be in any language. answer with only json: {"<index>": "<category>"}`,
+        system: `sort events into one category each: run (runs, races, run clubs), wellness (yoga, fitness, hikes, retreats), party (music of any kind: concerts, dj, clubs, rooftops, karaoke, dancing, nightlife), food (food and drink: wine, tastings, dinners, markets, sagre, aperitivo), art (art, film, theatre, books, culture, talks about culture), tech (startups, ai, business, networking for founders), social (meetups, games, quizzes, language exchanges, anything else social). titles may be in any language. also give the title in natural english and natural spanish, short, keeping names of artists, venues and brands as they are. answer with only json: {"<index>": {"c": "<category>", "en": "<english title>", "es": "<spanish title>"}}`,
         messages: [{ role: "user", content: chunk.map((e, j) => `${j} | ${e.title}${e.venue ? ` | ${e.venue}` : ""}${e.host ? ` | by ${e.host}` : ""}`).join("\n") }],
       })
       const out = jsonIn(textOf(msg)) || {}
-      chunk.forEach((e, j) => { if (CATS.includes(out[j])) e.category = out[j] })
+      chunk.forEach((e, j) => {
+        const o = out[j] || {}
+        if (CATS.includes(o.c) && !e._fixed) e.category = o.c
+        if (o.en || o.es) e.titles = { en: String(o.en || e.title).slice(0, 200), es: String(o.es || e.title).slice(0, 200) }
+      })
     } catch (err) {
       console.error("classify failed:", err?.status, err?.message)
     }
@@ -301,10 +305,10 @@ export async function seedEvents() {
       if (seen.has(key)) continue
       seen.add(key)
       const { forceKind, ...row } = e
-      keep.push({ ...row, title: String(e.title).slice(0, 200), category: forceKind || kindOf(e.title, `${e.host || ""} ${e.venue || ""}`), updated_at: new Date().toISOString(), _ai: !forceKind })
+      keep.push({ ...row, title: String(e.title).slice(0, 200), _fixed: !!forceKind, category: forceKind || kindOf(e.title, `${e.host || ""} ${e.venue || ""}`), updated_at: new Date().toISOString(), _ai: true })
     }
     await classify(keep.filter((e) => e._ai))
-    for (const e of keep) delete e._ai
+    for (const e of keep) { delete e._ai; delete e._fixed; if (!e.titles) e.titles = null }
     for (let i = 0; i < keep.length; i += 100) {
       const { error } = await db.from("events").upsert(keep.slice(i, i + 100), { onConflict: "source,source_id" })
       if (error) throw error

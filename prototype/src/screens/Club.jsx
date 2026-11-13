@@ -2310,6 +2310,15 @@ export default function Club({ token }) {
     const dm = go.match(/^dm-(\d{3})$/)
     const spot = go.match(/^spot-(\d+)$/)
     const now = go.match(/^now-([a-z]+)$/)
+    const ev = go.match(/^ev-(\d+)$/)
+    if (ev) {
+      let via = ""
+      try { via = p.get("ref") || localStorage.getItem("irl:ref") || "" } catch { /* private mode */ }
+      fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, id: Number(ev[1]), going: true, via }) })
+        .then((r) => r.json())
+        .then((r) => { if (r?.event) { setTab("events"); setSpotRoom({ channel: r.event.channel, title: r.event.title }) } })
+        .catch(() => {})
+    }
     if (now) { setTab("trips"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:now", { detail: now[1] })), 700) }
     if (dm) { setDmWith({ memberNo: dm[1] }); setTab("dms") }
     else if (spot) { setFocusSpot(Number(spot[1])); setTab("mood") }

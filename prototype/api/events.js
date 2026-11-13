@@ -8,7 +8,7 @@ import { actsAsMod } from "./_mods.js"
 // POST { t, id, going: true|false }  -> going joins the event chat (channel ev-<id>)
 const first = (n) => String(n || "").trim().split(/\s+/)[0] || "someone"
 
-async function withGoing(rows, me) {
+async function withGoing(rows, me, lang = "en") {
   const ids = rows.map((e) => e.id)
   if (!ids.length) return []
   const { data: going } = await db.from("event_going").select("event_id, member_no").in("event_id", ids)
@@ -23,7 +23,8 @@ async function withGoing(rows, me) {
     const open = mod || mine.has(e.id)
     return {
       id: e.id,
-      title: e.title,
+      title: (e.titles && e.titles[lang]) || e.title,
+      original: e.title,
       startsAt: e.starts_at,
       endsAt: e.ends_at,
       venue: e.venue,
@@ -55,6 +56,7 @@ async function withGoing(rows, me) {
 export default async function handler(req, res) {
   const token = req.method === "POST" ? req.body?.t : req.query?.t
   const me = await getUser(token)
+  const lang = (req.method === "POST" ? req.body?.lang : req.query?.lang) === "es" ? "es" : "en"
   if (!me) return res.status(401).json({ error: "not a member" })
 
   try {
@@ -62,7 +64,7 @@ export default async function handler(req, res) {
       if (req.query?.id) {
         const { data: e } = await db.from("events").select("*").eq("id", Number(req.query.id)).eq("hidden", false).maybeSingle()
         if (!e) return res.status(404).json({ error: "that event is gone" })
-        return res.status(200).json({ event: (await withGoing([e], me))[0] })
+        return res.status(200).json({ event: (await withGoing([e], me, lang))[0] })
       }
       const city = String(req.query?.city || me.city || "medellin")
       const from = new Date(Date.now() - 3 * 3600e3).toISOString()
@@ -78,7 +80,7 @@ export default async function handler(req, res) {
         .order("starts_at")
         .limit(300)
       res.setHeader("cache-control", "private, max-age=30")
-      return res.status(200).json({ city, events: await withGoing(rows || [], me) })
+      return res.status(200).json({ city, events: await withGoing(rows || [], me, lang) })
     }
 
     if (req.method === "POST") {
@@ -91,7 +93,8 @@ export default async function handler(req, res) {
       } else {
         const { data: had } = await db.from("event_going").select("event_id").eq("event_id", id).eq("member_no", me.memberNo).maybeSingle()
         if (!had) {
-          await db.from("event_going").insert({ event_id: id, member_no: me.memberNo })
+          const via = /^\d{3}$/.test(String(req.body?.via || "")) && req.body.via !== me.memberNo ? req.body.via : null
+          await db.from("event_going").insert({ event_id: id, member_no: me.memberNo, via })
           // say it in the room, so the chat is never a blank page
           await db.from("messages").insert({
             channel,
@@ -102,7 +105,7 @@ export default async function handler(req, res) {
           })
         }
       }
-      const [out] = await withGoing([{ ...(await db.from("events").select("*").eq("id", id).single()).data }], me)
+      const [out] = await withGoing([{ ...(await db.from("events").select("*").eq("id", id).single()).data }], me, lang)
       return res.status(200).json({ event: out })
     }
     return res.status(405).json({ error: "method not allowed" })

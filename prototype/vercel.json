@@ -9,6 +9,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/e/:id",
+      "destination": "/api/event-page?id=:id"
+    },
+    {
       "source": "/d/:id",
       "destination": "/api/day-page?id=:id"
     },
