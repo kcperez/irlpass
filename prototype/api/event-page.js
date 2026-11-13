@@ -69,7 +69,7 @@ ${e.url ? `<p style="text-align:center;font-size:13px"><a href="${esc(e.url)}" t
   html = html.replace("</title>", `</title>
 <meta property="og:title" content="${esc(host ? `${first(host.name).toLowerCase()} invited you: ${title}` : title)}">
 <meta property="og:description" content="${esc(`${day}${e.venue ? ` at ${e.venue}` : ""} · ${count ? `${count} going on irlpass` : "see who's going on irlpass"}`)}">
-<meta property="og:image" content="${esc(e.cover || `https://irlpass.xyz/api/og?id=${id}`)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image" content="${esc(e.cover ? String(e.cover).replace(/([?&])w=\d+/, "$1w=1200") : `https://irlpass.xyz/api/og?id=${id}`)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta property="og:url" content="https://irlpass.xyz/e/${id}">
 <meta name="twitter:card" content="summary_large_image">`)
   return send(res, html, "public, max-age=120")
