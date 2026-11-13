@@ -604,7 +604,7 @@ export default async function handler(req, res) {
         const flash = req.query?.session_id ? await bought(v, String(req.query.session_id)) : ""
         return send(res, await dashPage(v, e, flash))
       }
-      return send(res, await landing(), "public, max-age=300")
+      return send(res, await landing(), "public, max-age=0, s-maxage=60")
     }
     if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
     const b = req.body || {}
