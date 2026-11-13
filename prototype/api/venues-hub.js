@@ -134,6 +134,7 @@ function landing() {
 function startPage() {
   const opts = Object.entries(CITIES).map(([s, n]) => `<option value="${s}">${n}</option>`).join("")
   const body = `${NAV()}
+<div class="cols"><div>
 <div class="rise" style="padding-top:18px">
   <span class="tag">about a minute</span>
   <h1 style="font-size:48px">set up your story perk</h1>
@@ -150,15 +151,28 @@ function startPage() {
   <button class="block" id="go" style="margin-top:20px">get my qr</button>
   <p class="err" id="err"></p>
 </form>
-<p class="faint" style="font-size:12.5px;text-align:center;margin-top:14px">first 20 stories every month are free. a story counts when staff tap a pass.</p>`
+<p class="faint" style="font-size:12.5px;text-align:center;margin-top:14px">first 20 stories every month are free. a story counts when staff tap a pass.</p>
+</div><div class="side desk" style="padding-top:96px">
+  <p class="faint" style="font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;text-align:center">what your guests see</p>
+  <div class="card" style="padding:14px;border-radius:30px;max-width:360px;margin:0 auto">
+    <div style="border-radius:22px;padding:22px;color:#15110f;background:linear-gradient(110deg,var(--lilac),var(--peach),var(--lime),var(--lilac));background-size:300% 100%;animation:mv 5s linear infinite">
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.7" id="pv-venue">your venue</p>
+      <p class="serif" style="margin:8px 0 4px;font-size:34px;line-height:1" id="pv-item">a free smoothie</p>
+      <p style="margin:0;font-size:15px;font-weight:600;opacity:.8">for a story tagging <span id="pv-ig">@you</span></p>
+    </div>
+    <p class="faint" style="text-align:center;font-size:12.5px;margin:12px 0 2px">they scan your qr, type their instagram, show the story</p>
+  </div>
+</div></div>`
   const script = `
+const pv=(i,o,f)=>{const el=document.getElementById(i);el&&el.addEventListener("input",()=>{document.getElementById(o).textContent=f(el.value)})};
+pv("name","pv-venue",x=>x.trim()||"your venue");pv("item","pv-item",x=>x.trim()||"a free smoothie");pv("ig","pv-ig",x=>"@"+(x.trim().replace(/^@+/,"")||"you"));
 let qty=50;document.querySelectorAll("#qty .chip").forEach(b=>b.onclick=()=>{qty=+b.dataset.n;document.querySelectorAll("#qty .chip").forEach(x=>x.classList.toggle("on",x===b))});
 const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"";const guess={"America/Bogota":"medellin","America/Los_Angeles":"los-angeles","Europe/Rome":"palermo"}[tz]||(tz==="America/New_York"?"miami":"");if(guess)document.getElementById("city").value=guess;
 const f=document.getElementById("f"),go=document.getElementById("go"),err=document.getElementById("err"),v=id=>document.getElementById(id).value;
 f.onsubmit=async e=>{e.preventDefault();err.textContent="";go.disabled=true;go.textContent="one sec…";
 const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create",name:v("name"),ig:v("ig"),city:v("city"),item:v("item"),email:v("email"),qty})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.url){try{localStorage.setItem("venue-k",r.k)}catch(e){}location.href=r.url}else{err.textContent=r.error||"try again";go.disabled=false;go.textContent="get my qr"}};`
-  return glass("set up · getty", body, { script })
+  return glass("set up · getty", body, { script, wide: true })
 }
 
 function signInPage() {
@@ -215,7 +229,8 @@ ${flash ? `<div class="card" style="border-color:rgba(205,238,69,.45);margin:10p
   <p class="soft" style="margin:0">1 story = ${esc(perk.item || "your perk")} · tagging @${esc(v.instagram || "")} + @irlpass.xyz</p>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px">
+<div class="cols" style="margin-top:20px"><div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
   ${stat(d.todayPosted, "stories today", "st-today")}
   ${stat(d.monthPosted, "this month", "st-month")}
   ${stat(d.slots.left, "stories left", "st-left")}
@@ -227,9 +242,10 @@ ${flash ? `<div class="card" style="border-color:rgba(205,238,69,.45);margin:10p
     <p class="serif" style="font-size:28px;margin:0">tonight</p>
     <span class="faint" style="font-size:12px">updates on its own</span>
   </div>
-  <div id="list" style="margin-top:6px"></div>
+  <div id="list" style="margin-top:6px;min-height:120px"></div>
 </div>
 
+</div><div class="side">
 <div class="card" style="margin-top:14px;text-align:center">
   <span class="tag" style="--dot:var(--lilac)">the qr for your counter</span>
   ${qr ? `<a href="${qr}" download="${esc(v.slug)}-qr.png"><img src="${qr}" alt="qr code" style="display:block;width:220px;max-width:70%;margin:18px auto 10px;border-radius:18px;background:#fff;padding:10px"></a>` : ""}
@@ -262,6 +278,7 @@ ${flash ? `<div class="card" style="border-color:rgba(205,238,69,.45);margin:10p
   <p class="soft" style="margin:0 0 6px">2. you see the story is live and tags @${esc(v.instagram || "you")}.</p>
   <p class="soft" style="margin:0">3. double tap the pass, or tap give next to their name here. that's it.</p>
 </details>
+</div></div>
 <p class="faint" style="text-align:center;font-size:12px;margin-top:24px">bookmark this page. it's your sign in.</p>`
 
   const script = `
@@ -284,7 +301,7 @@ document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{b.disabled=true
 document.getElementById("pf").onsubmit=async e=>{e.preventDefault();const s=document.getElementById("save"),er=document.getElementById("perr");s.disabled=true;er.textContent="";
 const r=await post({action:"perk",item:document.getElementById("item").value,ask:document.getElementById("ask").value,qty:+document.getElementById("qty").value});
 s.disabled=false;if(r.ok){s.textContent="saved";setTimeout(()=>s.textContent="save",1500)}else er.textContent=r.error||"try again"};`
-  return glass(`${v.name} · the guestlist`, body, { script, head: `<meta name="robots" content="noindex">` })
+  return glass(`${v.name} · the guestlist`, body, { script, wide: true, head: `<meta name="robots" content="noindex">` })
 }
 
 async function printPage(v, e) {

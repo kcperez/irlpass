@@ -86,7 +86,7 @@ select option{color:#15110f}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{border:1px solid var(--line);background:var(--glass);color:var(--ink);border-radius:999px;padding:10px 16px;font:600 14px Geist,sans-serif;cursor:pointer}
 .chip.on{background:var(--ink);color:#15110f;border-color:var(--ink)}
-.err{color:var(--red);font-size:13px;min-height:18px;margin:10px 0 0}
+.err{color:var(--red);font-size:13px;margin:10px 0 0}.err:empty{display:none}
 .row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 .logo{font-family:"Instrument Serif",serif;font-size:26px;text-decoration:none;letter-spacing:-.01em}
@@ -94,5 +94,8 @@ select option{color:#15110f}
 @keyframes mv{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+.cols{display:grid;gap:0 18px;grid-template-columns:minmax(0,1fr)}
+.desk{display:none}
+@media(min-width:900px){.cols{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start}.side{position:sticky;top:20px}.side>:first-child{margin-top:0!important}.desk{display:block}.mob{display:none}}
 </style></head><body><main>${body}</main>${script ? `<script>${script}</script>` : ""}</body></html>`
 }
