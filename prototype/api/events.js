@@ -1,6 +1,7 @@
 import { db } from "./_db.js"
 import { getUser, lockedPhoto } from "./_lib.js"
 import { actsAsMod } from "./_mods.js"
+import { notifyMemberNo } from "./_notify.js"
 
 // what's on in a city, who from irlpass is going, and each event's group chat.
 // GET  /api/events?t&city            -> the next 14 days
@@ -141,6 +142,28 @@ export default async function handler(req, res) {
             from_ig: "@irlpass.xyz",
             from_member_no: "000",
           })
+          // came in through someone's share: the event lands in their dm (so the
+          // conversation moves into irlpass) and the sharer hears they're going
+          if (via) {
+            const [a, b] = via < me.memberNo ? [via, me.memberNo] : [me.memberNo, via]
+            const body = `https://irlpass.xyz/e/${id}`
+            const now = new Date().toISOString()
+            let { data: th } = await db.from("dm_threads").select("id").eq("a_no", a).eq("b_no", b).maybeSingle()
+            if (!th) ({ data: th } = await db.from("dm_threads").insert({ a_no: a, b_no: b, last_at: now }).select("id").single())
+            if (th) {
+              const { count } = await db.from("dm_messages").select("id", { count: "exact", head: true }).eq("thread_id", th.id).eq("body", body)
+              if (!count) {
+                await db.from("dm_messages").insert({ thread_id: th.id, from_no: via, body })
+                await db.from("dm_threads").update({ last_at: now }).eq("id", th.id)
+              }
+            }
+            await notifyMemberNo(via, {
+              subject: `${first(me.name)} is going to ${String(e.title).toLowerCase().slice(0, 60)}`,
+              line: `${first(me.name)} opened the event you shared and tapped going. say hi in your chat.`,
+              ctaLabel: "say hi",
+              push: { title: `${first(me.name)} is going 🙌`, body: `to ${String(e.title).toLowerCase().slice(0, 80)}. say hi`, go: `dm-${me.memberNo}`, tag: `going-${id}` },
+            }).catch(() => {})
+          }
         }
       }
       const [out] = await withGoing([{ ...(await db.from("events").select("*").eq("id", id).single()).data }], me, lang)
