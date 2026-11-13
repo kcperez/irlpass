@@ -6,6 +6,9 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
 
 // voice-matched spanish: lowercase, warm, natural — not literal/robotic
   const ES = {
+  "check out": "mira",
+  "this": "este",
+  "at": "en",
   "move the map to put the pin on it": "mueve el mapa para poner el pin",
   "that didn't go through. try again": "no se envió. intenta otra vez",
   "add a spot": "agregar un lugar",

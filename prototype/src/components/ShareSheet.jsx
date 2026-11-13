@@ -27,13 +27,13 @@ export default function ShareSheet({ share, onClose, token, onPaywall, onSent })
     }
     if (r?.gate) { onClose(); onPaywall?.(r.gate) }
   }
-  const msg = share ? `${share.title} ${share.url}` : ""
+  const msg = share ? `${share.text || share.title} ${share.url}` : ""
   const go = (href) => { window.open(href, "_blank", "noopener"); onClose() }
   const opts = share && [
     { key: "wa", label: "whatsapp", icon: <WhatsappLogo size={26} weight="fill" />, bg: "#25d366", run: () => go(`https://wa.me/?text=${encodeURIComponent(msg)}`) },
     { key: "sms", label: t("messages"), icon: <ChatCircleDots size={26} weight="fill" />, bg: "#34c759", run: () => { window.location.href = `sms:&body=${encodeURIComponent(msg)}`; onClose() } },
     { key: "copy", label: copied ? t("copied") : t("copy link"), icon: <LinkSimple size={24} weight="bold" />, bg: "#4a66ff", run: async () => { try { await navigator.clipboard.writeText(share.url) } catch { /* old browser */ } setCopied(true); setTimeout(onClose, 700) } },
-    ...(typeof navigator !== "undefined" && navigator.share ? [{ key: "more", label: t("more"), icon: <DotsThree size={26} weight="bold" />, bg: "rgba(255,255,255,.12)", run: async () => { try { await navigator.share({ title: share.title, url: share.url }) } catch { /* closed */ } onClose() } }] : []),
+    ...(typeof navigator !== "undefined" && navigator.share ? [{ key: "more", label: t("more"), icon: <DotsThree size={26} weight="bold" />, bg: "rgba(255,255,255,.12)", run: async () => { try { await navigator.share({ title: share.title, text: share.text || share.title, url: share.url }) } catch { /* closed */ } onClose() } }] : []),
   ]
   return (
     <AnimatePresence>

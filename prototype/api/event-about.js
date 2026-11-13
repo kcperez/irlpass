@@ -57,9 +57,15 @@ export default async function handler(req, res) {
   const id = Number(req.query?.id)
   const { data: e } = id ? await db.from("events").select("id, title, venue, address, host, category, starts_at, url, details, about, source, source_id").eq("id", id).maybeSingle() : { data: null }
   if (!e) return res.status(404).json({ error: "that event is gone" })
-  if (e.about?.en) return res.status(200).json({ about: e.about })
-  if (!client) return res.status(200).json({ about: null })
+  const about = await aboutFor(e)
+  if (about) res.setHeader("cache-control", "private, max-age=3600")
+  return res.status(200).json({ about })
+}
 
+// written once per event, then kept on the row. the public share page uses it too.
+export async function aboutFor(e) {
+  if (e.about?.en) return e.about
+  if (!client) return null
   try {
     const page = e.source === "ra" ? await raText(e.source_id) : await pageText(e.url)
     const msg = await client.messages.create({
@@ -74,13 +80,12 @@ export default async function handler(req, res) {
     })
     const m = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("").match(/\{[\s\S]*\}/)
     const o = m ? JSON.parse(m[0]) : null
-    if (!o?.en) return res.status(200).json({ about: null })
+    if (!o?.en) return null
     const about = { en: String(o.en).slice(0, 400), es: String(o.es || o.en).slice(0, 400) }
     await db.from("events").update({ about }).eq("id", e.id)
-    res.setHeader("cache-control", "private, max-age=3600")
-    return res.status(200).json({ about })
+    return about
   } catch (err) {
     console.error("event about error:", err?.status, err?.message)
-    return res.status(200).json({ about: null })
+    return null
   }
 }

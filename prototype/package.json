@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "@vercel/blob": "^2.4.0",
     "@vercel/functions": "^3.9.9",
+    "@vercel/og": "^0.6.8",
     "framer-motion": "^12.40.0",
     "maplibre-gl": "^5.24.0",
     "qrcode": "^1.5.4",

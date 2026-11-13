@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, CaretDown, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, Plus, ShareNetwork, SlidersHorizontal, Sparkle, Ticket, X } from "@phosphor-icons/react"
+import { ArrowUpRight, CaretDown, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, Plus, Export, SlidersHorizontal, Sparkle, Ticket, X } from "@phosphor-icons/react"
 import { cachedJson } from "../lib/cached"
 import { t, LANG } from "../lib/i18n"
 import ShareSheet from "../components/ShareSheet"
@@ -169,7 +169,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
             {e.going ? t("open the group chat") : e.spotsLeft === 0 ? t("it's full") : e.hosted && e.priceCents ? `${t("get a ticket")} · ${priceOf(e)}` : t("i'm going")}
           </motion.button>
           <button onClick={() => onShare(e)} aria-label={t("share")} className={`flex h-[50px] w-[50px] items-center justify-center rounded-full ${glass}`}>
-            {copied ? <CheckCircle size={19} weight="fill" /> : <ShareNetwork size={19} weight="bold" />}
+            {copied ? <CheckCircle size={19} weight="fill" /> : <Export size={19} weight="bold" />}
           </button>
         </div>
         {first && <p className="mt-3 text-center text-[11.5px] font-semibold text-white/50">{t("swipe up for more · double tap to go · left or right to change the vibe")}</p>}
@@ -344,7 +344,21 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
   // the way in for everyone not on irlpass yet: a public page for the event that
   // drops them in this chat after signup, credited to you
   const [sharing, setSharing] = useState(null) // { title, url } for the share sheet
-  const share = (e) => setSharing({ title: e.title, url: `https://irlpass.xyz/e/${e.id}${me?.memberNo ? `?ref=${me.memberNo}` : ""}` })
+  // the message reads like a friend sent it: "check out x, tonight at y 👀"
+  const dayPhrase = (iso) => {
+    const key = (d) => new Date(d).toLocaleDateString("en-CA", { timeZone: tz })
+    const diff = Math.round((Date.parse(key(iso)) - Date.parse(key(Date.now()))) / 864e5)
+    const hour = Number(new Date(iso).toLocaleString("en-US", { timeZone: tz, hour: "numeric", hour12: false }))
+    if (diff <= 0) return hour >= 17 || hour < 4 ? t("tonight") : t("today")
+    if (diff === 1) return t("tomorrow")
+    if (diff < 7) return `${t("this")} ${new Date(iso).toLocaleDateString(LANG === "es" ? "es" : "en-US", { timeZone: tz, weekday: "long" }).toLowerCase()}`
+    return new Date(iso).toLocaleDateString(LANG === "es" ? "es" : "en-US", { timeZone: tz, month: "short", day: "numeric" }).toLowerCase()
+  }
+  const share = (e) => {
+    const title = String(e.title || "").toLowerCase()
+    const text = `${t("check out")} ${title}, ${dayPhrase(e.starts_at)}${e.venue ? ` ${t("at")} ${e.venue}` : ""} 👀`
+    setSharing({ title: e.title, text, url: `https://irlpass.xyz/e/${e.id}${me?.memberNo ? `?ref=${me.memberNo}` : ""}` })
+  }
   const [copied, setCopied] = useState(null)
   // the two-line "what is this", written the first time anyone opens the event
   const [abouts, setAbouts] = useState({})
@@ -696,7 +710,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
                         </button>
                       )}
                       <button onClick={() => share(open)} className="flex w-full items-center justify-center gap-2 rounded-full border border-line py-3 text-[14.5px] font-bold">
-                        <ShareNetwork size={18} weight="bold" /> {t("share")}
+                        <Export size={18} weight="bold" /> {t("share")}
                       </button>
                     </div>
                   </div>
