@@ -19,7 +19,7 @@ export default function TonightPin({ token, city = "medellin" }) {
   if (!pin) return null
   return (
     <button onClick={() => openSpot(pin.s.id)} className="flex w-full items-center gap-3 border-b border-line/70 bg-ink px-4 py-2.5 text-left text-cream">
-      <span className="out-dot h-2 w-2 shrink-0 rounded-full bg-[#5fd35f]" />
+      <span className="out-dot h-2 w-2 shrink-0 rounded-full bg-[#4a66ff]" />
       <span className="min-w-0 flex-1 truncate text-[13px] font-bold">
         {t("tonight")} · {pin.mine ? `${t("you're going to")} ${pin.s.name}` : pin.s.name} · {pin.s.going} {t("going")}
       </span>

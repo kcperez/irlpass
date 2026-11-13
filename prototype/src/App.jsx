@@ -91,7 +91,7 @@ export default function App() {
       <div aria-hidden className={`wash pointer-events-none fixed inset-0 z-0 ${screen === "app" ? "md:hidden lg:block" : ""}`} />
       {/* on a computer the app sits framed in the middle of a dark room, like a phone on a table */}
       {screen === "app" && (
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 hidden md:block lg:hidden" style={{ background: "radial-gradient(40% 50% at 30% 30%, rgba(74,102,255,.2), transparent 70%), radial-gradient(40% 50% at 75% 70%, rgba(248,217,198,.14), transparent 70%)" }}>
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 hidden md:block lg:hidden" style={{ background: "radial-gradient(40% 50% at 30% 30%, rgba(74,102,255,.2), transparent 70%), radial-gradient(40% 50% at 75% 70%, rgba(74,102,255,.08), transparent 70%)" }}>
           <p className="absolute bottom-8 left-8 max-w-[240px] text-[13px] leading-snug text-white/45">irlpass lives on your phone. open irlpass.xyz there and add it to your home screen.</p>
         </div>
       )}

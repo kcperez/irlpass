@@ -75,9 +75,9 @@ function GoingButton({ e, busy, onToggle }) {
 
 // film grain over every card, like a photo, not a screen
 const GRAIN = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.55'/></svg>\")"
-const DOT = { run: "#cdee45", wellness: "#a7e3c4", party: "#ff7ad9", food: "#f6a76b", art: "#9fb4ff", social: "#ddd0f6", tech: "#7fe0ff" }
+const DOT = {} // one accent: every category dot is cobalt
 // no cover: a mood made from the category color, never a broken image
-const MOOD = { run: ["#3d4a12", "#cdee45"], wellness: ["#1f4636", "#a7e3c4"], party: ["#4a1240", "#ff7ad9"], food: ["#4f2a12", "#f6a76b"], art: ["#1d2a5c", "#9fb4ff"], social: ["#3a2f52", "#ddd0f6"], tech: ["#0f3a46", "#7fe0ff"] }
+const MOOD = {} // no cover: a deep cobalt mood, same for every category
 
 // one event per screen: the cover floats on its own blur, the facts sit on frosted glass
 const spring = { type: "spring", stiffness: 260, damping: 26 }
@@ -98,7 +98,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
   }
   useEffect(() => () => clearTimeout(tapT.current), [])
   const img = e.cover && !broken ? e.cover : null
-  const [a, b] = MOOD[e.category] || MOOD.social
+  const [a, b] = MOOD[e.category] || ["#10142e", "#4a66ff"]
   const day = dayKey(new Date(Math.max(Date.parse(e.startsAt), Date.now())).toISOString(), tz)
   const glass = "border border-white/20 bg-white/15 text-white backdrop-blur-xl"
   return (
@@ -132,7 +132,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
         {alt && <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink keep-light"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
         <button onClick={() => onOpen(e)} className="block w-full text-left">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/40 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em]">
-            <span className="h-2 w-2 rounded-full" style={{ background: DOT[e.category] || "#ddd0f6" }} />
+            <span className="h-2 w-2 rounded-full" style={{ background: DOT[e.category] || "#4a66ff" }} />
             {dayLabel(day, todayKey, tomorrowKey)} · {timeOf(e.startsAt, tz)}{priceOf(e) ? ` · ${priceOf(e)}` : ""}
           </span>
           <span className="serif-display mt-2.5 line-clamp-3 block text-[31px] leading-[1.04]">{e.title}</span>
@@ -175,7 +175,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
 function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, onChat }) {
   const [broken, setBroken] = useState(false)
   const img = e.cover && !broken ? e.cover : null
-  const [a, b] = MOOD[e.category] || MOOD.social
+  const [a, b] = MOOD[e.category] || ["#10142e", "#4a66ff"]
   const day = dayKey(new Date(Math.max(Date.parse(e.startsAt), Date.now())).toISOString(), tz)
   return (
     <motion.article layout initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 260, damping: 28 }}
@@ -191,7 +191,7 @@ function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, o
       </button>
       <div className="flex flex-1 flex-col p-4">
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[e.category] || "#ddd0f6" }} />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[e.category] || "#4a66ff" }} />
           {dayLabel(day, todayKey, tomorrowKey)} · {timeOf(e.startsAt, tz)}{priceOf(e) ? ` · ${priceOf(e)}` : ""}
         </span>
         <button onClick={() => onOpen(e)} className="mt-2 text-left">
@@ -374,7 +374,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
 
       {desk && (
         <div className="no-scrollbar absolute inset-0 overflow-y-auto">
-          <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(40% 40% at 20% 0%, rgba(74,102,255,.18), transparent 70%), radial-gradient(40% 40% at 90% 10%, rgba(248,217,198,.10), transparent 70%)" }} />
+          <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(40% 40% at 20% 0%, rgba(74,102,255,.18), transparent 70%), radial-gradient(40% 40% at 90% 10%, rgba(74,102,255,.08), transparent 70%)" }} />
           <div className="relative mx-auto max-w-[1180px] px-8 pb-16 pt-8 text-white">
             <div className="flex items-center gap-3">
               <button onClick={() => setWhereOpen(true)} className="serif-display flex items-center gap-2 text-[44px] leading-none">

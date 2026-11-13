@@ -1,6 +1,6 @@
 import crypto from "crypto"
 import { db } from "./_db.js"
-import { page, esc, send } from "./_page.js"
+import { glass, esc, send } from "./_page.js"
 import { ASK, cleanHandle, okHandle, perksLeft, slots, standing, tellHostOut, useSlot } from "./_perks.js"
 
 // the story perk, for anyone. no irlpass account needed.
@@ -22,7 +22,7 @@ async function goingCount(id) {
   return count || 0
 }
 
-const gone = (msg) => page("irlpass", `<p class="k">irlpass</p><h1>${esc(msg)}</h1><a class="btn" href="/">see what's on</a>`)
+const gone = (msg) => glass("irlpass", `<p class="k">irlpass</p><h1>${esc(msg)}</h1><a class="btn" href="/">see what's on</a>`)
 
 const today = () => new Date().toISOString().slice(0, 10)
 // a guest's claim: one per event, or one a day at a venue's always-on perk
@@ -65,8 +65,8 @@ ${e.cover ? `<img src="${esc(e.cover)}" alt="" style="width:100%;aspect-ratio:16
   <p style="margin:0 0 14px"><b>3.</b> show your story at the counter</p>
   <label for="h">your instagram</label>
   <input id="h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="@yourhandle">
-  <button id="go">get my pass</button>
-  <p id="err" style="color:#c0392b;font-size:13px;margin:8px 0 0"></p>
+  <button id="go" class="block" style="margin-top:12px">get my pass</button>
+  <p id="err" class="err"></p>
   <p class="soft" style="font-size:13px;margin:10px 0 0;text-align:center">${left} left</p>` : `<p style="margin:0;font-weight:600">all claimed for now. ask at the counter.</p>`}
 </div>
 ${upsell(e, await goingCount(e.id))}`
@@ -76,7 +76,7 @@ try{const q=new URLSearchParams(location.search).get("h");if(q&&h)h.value=q;cons
 b&&b.addEventListener("click",async()=>{err.textContent="";b.disabled=true;
 const r=await fetch("/api/perk-page",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"claim",id:${e.id},handle:h.value})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.code){try{localStorage.setItem("perk-${e.id}${standing(e) ? `-${today()}` : ""}",r.code)}catch(e){}location.href="/pass/"+r.code}else{err.textContent=r.error||"try again";b.disabled=false}});`
-  let html = page(`${e.perk.item} at ${e.venue || title}`, body, script)
+  let html = glass(`${e.perk.item} at ${e.venue || title}`, body, { script })
   html = html.replace("</title>", `</title>
 <meta property="og:title" content="${esc(`${e.perk.item} for a story`)}">
 <meta property="og:description" content="${esc(`${title}${e.venue ? ` at ${e.venue}` : ""}. post a story, get ${e.perk.item}.`)}">
@@ -92,9 +92,9 @@ async function passPage(code) {
   const tags = tagsOf(e)
   const body = `
 <p class="k">${esc(e.venue || e.titles?.en || e.title)}</p>
-<div id="pass" style="margin-top:10px;border-radius:24px;padding:22px;color:#3a322c;user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer;
-${given ? "background:#e7e1d9" : "background:linear-gradient(110deg,#ddd0f6,#f8d9c6,#cdee45,#ddd0f6);background-size:300% 100%;animation:mv 4s linear infinite"}">
-  <p class="k" style="margin:0;color:#3a322c">${given ? "given" : "show this + your story"}</p>
+<div id="pass" style="margin-top:10px;border-radius:24px;padding:22px;box-shadow:0 30px 70px -20px rgba(74,102,255,.6);user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer;
+${given ? "background:#f4eee7;color:#15110f" : "color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 4s linear infinite"}">
+  <p class="k" style="margin:0;color:inherit;opacity:.75">${given ? "given" : "unlocked · show this + your story"}</p>
   <p class="perk" style="margin:6px 0 2px">${esc(e.perk.item)}</p>
   <p style="margin:0;font-size:22px;font-weight:700">@${esc(c.handle)}</p>
   <p id="clock" style="margin:8px 0 0;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">${given ? new Date(c.given_at).toLocaleTimeString("en-US", { timeZone: TZ[e.city] || "UTC", hour: "numeric", minute: "2-digit" }).toLowerCase() : ""}</p>
@@ -110,8 +110,8 @@ pass.addEventListener("click",async()=>{const now=Date.now();if(now-last>450){la
 msg.textContent="one sec…";
 const r=await fetch("/api/perk-page",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"given",code:${JSON.stringify(code)}})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 busy=false;
-if(r.ok){clearInterval(iv);pass.style.animation="none";pass.style.background="#e7e1d9";pass.querySelector(".k").textContent="given";msg.textContent="enjoy it ✨"}else{msg.textContent=r.error||"try again"}});`
-  return page(`${e.perk.item} · your pass`, body, script)
+if(r.ok){clearInterval(iv);pass.style.animation="none";pass.style.background="#f4eee7";pass.style.color="#15110f";pass.querySelector(".k").textContent="given";msg.textContent="enjoy it ✨"}else{msg.textContent=r.error||"try again"}});`
+  return glass(`${e.perk.item} · your pass`, body, { script })
 }
 
 export default async function handler(req, res) {

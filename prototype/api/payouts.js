@@ -78,10 +78,10 @@ export default async function handler(req, res) {
         .stat b{font-size:18px;display:block}
         .card{background:#fff;border:1px solid #dcd6c8;border-radius:12px;padding:14px;margin-bottom:10px}
         .row{margin:2px 0} .muted{color:#8a857a} .owed{margin-top:6px;font-size:15px}
-        button.pay{margin-top:10px;background:#cdee45;border:0;border-radius:99px;padding:10px 16px;font-family:inherit;font-weight:600;width:100%}
+        button.pay{margin-top:10px;background:#4a66ff;color:#fff;border:0;border-radius:99px;padding:10px 16px;font-family:inherit;font-weight:600;width:100%}
         table{border-collapse:collapse;width:100%;margin-top:8px;background:#fff;border-radius:12px;overflow:hidden}
         th,td{border-bottom:1px solid #ebe6da;padding:8px 10px;text-align:left} th{background:#ebe6da;text-transform:uppercase;font-size:10px;letter-spacing:.1em}
-        .tag{border-radius:99px;padding:2px 8px;font-size:11px} .tag.done{background:#cdee45} .tag.pend{background:#ebe6da}
+        .tag{border-radius:99px;padding:2px 8px;font-size:11px} .tag.done{background:#4a66ff;color:#fff} .tag.pend{background:#ebe6da}
         @media(max-width:640px){thead{display:none}table,tbody,tr,td{display:block;width:100%}tr{border:1px solid #dcd6c8;border-radius:12px;margin-bottom:10px;padding:6px;background:#fff}td{border:0;padding:5px 10px;display:flex;justify-content:space-between;gap:12px}td:before{content:attr(data-l);text-transform:uppercase;font-size:9px;color:#8a857a}}
       </style></head><body>
       <h1>irlpass — host payouts</h1>

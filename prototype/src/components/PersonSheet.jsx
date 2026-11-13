@@ -90,7 +90,7 @@ export default function PersonSheet({ token, memberNo, onClose, onMessage, onUnl
                 </button>
                 {p.out && (
                   <span className={`absolute left-3 ${viewNo !== memberNo ? "top-14" : "top-3"} flex items-center gap-1.5 rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-bold text-cream shadow-lg`}>
-                    <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-[#5fd35f]" /></span>
+                    <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4a66ff] opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-[#4a66ff]" /></span>
                     {t("going out tn")}{p.out.area ? ` · ${p.out.area}` : ""}
                   </span>
                 )}

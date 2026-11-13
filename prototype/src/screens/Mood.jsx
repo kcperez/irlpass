@@ -119,7 +119,7 @@ function WhoGoing({ s }) {
         {s.people.slice(0, 5).map((p) => (
           <span key={p.memberNo} className="relative">
             <Face p={p} />
-            {p.outNow && <span className="out-dot absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-cream bg-[#5fd35f]" />}
+            {p.outNow && <span className="out-dot absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-cream bg-[#4a66ff]" />}
           </span>
         ))}
       </div>
@@ -662,7 +662,7 @@ export default function Mood({ token, me, city: cityProp, onOpenRoom, focusSpot,
         {data.myOut ? (
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13.5px] font-bold">
-              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" />
+              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[#4a66ff] align-middle" />
               {t("you're out in")} {data.myOut.area} · {t("until")} {outEnds}
             </p>
             <button onClick={async () => { await post({ action: "out", off: true }); load() }} className="shrink-0 rounded-full border border-line px-3 py-1 text-[12px] font-bold text-ink-soft">

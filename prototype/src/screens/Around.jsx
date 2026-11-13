@@ -236,7 +236,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                   <span className="block h-9 w-9 overflow-hidden rounded-full bg-cream-deep-deep">
                     {p.photo && <img src={p.photo} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} className={`h-full w-full object-cover ${p.locked && !p.faceOpen ? "blur-[2px]" : ""}`} />}
                   </span>
-                  {p.out.now && <span className="out-dot absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-line bg-[#5fd35f]" />}
+                  {p.out.now && <span className="out-dot absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-line bg-[#4a66ff]" />}
                 </span>
               ))}
             </div>
@@ -379,7 +379,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
                 <div className="absolute inset-x-2 top-2 flex flex-col items-start gap-1">
                   {p.out && (
                     <span className="flex max-w-full items-center gap-1 truncate rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-cream">
-                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-[#5fd35f] ${p.out.now ? "out-dot" : ""}`} />
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-[#4a66ff] ${p.out.now ? "out-dot" : ""}`} />
                       <span className="truncate">
                         {p.out.now
                           ? `${t("out now")}${p.out.area ? ` · ${p.out.area}` : ""}`

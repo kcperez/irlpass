@@ -1291,7 +1291,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
                       )}
                       <p className={`whitespace-pre-wrap text-[14px] leading-snug ${m.deleted ? "italic text-ink-soft/60" : ""}`}>
                         {m.deleted ? t("message deleted") : m.text.startsWith("📍 ") ? (
-                          <span className="font-semibold"><span className="out-dot mr-1.5 inline-block h-2 w-2 rounded-full bg-[#5fd35f] align-middle" /><WithMentions text={m.text.slice(2)} /></span>
+                          <span className="font-semibold"><span className="out-dot mr-1.5 inline-block h-2 w-2 rounded-full bg-[#4a66ff] align-middle" /><WithMentions text={m.text.slice(2)} /></span>
                         ) : <WithMentions text={m.text} />}
                         {m.edited && !m.deleted && <span className="ml-1.5 tabular-nums text-[9px] text-ink/45">{t("(edited)")}</span>}
                         {mine && !m.deleted && <span className="ml-1.5 whitespace-nowrap tabular-nums text-[9px] text-ink/45">{msgTime(m.at)}</span>}

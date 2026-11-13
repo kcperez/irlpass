@@ -58,7 +58,7 @@ function PersonRow({ p, onMessage, onOpen, cityLabel, viewerIsMan }) {
           {p.verified && <CheckCircle size={15} weight="fill" className="shrink-0 text-lime-deep" />}
           {p.hereNow && !p.local && (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#e8f6e8] px-2 py-0.5 text-[10px] font-bold text-[#2f7a2f]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#5fd35f]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4a66ff]" />
               {t("here now")}
             </span>
           )}

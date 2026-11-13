@@ -110,7 +110,7 @@ export default function Pass({ applicant }) {
         initial={{ opacity: 0, y: 90, rotate: 7, scale: 0.92 }}
         animate={{ opacity: 1, y: 0, rotate: -2, scale: 1 }}
         transition={{ type: "spring", stiffness: 120, damping: 13, delay: 0.5 }}
-        className="mx-auto mt-9 w-full max-w-[340px] rounded-3xl bg-lime text-ink shadow-[0_30px_60px_-20px_rgba(205,238,69,0.35)]"
+        className="mx-auto mt-9 w-full max-w-[340px] rounded-3xl bg-lime text-ink shadow-[0_30px_60px_-20px_rgba(74,102,255,0.35)]"
       >
         <div className="flex items-center justify-between px-6 pt-5">
           <Logo text size="text-[18px]" pill="bg-ink text-lime" />

@@ -224,8 +224,8 @@ export default function Join({ ig, onBack, onDone }) {
                 {c.name}
                 {byCity[c.slug] > 0 && (
                   <span className="relative ml-2 inline-flex h-2 w-2 align-middle">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5fd35f] opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#5fd35f]" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4a66ff] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4a66ff]" />
                   </span>
                 )}
               </Bubble>

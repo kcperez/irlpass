@@ -26,7 +26,7 @@ const shell = (inner) => `<!DOCTYPE html>
 <tr><td align="center" style="padding:28px 16px 40px">
   <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%">
     <tr><td style="padding-bottom:14px">
-      <span style="font:800 22px/1 Archivo,'Helvetica Neue',Arial,sans-serif;letter-spacing:-0.6px;color:#3a322c">irl<span style="background:#ddd0f6;border-radius:7px;padding:1px 6px">pass</span></span>
+      <span style="font:800 22px/1 Archivo,'Helvetica Neue',Arial,sans-serif;letter-spacing:-0.6px;color:#3a322c">irl<span style="background:#4a66ff;border-radius:7px;padding:1px 6px">pass</span></span>
     </td></tr>
     <tr><td class="card ink" style="background:#fffdfa;border-radius:24px;padding:26px 24px;color:#3a322c">
       ${inner}
@@ -177,7 +177,7 @@ export const datesEmail = ({ name, memberNo, url, members = 200, unsub }) => ({
     <div style="background:#f2ecfc;border-radius:18px;padding:16px;margin-top:20px">
       <p style="font:700 11px/1 -apple-system,BlinkMacSystemFont,Arial,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#837a70;margin:0">medellín · your week</p>
       <p style="font:700 16px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#3a322c;margin:10px 0 0">
-        you · <span style="background:#ddd0f6;border-radius:6px;padding:1px 6px">the days you pick</span>
+        you · <span style="background:#4a66ff;border-radius:6px;padding:1px 6px">the days you pick</span>
       </p>
       <p style="font:700 16px/1.5 -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#b8afa5;margin:6px 0 0">
         a•••••  · whoever lands those days

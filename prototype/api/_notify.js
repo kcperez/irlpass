@@ -31,7 +31,7 @@ export async function notifyMemberNo(memberNo, { subject, line, ctaLabel = "open
       html: `
         <h1 style="font-size:26px;margin:0;letter-spacing:-0.5px;color:#1c1b17">hey ${m.name.toLowerCase()}.</h1>
         <p style="font-size:15px;line-height:1.6;color:#57544a;margin:12px 0 0">${line}</p>
-        <a href="https://irlpass.xyz/?screen=app&t=${m.token}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:700;font-size:15px;text-align:center;border-radius:999px;padding:14px;margin-top:20px">${ctaLabel}</a>
+        <a href="https://irlpass.xyz/?screen=app&t=${m.token}" style="display:block;background:#4a66ff;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;text-align:center;border-radius:999px;padding:14px;margin-top:20px">${ctaLabel}</a>
         <p style="font-size:11px;color:#8a857a;text-align:center;margin:14px 0 0">
           <a href="https://irlpass.xyz/api/notify-off?t=${m.token}" style="color:#8a857a">turn off these emails</a>
         </p>`,

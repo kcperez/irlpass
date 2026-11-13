@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         <style>
           *{box-sizing:border-box}
           body{font-family:ui-monospace,Menlo,monospace;background:#f4f1ea;color:#1c1b17;padding:16px;font-size:13px;margin:0}
-          h1{font-size:16px;margin:0 0 4px} .count{background:#cdee45;border-radius:99px;padding:2px 10px}
+          h1{font-size:16px;margin:0 0 4px} .count{background:#4a66ff;color:#fff;border-radius:99px;padding:2px 10px}
           .invite{margin:14px 0;padding:14px;background:#fff;border:1px solid #dcd6c8;border-radius:12px}
           .invite input{padding:10px;border:1px solid #dcd6c8;border-radius:8px;width:100%;margin:8px 0;font-family:inherit}
           .invite button,td button{background:#1c1b17;color:#f4f1ea;border:0;border-radius:99px;padding:10px 16px;font-family:inherit;font-size:13px;font-weight:600}
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
           th{background:#ebe6da;text-transform:uppercase;font-size:10px;letter-spacing:.1em}
           a{color:#1c1b17}
           .tag{display:inline-block;border-radius:99px;padding:4px 10px;font-size:11px}
-          .tag.paid{background:#cdee45}
+          .tag.paid{background:#4a66ff;color:#fff}
           .tag.accepted{background:#ebe6da}
           .tag.banned{background:#e8b09c}
           /* phone: each row becomes a stacked card with field labels */
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
               const d = await r.json();
               if (!d.code) throw new Error(d.error || "failed");
               await navigator.clipboard.writeText(d.url).catch(() => {});
-              out.innerHTML = ' <b style="background:#cdee45;padding:2px 8px;border-radius:6px">' + d.code + '</b> — link copied, text it to your friend';
+              out.innerHTML = ' <b style="background:#4a66ff;color:#fff;padding:2px 8px;border-radius:6px">' + d.code + '</b> — link copied, text it to your friend';
             } catch (e) { out.textContent = " error: " + e.message; }
           });
           document.querySelectorAll("button.accept").forEach((btn) => {

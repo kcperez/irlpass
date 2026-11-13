@@ -60,7 +60,7 @@ export async function sendAlert(memberNo, { kind, title, body = "", go = "", tag
         html: `
           <h1 style="font-size:24px;margin:0;letter-spacing:-0.5px;color:#1c1b17">${esc(title)}</h1>
           ${body ? `<p style="font-size:15px;line-height:1.6;color:#57544a;margin:12px 0 0">${esc(body)}</p>` : ""}
-          <a href="${url}" style="display:block;background:#cdee45;color:#1c1b17;text-decoration:none;font-weight:700;font-size:15px;text-align:center;border-radius:999px;padding:14px;margin-top:20px">open irlpass</a>
+          <a href="${url}" style="display:block;background:#4a66ff;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;text-align:center;border-radius:999px;padding:14px;margin-top:20px">open irlpass</a>
           <p style="font-size:12px;color:#8a857a;text-align:center;margin:14px 0 0">get these as notifications instead: add irlpass to your home screen</p>`,
       })
     }

@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   const line = count ? `${count} ${count === 1 ? "person" : "people"} from irlpass going` : "be the first from irlpass going"
   const join = `/?go=ev-${id}${ref ? `&ref=${ref}` : ""}`
 
-  const faces = who.slice(0, 8).map((m) => `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;width:52px"><span style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--deep);display:block">${m.photo_url ? `<img src="${esc(m.photo_url)}" style="width:100%;height:100%;object-fit:cover;filter:blur(6px);transform:scale(1.2)">` : ""}</span><span style="font-size:11px;font-weight:600">${esc(first(m.name).toLowerCase())}</span></span>`).join("")
+  const faces = who.slice(0, 8).map((m) => `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;width:52px"><span style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:rgba(255,255,255,.08);display:block">${m.photo_url ? `<img src="${esc(m.photo_url)}" style="width:100%;height:100%;object-fit:cover;filter:blur(6px);transform:scale(1.2)">` : ""}</span><span style="font-size:11px;font-weight:600">${esc(first(m.name).toLowerCase())}</span></span>`).join("")
 
   const body = `
 ${e.cover ? `<img src="${esc(e.cover)}" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:22px;display:block">` : ""}
