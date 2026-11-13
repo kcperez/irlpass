@@ -4,7 +4,7 @@
 const ES = {
   "your guests are your influencers": "tus clientes son tus influencers",
   "your guests are your": "tus clientes son tus",
-  "guests post you on their story, you give them a perk you pick.": "tus clientes te suben a su historia y tú les das un beneficio que eliges.",
+  "guests post you on their story.<br>you give them a perk you pick.": "tus clientes te suben a su historia.<br>tú les das un beneficio que eliges.",
   "get your free qr": "obtén tu qr gratis",
   "for bars, cafés, studios and clubs": "para bares, cafés, estudios y clubes",
   "watch it work": "mira cómo funciona",

@@ -149,7 +149,7 @@ async function landing() {
   <div class="rise">
     <span class="tag">for bars, cafés, studios and clubs</span>
     <h1>your guests are your <em>influencers</em></h1>
-    <p class="soft" style="font-size:18px;max-width:500px">guests post you on their story, you give them a perk you pick.</p>
+    <p class="soft" style="font-size:19px;line-height:1.4;max-width:500px;text-wrap:balance">guests post you on their story.<br>you give them a perk you pick.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
       ${cta}
       <a class="btn ghost" href="#demo">watch it work</a>
@@ -272,6 +272,10 @@ ${await demo()}
 .tap.go{animation:tap .9s ease-out 2}
 @keyframes tap{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(1.4)}}
 .tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.hero>*{min-width:0}
+.nav .btn{white-space:nowrap}
+@media(max-width:520px){h1{font-size:min(40px,9.2vw)!important}.nav .btn{padding:9px 12px!important;font-size:13px!important}.nav{gap:8px}.logo>span:last-child{display:none}}
+@media(max-width:340px){.nav .btn.ghost{display:none}}
 .tiles span{aspect-ratio:9/16;border-radius:6px;background-size:cover;background-position:center;animation:pin .35s ease-out both}
 </style>`
   const script = `
