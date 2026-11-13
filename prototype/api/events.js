@@ -45,6 +45,7 @@ async function withGoing(rows, me, lang = "en") {
       capacity: e.capacity || null,
       spotsLeft: e.capacity ? Math.max(0, e.capacity - who.length) : null,
       mine: !!e.host_no && e.host_no === me.memberNo,
+      perk: e.perk || null,
       claimed: !!e.claimed_by,
       channel: `ev-${e.id}`,
       going: mine.has(e.id),

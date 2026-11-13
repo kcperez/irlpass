@@ -6,6 +6,7 @@ import { t, LANG } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import CityNow from "../components/CityNow"
 import HostEvent from "../components/HostEvent"
+import PerkCard from "../components/PerkCard"
 
 // events first: what's on in your city, found by asking ("football", "techno")
 // instead of scrolling forever. going puts you in the event's group chat.
@@ -364,6 +365,8 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                     {open.details && <p className="mt-2 whitespace-pre-line text-[14px] leading-snug">{open.details}</p>}
                   </div>
                 )}
+
+                {open.perk && <PerkCard token={token} e={open} me={me} />}
 
                 {/* the "get in" card */}
                 <div className="mt-5 overflow-hidden rounded-[1.4rem] border border-white/70 bg-white/70 shadow-[0_10px_30px_-18px_rgba(58,50,44,0.4)] backdrop-blur">

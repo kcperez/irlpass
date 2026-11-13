@@ -87,6 +87,14 @@ export default async function handler(req, res) {
         host: me.name,
         host_no: me.memberNo,
         featured: true,
+        perk: (() => {
+          const p = req.body?.perk
+          const item = String(p?.item || "").trim().slice(0, 60)
+          const qty = Math.min(5000, Math.round(Number(p?.qty) || 0))
+          if (!item || qty < 1) return null
+          const tags = String(p?.tags || "").split(/[\s,]+/).filter(Boolean).slice(0, 4).map((x) => `@${x.replace(/^@+/, "").replace(/[^\w.]/g, "").slice(0, 30)}`).filter((x) => x.length > 1)
+          return { item, qty, ask: ["story", "post", "reel"].includes(p?.ask) ? p.ask : "story", tags: tags.length ? tags : ["@irlpass.xyz"] }
+        })(),
         cover: await uploadCover(req.body?.image, key),
       }
       const { data, error } = await db.from("events").insert(row).select("id").single()

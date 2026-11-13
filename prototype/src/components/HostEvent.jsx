@@ -24,6 +24,9 @@ const field = "w-full rounded-[1rem] border border-line bg-white px-3 py-2.5 tex
 export default function HostEvent({ token, city, open, onClose, onCreated }) {
   const [f, setF] = useState({ title: "", date: "", time: "20:00", venue: "", address: "", details: "", category: "", capacity: "", price: "" })
   const [image, setImage] = useState(null)
+  // self-serve storytime: "1 story = 1 free smoothie, 50 of them"
+  const [perkOn, setPerkOn] = useState(false)
+  const [perk, setPerk] = useState({ item: "", qty: "50", ask: "story", tags: "" })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState("")
   const set = (k) => (ev) => setF((x) => ({ ...x, [k]: ev.target.value }))
@@ -36,12 +39,14 @@ export default function HostEvent({ token, city, open, onClose, onCreated }) {
     const r = await fetch("/api/event-host", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, action: "create", city, ...f, startsAt, image }),
+      body: JSON.stringify({ t: token, action: "create", city, ...f, startsAt, image, perk: perkOn ? perk : null }),
     }).then((x) => x.json()).catch(() => ({ error: t("couldn't post it. try again.") }))
     setBusy(false)
     if (r.error) return setErr(r.error)
     setF({ title: "", date: "", time: "20:00", venue: "", address: "", details: "", category: "", capacity: "", price: "" })
     setImage(null)
+    setPerkOn(false)
+    setPerk({ item: "", qty: "50", ask: "story", tags: "" })
     onCreated?.(r.id)
   }
 
@@ -92,6 +97,30 @@ export default function HostEvent({ token, city, open, onClose, onCreated }) {
                 <span className="text-[12px] font-bold text-ink-soft">{t("spots")}</span>
                 <input inputMode="numeric" value={f.capacity} onChange={set("capacity")} placeholder={t("no limit")} className={field} />
               </label>
+            </div>
+
+            <div className="mt-4 rounded-[1.2rem] border border-line bg-white/60 p-3">
+              <button onClick={() => setPerkOn((x) => !x)} className="flex w-full items-center justify-between text-left">
+                <span>
+                  <span className="block text-[14.5px] font-bold">🎁 {t("give perks for posts")}</span>
+                  <span className="block text-[12.5px] text-ink-soft">{t("guests post about it, you give them something. we check the posts.")}</span>
+                </span>
+                <span className={`h-6 w-10 shrink-0 rounded-full p-0.5 transition-colors ${perkOn ? "bg-ink" : "bg-line"}`}><span className={`block h-5 w-5 rounded-full bg-white transition-transform ${perkOn ? "translate-x-4" : ""}`} /></span>
+              </button>
+              {perkOn && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex gap-2">
+                    <input value={perk.item} onChange={(ev) => setPerk((p) => ({ ...p, item: ev.target.value }))} placeholder={t("a free smoothie")} className={field} />
+                    <input inputMode="numeric" value={perk.qty} onChange={(ev) => setPerk((p) => ({ ...p, qty: ev.target.value }))} className={`${field} max-w-[84px]`} />
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[["story", t("1 story")], ["post", t("1 post")], ["reel", t("1 reel or tiktok")]].map(([k, label]) => (
+                      <button key={k} onClick={() => setPerk((p) => ({ ...p, ask: k }))} className={`rounded-full px-3 py-1.5 text-[13px] font-bold ${perk.ask === k ? "bg-ink text-cream" : "bg-white text-ink-soft"}`}>{label}</button>
+                    ))}
+                  </div>
+                  <input value={perk.tags} onChange={(ev) => setPerk((p) => ({ ...p, tags: ev.target.value }))} placeholder={t("tag: @paraisomarket @irlpass.xyz")} className={field} />
+                </div>
+              )}
             </div>
 
             {err && <p className="mt-2 text-[12.5px] font-semibold text-red-600">{err}</p>}
