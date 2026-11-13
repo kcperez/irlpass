@@ -20,7 +20,6 @@ const KINDS = [
   ["social", "💬", "social"],
   ["tech", "💻", "tech"],
 ]
-const PAGE = 20
 const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
 const dayKey = (iso, tz) => new Date(iso).toLocaleDateString("en-CA", { timeZone: tz })
 const timeOf = (iso, tz) => new Date(iso).toLocaleTimeString([], { timeZone: tz, hour: "numeric", minute: "2-digit" }).toLowerCase().replace(":00", "").replace(/\s/g, "")
@@ -58,30 +57,6 @@ function Thumb({ e, className = "" }) {
   )
 }
 
-// one event as a list row, luma style: time, what, where, who, art on the right
-function Row({ e, tz, onOpen }) {
-  return (
-    <motion.button
-      layout="position"
-      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      onClick={() => onOpen(e)}
-      className="flex w-full items-start gap-3 rounded-[1.3rem] bg-white/80 p-3 text-left shadow-[0_1px_2px_rgba(58,50,44,0.05)] backdrop-blur active:scale-[0.99]"
-    >
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5 text-[12px] font-bold text-ink-soft">
-          {timeOf(e.startsAt, tz)}
-          {priceOf(e) && <span className="rounded-full bg-cream-deep px-1.5 py-px text-[10.5px]">{priceOf(e)}</span>}
-          {e.going && <span className="flex items-center gap-0.5 rounded-full bg-lime px-1.5 py-px text-[10.5px] text-ink"><CheckCircle size={10} weight="fill" /> {t("going")}</span>}
-        </span>
-        <span className="mt-0.5 line-clamp-2 block text-[15px] font-bold leading-snug">{e.title}</span>
-        {(e.venue || e.host) && <span className="mt-0.5 block truncate text-[12.5px] text-ink-soft">{e.venue || e.host}</span>}
-        {e.goingCount > 0 && <span className="mt-1.5 block"><Faces e={e} size={20} /></span>}
-      </span>
-      <Thumb e={e} className="h-[72px] w-[72px] rounded-[0.9rem]" />
-    </motion.button>
-  )
-}
-
 function GoingButton({ e, busy, onToggle }) {
   return (
     <motion.button
@@ -96,7 +71,80 @@ function GoingButton({ e, busy, onToggle }) {
   )
 }
 
-export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMoved }) {
+// film grain over every card, like a photo, not a screen
+const GRAIN = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.55'/></svg>\")"
+const DOT = { run: "#cdee45", wellness: "#a7e3c4", party: "#ff7ad9", food: "#f6a76b", art: "#9fb4ff", social: "#ddd0f6", tech: "#7fe0ff" }
+// no cover: a mood made from the category color, never a broken image
+const MOOD = { run: ["#3d4a12", "#cdee45"], wellness: ["#1f4636", "#a7e3c4"], party: ["#4a1240", "#ff7ad9"], food: ["#4f2a12", "#f6a76b"], art: ["#1d2a5c", "#9fb4ff"], social: ["#3a2f52", "#ddd0f6"], tech: ["#0f3a46", "#7fe0ff"] }
+
+// one event per screen: the cover floats on its own blur, the facts sit on frosted glass
+function Card({ e, tz, near, first, todayKey, tomorrowKey, busy, onOpen, onToggle, onShare, onChat, copied }) {
+  const [broken, setBroken] = useState(false)
+  const img = e.cover && !broken ? e.cover : null
+  const [a, b] = MOOD[e.category] || MOOD.social
+  const day = dayKey(new Date(Math.max(Date.parse(e.startsAt), Date.now())).toISOString(), tz)
+  const glass = "border border-white/20 bg-white/15 text-white backdrop-blur-xl"
+  return (
+    <section className="relative h-full snap-start snap-always overflow-hidden">
+      {/* backdrop: the cover blown up and blurred, or the category's mood */}
+      <div className="absolute inset-0" style={{ background: `radial-gradient(80% 60% at 30% 20%, ${b}55, transparent 70%), radial-gradient(70% 60% at 80% 80%, ${b}33, transparent 70%), ${a}` }} />
+      {img && near && <img src={img} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-150 object-cover opacity-70 blur-3xl" />}
+      <div className="absolute inset-0 opacity-[0.18] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
+
+      <div className="relative flex h-full flex-col">
+      <button onClick={() => onOpen(e)} className="flex min-h-0 flex-1 items-center justify-center px-8 pt-16">
+        {img ? (
+          near && <img src={img} alt="" onError={() => setBroken(true)} style={{ width: "min(84%, 360px, 44vh)" }} className="aspect-square rounded-[1.6rem] object-cover shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]" />
+        ) : (
+          <span style={{ width: "min(84%, 360px, 44vh)" }} className="flex aspect-square items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-[84px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">{kindEmoji(e.category)}</span>
+        )}
+      </button>
+
+      <div className="px-5 pb-5 text-white">
+        <button onClick={() => onOpen(e)} className="block w-full text-left">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/40 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em]">
+            <span className="h-2 w-2 rounded-full" style={{ background: DOT[e.category] || "#ddd0f6" }} />
+            {dayLabel(day, todayKey, tomorrowKey)} · {timeOf(e.startsAt, tz)}{priceOf(e) ? ` · ${priceOf(e)}` : ""}
+          </span>
+          <span className="serif-display mt-2.5 line-clamp-3 block text-[34px] leading-[1.02]">{e.title}</span>
+          {(e.venue || e.host) && <span className="mt-1 block truncate text-[14px] text-white/70">{e.venue || e.host}</span>}
+          {e.perk && <span className={`mt-2.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-bold ${glass}`}>🎁 {e.perk.item} {t("for a story")}</span>}
+        </button>
+        <div className="mt-3 flex items-center gap-2">
+          {e.goingCount > 0 ? (
+            <span className="flex -space-x-2">
+              {e.faces.slice(0, 3).map((f) => (
+                <span key={f.memberNo} className="h-8 w-8 overflow-hidden rounded-full border-2 border-white/80 bg-lime">{f.photo && <img src={f.photo} alt="" className="h-full w-full object-cover" />}</span>
+              ))}
+            </span>
+          ) : null}
+          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-white/80">
+            {e.goingCount ? `${e.goingCount} ${t("going")}` : t("go first, the chat is yours")}
+          </span>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            disabled={busy || (!e.going && e.spotsLeft === 0)}
+            onClick={() => (e.going ? onChat(e) : onToggle(e))}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-3.5 text-[15px] font-bold ${e.going ? "bg-lime text-ink" : "bg-white text-ink"}`}
+          >
+            {busy ? <CircleNotch size={16} className="animate-spin" /> : e.going ? <ChatsCircle size={17} weight="fill" /> : e.hosted && e.priceCents ? <Ticket size={17} weight="fill" /> : null}
+            {e.going ? t("open the group chat") : e.spotsLeft === 0 ? t("it's full") : e.hosted && e.priceCents ? `${t("get a ticket")} · ${priceOf(e)}` : t("i'm going")}
+          </motion.button>
+          <button onClick={() => onShare(e)} aria-label={t("share")} className={`flex h-[50px] w-[50px] items-center justify-center rounded-full ${glass}`}>
+            {copied ? <CheckCircle size={19} weight="fill" /> : <ShareNetwork size={19} weight="bold" />}
+          </button>
+        </div>
+        {first && <p className="mt-3 text-center text-[11.5px] font-semibold text-white/50">{t("swipe up for more · left or right to change the vibe")}</p>}
+      </div>
+      </div>
+    </section>
+  )
+}
+
+export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMoved, onProfile, profileDot }) {
   const city = cityProp || me?.city || "medellin"
   const tz = TZ[city]
   const [data, setData] = useState(null)
@@ -104,7 +152,6 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const [open, setOpen] = useState(null)
   const [busy, setBusy] = useState(null)
   const [whereOpen, setWhereOpen] = useState(false)
-  const [shown, setShown] = useState(PAGE)
   const [q, setQ] = useState("")
   const [search, setSearch] = useState(null) // { q, reply, ids } | { q, loading } | { q, error }
   const inputRef = useRef(null)
@@ -129,7 +176,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
 
   const load = () => fetch(`/api/events?t=${token}&city=${city}&lang=${LANG}`).then((r) => r.json()).then(setData).catch(() => {})
   useEffect(() => {
-    setData(null); setSearch(null); setShown(PAGE)
+    setData(null); setSearch(null)
     cachedJson(`/api/events?t=${token}&city=${city}&lang=${LANG}`, setData)
   }, [token, city])
 
@@ -142,18 +189,6 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const kindOn = kinds.some(([k]) => k === kind) ? kind : null
 
   const list = search?.ids ? search.ids.map((id) => byId.get(id)).filter(Boolean) : events.filter((e) => !kindOn || e.category === kindOn)
-  const visible = search?.ids ? list : list.slice(0, shown)
-  const groups = useMemo(() => {
-    if (search?.ids) return [{ key: "results", items: visible }]
-    const g = []
-    for (const e of visible) {
-      const k = dayKey(new Date(Math.max(Date.parse(e.startsAt), Date.now())).toISOString(), tz)
-      if (!g.length || g[g.length - 1].key !== k) g.push({ key: k, items: [] })
-      g[g.length - 1].items.push(e)
-    }
-    return g
-  }, [visible, search, tz])
-
   const ask = async (text) => {
     const query = String(text ?? q).trim()
     if (query.length < 2) return
@@ -171,7 +206,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     setSearch({ q: query, reply: r.reply, ids: r.ids || [] })
   }
   const pickKind = (k) => {
-    setKind(k); setShown(PAGE)
+    setKind(k)
     try { k ? localStorage.setItem("ev-kind", k) : localStorage.removeItem("ev-kind") } catch {}
   }
   const clear = () => { setSearch(null); setQ("") }
@@ -213,104 +248,145 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const [copied, setCopied] = useState(null)
   const chat = (e) => { setOpen(null); onOpenRoom?.({ channel: e.channel, title: e.title }) }
 
+  // the feed: one event per screen, swipe up for the next, left/right to change vibe
+  const feedRef = useRef(null)
+  const [idx, setIdx] = useState(0)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [kindOpen, setKindOpen] = useState(false)
+  const [plansOpen, setPlansOpen] = useState(false)
+  const [flash, setFlash] = useState(null)
+  const touch = useRef(null)
+  const order = [null, ...kinds.map(([k]) => k)]
+  const kindName = (k) => (k ? `${kindEmoji(k)} ${t((KINDS.find(([x]) => x === k) || [])[2])}` : `✨ ${t("everything")}`)
+  const switchKind = (k) => {
+    pickKind(k); clear(); setKindOpen(false)
+    setFlash(kindName(k)); setTimeout(() => setFlash(null), 900)
+    feedRef.current?.scrollTo({ top: 0 }); setIdx(0)
+  }
+  const onTouchStart = (ev) => { const p = ev.touches[0]; touch.current = { x: p.clientX, y: p.clientY } }
+  const onTouchEnd = (ev) => {
+    const s0 = touch.current; touch.current = null
+    if (!s0 || search) return
+    const p = ev.changedTouches[0]
+    const dx = p.clientX - s0.x, dy = p.clientY - s0.y
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2 || order.length < 2) return
+    const at = order.indexOf(kindOn)
+    switchKind(order[(at + (dx < 0 ? 1 : -1) + order.length) % order.length])
+  }
+  const feed = list
+  const glass = "border border-white/20 bg-white/15 text-white backdrop-blur-xl"
+
   return (
-    <div className="relative px-4 pb-28 pt-4">
-      <p className="flex items-center gap-1 text-[12px] font-semibold text-ink-soft">
-        <span>{t("what's on in")}</span>
-        <button onClick={() => setWhereOpen(true)} className="flex items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-0.5 font-bold text-ink active:scale-95">
-          {cityChip(city).emoji} {String(cityChip(city).name || city).toLowerCase()} <span aria-hidden className="text-[10px]">▾</span>
-        </button>
-      </p>
-      <div className="mt-1 flex items-end justify-between gap-3">
-        <h2 className="display text-[34px] font-bold leading-[0.95] tracking-tight">{t("find your people")}</h2>
-        <button onClick={() => setAddOpen(true)} className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[12.5px] font-bold text-cream active:scale-95">
-          <Plus size={13} weight="bold" /> {t("add")}
-        </button>
-      </div>
+    <div className="relative min-h-0 flex-1 overflow-hidden bg-[#15110f]">
       <AddEvent token={token} city={city} open={addOpen} canHost={canHost} onClose={() => setAddOpen(false)} onHost={() => { setAddOpen(false); setHostOpen(true) }} onAdded={async (id) => { setAddOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <HostEvent token={token} city={city} open={hostOpen} onClose={() => setHostOpen(false)} onCreated={async (id) => { setHostOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
 
-      {/* one row: what you're into. filters instantly, remembered for next time */}
-      {!search && kinds.length > 1 && (
-        <div className="no-scrollbar -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4">
-          {kinds.map(([k, emoji, label]) => (
-            <button key={k} onClick={() => pickKind(kindOn === k ? null : k)} className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-bold active:scale-95 ${kindOn === k ? "bg-ink text-cream" : "bg-white/70 text-ink-soft"}`}>
-              {emoji} {t(label)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ask, don't scroll */}
-      <form onSubmit={(ev) => { ev.preventDefault(); ask() }} className="mt-3 flex items-center gap-2 rounded-full bg-white px-4 py-1.5 shadow-[0_1px_2px_rgba(58,50,44,0.06),0_10px_28px_-16px_rgba(58,50,44,0.35)] focus-within:ring-2 focus-within:ring-lime-deep">
-        <Sparkle size={18} weight="fill" className="shrink-0 text-lime-deep" />
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={(ev) => setQ(ev.target.value)}
-          enterKeyHint="search"
-          placeholder={t("or ask: football, techno tonight, a run club")}
-          className="min-w-0 flex-1 bg-transparent py-2 text-[15px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/55"
-        />
-        {search || q ? (
-          <button type="button" onClick={clear} aria-label={t("clear")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream-deep"><X size={14} weight="bold" /></button>
-        ) : (
-          <button type="submit" aria-label={t("search")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-cream"><MagnifyingGlass size={15} weight="bold" /></button>
+      <div
+        ref={feedRef}
+        onScroll={(ev) => setIdx(Math.round(ev.currentTarget.scrollTop / Math.max(1, ev.currentTarget.clientHeight)))}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        className="no-scrollbar absolute inset-0 snap-y snap-mandatory overflow-y-auto overscroll-contain"
+      >
+        {!search?.loading && feed.map((e, i) => (
+          <Card key={e.id} e={e} tz={tz} near={Math.abs(i - idx) <= 2} first={i === 0 && !search} todayKey={todayKey} tomorrowKey={tomorrowKey}
+            busy={busy === e.id} onOpen={setOpen} onToggle={toggle} onShare={share} onChat={chat} copied={copied === e.id} />
+        ))}
+        {data && !search?.loading && (
+          <section className="relative flex h-full snap-start flex-col items-center justify-center px-8 text-center text-white">
+            <p className="serif-display text-[34px] leading-[1.05]">{feed.length ? t("that's everything") : t("nothing here yet")}</p>
+            <p className="mt-2 text-[14px] text-white/60">{t("ask for something and we'll look around")} {String(cityChip(city).name || city).toLowerCase()}.</p>
+            <button onClick={() => setSearchOpen(true)} className={`mt-6 flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-bold ${glass}`}><Sparkle size={16} weight="fill" /> {t("ask")}</button>
+            <button onClick={() => setAddOpen(true)} className="mt-3 text-[13px] font-bold text-white/60 underline underline-offset-4">{t("know something good? add it")}</button>
+          </section>
         )}
-      </form>
+      </div>
 
-      {search?.loading && (
-        <div className="mt-6 flex items-center gap-3 rounded-[1.3rem] bg-white/80 px-4 py-4">
-          <CircleNotch size={20} className="animate-spin text-lime-deep" />
-          <p className="text-[13.5px] font-semibold">{t("looking around")} {String(cityChip(city).name || city).toLowerCase()} {t("for")} “{search.q}”…</p>
-        </div>
-      )}
-      {search?.error && <p className="mt-6 rounded-[1.3rem] bg-white/80 px-4 py-4 text-[13.5px] font-semibold">{search.error}</p>}
-      {search?.ids && (
-        <div className="mt-5">
-          <p className="text-[12px] font-bold text-ink-soft">“{search.q}”</p>
-          {search.reply && <p className="mt-0.5 text-[15px] font-semibold leading-snug">{search.reply}</p>}
-          {!search.ids.length && <button onClick={clear} className="mt-3 text-[13px] font-bold underline underline-offset-2">{t("see everything this week")}</button>}
-        </div>
-      )}
-
-      {!search && mine.length > 0 && (
-        <div className="mt-5">
-          <p className="text-[12px] font-bold text-ink-soft">{t("your plans")}</p>
-          <div className="no-scrollbar -mx-4 mt-1.5 flex gap-2 overflow-x-auto px-4">
-            {mine.map((e) => (
-              <button key={e.id} onClick={() => chat(e)} className="flex shrink-0 items-center gap-2 rounded-full bg-white py-1.5 pl-1.5 pr-3 shadow-sm active:scale-95">
-                <Thumb e={e} className="h-8 w-8 rounded-full" />
-                <span className="max-w-[150px] truncate text-[12.5px] font-bold">{e.title}</span>
-                <ChatsCircle size={16} weight="fill" />
+      {/* frosted top bar: where, what, ask, add */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-black/45 to-transparent px-3 pb-8 pt-3">
+        {searchOpen ? (
+          <form onSubmit={(ev) => { ev.preventDefault(); setSearchOpen(false); ask() }} className={`pointer-events-auto flex items-center gap-2 rounded-full py-1 pl-4 pr-1 ${glass}`}>
+            <Sparkle size={16} weight="fill" className="shrink-0" />
+            <input ref={inputRef} autoFocus value={q} onChange={(ev) => setQ(ev.target.value)} enterKeyHint="search" placeholder={t("football, techno tonight, a run club")} className="min-w-0 flex-1 bg-transparent py-2 text-[15px] font-semibold text-white outline-none placeholder:text-white/50" />
+            <button type="button" onClick={() => { setSearchOpen(false); if (!search) setQ("") }} aria-label={t("close")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15"><X size={15} weight="bold" /></button>
+          </form>
+        ) : (
+          <div className="pointer-events-auto flex items-center gap-1.5">
+            <button onClick={() => setWhereOpen(true)} className={`flex items-center gap-1 rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
+              {cityChip(city).emoji} {String(cityChip(city).name || city).toLowerCase()}
+            </button>
+            <button onClick={() => setKindOpen((x) => !x)} className={`flex min-w-0 items-center gap-1 rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
+              <span className="truncate">{search ? `“${search.q}”` : kindName(kindOn)}</span> <span aria-hidden className="text-[9px] opacity-70">▾</span>
+            </button>
+            <span className="flex-1" />
+            {mine.length > 0 && (
+              <button onClick={() => setPlansOpen((x) => !x)} aria-label={t("your plans")} className={`relative flex h-10 w-10 items-center justify-center rounded-full ${glass}`}>
+                <ChatsCircle size={18} weight="fill" />
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-lime px-1 text-[10px] font-bold text-ink">{mine.length}</span>
               </button>
-            ))}
+            )}
+            <button onClick={() => setSearchOpen(true)} aria-label={t("search")} className={`flex h-10 w-10 items-center justify-center rounded-full ${glass}`}><MagnifyingGlass size={17} weight="bold" /></button>
+            <button onClick={() => setAddOpen(true)} aria-label={t("add")} className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-ink"><Plus size={17} weight="bold" /></button>
+            {onProfile && (
+              <button onClick={onProfile} aria-label={t("you")} className="relative h-10 w-10 overflow-hidden rounded-full border border-white/30 bg-white/15">
+                {me?.photo && <img src={me.photo} alt="" className="h-full w-full object-cover" />}
+                {profileDot && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-[#c4453d]" />}
+              </button>
+            )}
           </div>
+        )}
+
+        <AnimatePresence>
+          {kindOpen && !searchOpen && (
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={`pointer-events-auto mt-2 w-56 overflow-hidden rounded-[1.3rem] p-1.5 ${glass} bg-black/40`}>
+              {order.map((k) => (
+                <button key={k || "all"} onClick={() => switchKind(k)} className={`block w-full rounded-full px-3 py-2 text-left text-[14px] font-bold ${kindOn === k && !search ? "bg-white text-ink" : ""}`}>{kindName(k)}</button>
+              ))}
+            </motion.div>
+          )}
+          {plansOpen && !searchOpen && (
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={`pointer-events-auto ml-auto mt-2 w-64 overflow-hidden rounded-[1.3rem] p-1.5 ${glass} bg-black/40`}>
+              <p className="px-3 pb-1 pt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white/60">{t("your plans")}</p>
+              {mine.map((e) => (
+                <button key={e.id} onClick={() => { setPlansOpen(false); chat(e) }} className="flex w-full items-center gap-2 rounded-full px-2 py-1.5 text-left">
+                  <Thumb e={e} className="h-8 w-8 rounded-full" />
+                  <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold">{e.title}</span>
+                  <ChatsCircle size={16} weight="fill" />
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {search?.ids && !searchOpen && (
+          <div className={`pointer-events-auto mt-2 flex items-start gap-2 rounded-[1.3rem] px-4 py-3 ${glass} bg-black/35`}>
+            <p className="min-w-0 flex-1 text-[14px] font-semibold leading-snug">{search.reply || t("here's what we found")}</p>
+            <button onClick={clear} aria-label={t("clear")} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15"><X size={13} weight="bold" /></button>
+          </div>
+        )}
+        {search?.error && !searchOpen && (
+          <div className={`pointer-events-auto mt-2 flex items-start gap-2 rounded-[1.3rem] px-4 py-3 ${glass} bg-black/35`}>
+            <p className="min-w-0 flex-1 text-[14px] font-semibold">{search.error}</p>
+            <button onClick={clear} aria-label={t("clear")} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15"><X size={13} weight="bold" /></button>
+          </div>
+        )}
+      </div>
+
+      {(!data || search?.loading) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-10 text-center text-white">
+          <CircleNotch size={24} className="animate-spin text-white/70" />
+          {search?.loading && <p className="serif-display text-[24px] leading-tight">{t("looking around")} {String(cityChip(city).name || city).toLowerCase()} {t("for")} “{search.q}”</p>}
         </div>
       )}
 
-      {!data && <div className="mt-10 flex justify-center"><CircleNotch size={22} className="animate-spin text-ink-soft" /></div>}
-      {data && !search && !events.length && <p className="mt-8 rounded-[1.3rem] bg-white/70 px-4 py-5 text-center text-[13.5px] text-ink-soft">{t("we're still filling this city. ask above and we'll look around.")}</p>}
-
-      {!search?.loading && groups.map((g) => (
-        <section key={g.key} className="mt-5">
-          {g.key !== "results" && (
-            <p className="mb-2 flex items-baseline gap-1.5">
-              <span className="text-[15px] font-bold">{dayLabel(g.key, todayKey, tomorrowKey)}</span>
-              <span className="text-[12.5px] text-ink-soft">{dayParts(g.key).wk}</span>
-            </p>
-          )}
-          <div className="space-y-2">
-            {g.items.map((e) => <Row key={e.id} e={e} tz={tz} onOpen={setOpen} />)}
-          </div>
-        </section>
-      ))}
-      {!search && list.length > shown && (
-        <button onClick={() => setShown((n) => n + PAGE)} className="mt-4 w-full rounded-full border border-line bg-white/60 py-3 text-[13.5px] font-bold">
-          {t("show more")} · {list.length - shown}
-        </button>
-      )}
+      <AnimatePresence>
+        {flash && (
+          <motion.p key={flash} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center">
+            <span className="display inline-block rounded-full bg-white px-5 py-2.5 text-[22px] text-ink shadow-2xl">{flash}</span>
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {open && (

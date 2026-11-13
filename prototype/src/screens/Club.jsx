@@ -2482,7 +2482,7 @@ export default function Club({ token }) {
     <MotionConfig reducedMotion="user">
     <div className="relative flex h-[var(--app-h)] flex-col">
       <ModeStrip token={token} me={me} />
-      {!inThread && <TopBar me={me} dot={profileNew} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
+      {!inThread && tab !== "events" && <TopBar me={me} dot={profileNew} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <motion.div
         key={`${tab}-${cityRoom?.slug || ""}`}
         initial={{ opacity: 0, y: 6 }}
@@ -2521,7 +2521,7 @@ export default function Club({ token }) {
             onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
         )}
-        {!cityRoom && tab === "events" && !spotRoom && <Events token={token} me={me} city={me.city} onOpenRoom={setSpotRoom} onCityMoved={() => fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {})} />}
+        {!cityRoom && tab === "events" && !spotRoom && <Events token={token} me={me} city={me.city} onOpenRoom={setSpotRoom} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} profileDot={profileNew} onCityMoved={() => fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {})} />}
         {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={planCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => { setPlanWith(null); setPlanCity(null) }} onCityMoved={() => { setPlanCity(null); setPlanWith(null); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onPaywall={setPaywall} />}
         {!cityRoom && (tab === "mood" || tab === "events") && spotRoom && (
           <Thread
@@ -2658,26 +2658,25 @@ export default function Club({ token }) {
         )}
       </AnimatePresence>
       {!inThread && (
-        <nav className="sticky bottom-0 z-10 flex border-t border-line/70 bg-cream/95 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
-          {TABS.map((tb) => (
-            <button key={tb.key} onClick={() => { if (tb.key === "mood") clearMoodNew(); setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="flex flex-1 flex-col items-center gap-0.5">
-              <span className="relative flex h-9 w-14 items-center justify-center rounded-full">
-                {tab === tb.key && (
-                  <motion.span
-                    layoutId="nav-pill"
-                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                    className="absolute inset-0 rounded-full bg-ink/[0.07]"
-                  />
-                )}
-                <tb.icon size={22} weight={tab === tb.key ? "fill" : "regular"} className={`relative ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`} />
-                {tb.key === "mood" && moodNew && tab !== "mood" && <NewDot className="right-2.5 top-1" />}
-                {tb.key === "dms" && unreadTotal > 0 && (
-                  <span className="absolute right-2.5 top-1 h-2.5 w-2.5 rounded-full bg-[#c4453d]" />
-                )}
-              </span>
-              <span className={`text-[10px] font-bold ${tab === tb.key ? "text-ink" : "text-ink-soft/60"}`}>{tb.label}</span>
-            </button>
-          ))}
+        <nav className={`z-10 px-3 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 ${tab === "events" ? "bg-[#15110f]" : "bg-cream"}`}>
+          {/* one frosted capsule, like a pass in your pocket */}
+          <div className={`mx-auto flex max-w-[440px] rounded-full p-1 backdrop-blur-xl ${tab === "events" ? "border border-white/15 bg-white/10" : "border border-white/80 bg-white/70 shadow-[0_10px_30px_-14px_rgba(58,50,44,0.35)]"}`}>
+            {TABS.map((tb) => {
+              const on = tab === tb.key
+              const dark = tab === "events"
+              return (
+                <button key={tb.key} onClick={() => { if (tb.key === "mood") clearMoodNew(); setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="relative flex flex-1 flex-col items-center gap-0.5 rounded-full py-1.5">
+                  {on && <motion.span layoutId="nav-pill" transition={{ type: "spring", stiffness: 500, damping: 38 }} className={`absolute inset-0 rounded-full ${dark ? "bg-white" : "bg-ink"}`} />}
+                  <span className="relative">
+                    <tb.icon size={20} weight={on ? "fill" : "regular"} className={on ? (dark ? "text-ink" : "text-cream") : dark ? "text-white/60" : "text-ink-soft/70"} />
+                    {tb.key === "mood" && moodNew && !on && <NewDot className="-right-1 -top-0.5" />}
+                    {tb.key === "dms" && unreadTotal > 0 && <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#c4453d]" />}
+                  </span>
+                  <span className={`relative text-[10px] font-bold ${on ? (dark ? "text-ink" : "text-cream") : dark ? "text-white/60" : "text-ink-soft/70"}`}>{tb.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </nav>
       )}
     </div>
