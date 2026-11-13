@@ -243,8 +243,11 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
 
   const load = () => fetch(`/api/events?t=${token}&city=${city}&lang=${LANG}`).then((r) => r.json()).then(setData).catch(() => {})
   useEffect(() => {
+    // a slower answer for a city you already left must not land on this one
+    let live = true
     setData(null); setSearch(null)
-    cachedJson(`/api/events?t=${token}&city=${city}&lang=${LANG}`, setData)
+    cachedJson(`/api/events?t=${token}&city=${city}&lang=${LANG}`, (d) => { if (live) setData(d) }).catch(() => {})
+    return () => { live = false }
   }, [token, city])
 
   const events = useMemo(() => data?.events || [], [data])
