@@ -111,6 +111,14 @@ export async function eventbrite(c) {
     if (!r.ok) break
     const html = await r.text()
     let n = 0
+    // the ld+json only has the date. the page's own data has the real local
+    // time, timezone and a short summary, keyed by event id
+    const when = new Map()
+    for (const m of html.matchAll(/"eventbrite_event_id":"(\d+)"[\s\S]{0,6000}?"summary":"((?:[^"\\]|\\.)*)"[\s\S]{0,400}?"start_time":"(\d\d:\d\d)","end_time":"(\d\d:\d\d)","start_date":"([\d-]+)","end_date":"([\d-]+)"[\s\S]{0,400}?"timezone":"([^"]+)"/g)) {
+      let summary = ""
+      try { summary = JSON.parse(`"${m[2]}"`) } catch { /* odd escape */ }
+      when.set(m[1], { start: localToUtc(`${m[5]}T${m[3]}:00`, m[7]), end: localToUtc(`${m[6]}T${m[4]}:00`, m[7]), summary })
+    }
     for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
       let d
       try { d = JSON.parse(m[1]) } catch { continue }
@@ -128,8 +136,9 @@ export async function eventbrite(c) {
           source_id: String(id),
           city: c.slug,
           title: e.name,
-          starts_at: new Date(e.startDate).toISOString(),
-          ends_at: e.endDate ? new Date(e.endDate).toISOString() : null,
+          starts_at: when.get(String(id))?.start || new Date(e.startDate).toISOString(),
+          ends_at: when.get(String(id))?.end || (e.endDate ? new Date(e.endDate).toISOString() : null),
+          details: when.get(String(id))?.summary?.slice(0, 1500) || null,
           venue: loc.name || null,
           address: [addr.streetAddress, addr.addressLocality].filter(Boolean).join(", ") || null,
           lat: loc.geo?.latitude ? Number(loc.geo.latitude) : null,
