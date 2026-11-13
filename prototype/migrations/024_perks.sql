@@ -15,3 +15,5 @@ create table if not exists perk_claims (
   unique (event_id, member_no)
 );
 alter table perk_claims enable row level security;
+-- members add events they spot (instagram flyers, links): who added it
+alter table events add column if not exists submitted_by text;

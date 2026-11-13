@@ -7,6 +7,7 @@ import { cityChip } from "../lib/cities"
 import CityNow from "../components/CityNow"
 import HostEvent from "../components/HostEvent"
 import PerkCard from "../components/PerkCard"
+import AddEvent from "../components/AddEvent"
 
 // events first: what's on in your city, found by asking ("football", "techno")
 // instead of scrolling forever. going puts you in the event's group chat.
@@ -108,6 +109,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const [search, setSearch] = useState(null) // { q, reply, ids } | { q, loading } | { q, error }
   const inputRef = useRef(null)
   const [hostOpen, setHostOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
   const canHost = !!(me?.canHost || me?.isMod)
   // a shared link to a paid event opens its sheet (club sends this)
   useEffect(() => {
@@ -119,7 +121,8 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     return () => window.removeEventListener("irl:open-event", onOpen)
   }, [token])
   const takeDown = async (e) => {
-    await fetch("/api/event-host", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, action: "hide", id: e.id }) }).catch(() => {})
+    const added = !e.hosted
+    await fetch(added ? "/api/event-submit" : "/api/event-host", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, action: added ? "remove" : "hide", id: e.id }) }).catch(() => {})
     setOpen(null)
     load()
   }
@@ -220,12 +223,11 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
       </p>
       <div className="mt-1 flex items-end justify-between gap-3">
         <h2 className="display text-[34px] font-bold leading-[0.95] tracking-tight">{t("find your people")}</h2>
-        {canHost && (
-          <button onClick={() => setHostOpen(true)} className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[12.5px] font-bold text-cream active:scale-95">
-            <Plus size={13} weight="bold" /> {t("host")}
-          </button>
-        )}
+        <button onClick={() => setAddOpen(true)} className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[12.5px] font-bold text-cream active:scale-95">
+          <Plus size={13} weight="bold" /> {t("add")}
+        </button>
       </div>
+      <AddEvent token={token} city={city} open={addOpen} canHost={canHost} onClose={() => setAddOpen(false)} onHost={() => { setAddOpen(false); setHostOpen(true) }} onAdded={async (id) => { setAddOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <HostEvent token={token} city={city} open={hostOpen} onClose={() => setHostOpen(false)} onCreated={async (id) => { setHostOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
 
@@ -396,7 +398,8 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                     {open.isFree ? t("rsvp on") : t("tickets on")} {open.source === "web" ? new URL(open.url).hostname.replace(/^www\./, "") : open.source} <ArrowUpRight size={14} />
                   </a>
                 )}
-                {(open.mine || (me?.isMod && open.hosted)) && (
+                {open.addedBy && !open.hosted && <p className="pb-2 text-center text-[12px] text-ink-soft">{t("added by")} {open.addedBy}</p>}
+                {(open.mine || open.mineAdded || (me?.isMod && (open.hosted || open.addedBy))) && (
                   <button onClick={() => takeDown(open)} className="block w-full pb-2 text-center text-[12px] font-bold text-red-600">{t("take it down")}</button>
                 )}
                 {!open.claimed && !open.hosted && (

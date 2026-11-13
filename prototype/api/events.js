@@ -12,9 +12,10 @@ async function withGoing(rows, me, lang = "en") {
   const ids = rows.map((e) => e.id)
   if (!ids.length) return []
   const { data: going } = await db.from("event_going").select("event_id, member_no").in("event_id", ids)
-  const nos = [...new Set((going || []).map((g) => g.member_no))]
+  const nos = [...new Set([...(going || []).map((g) => g.member_no), ...rows.map((e) => e.submitted_by).filter(Boolean)])]
   const { data: members } = nos.length ? await db.from("members").select("member_no, name, photo_url, banned").in("member_no", nos) : { data: [] }
   const byNo = new Map((members || []).filter((m) => !m.banned).map((m) => [m.member_no, m]))
+  const named = new Map((members || []).map((m) => [m.member_no, first(m.name).toLowerCase()]))
   const mine = new Set((going || []).filter((g) => g.member_no === me.memberNo).map((g) => g.event_id))
   const mod = actsAsMod(me)
   return rows.map((e) => {
@@ -46,6 +47,8 @@ async function withGoing(rows, me, lang = "en") {
       spotsLeft: e.capacity ? Math.max(0, e.capacity - who.length) : null,
       mine: !!e.host_no && e.host_no === me.memberNo,
       perk: e.perk || null,
+      addedBy: e.submitted_by ? named.get(e.submitted_by) || null : null,
+      mineAdded: !!e.submitted_by && e.submitted_by === me.memberNo,
       claimed: !!e.claimed_by,
       channel: `ev-${e.id}`,
       going: mine.has(e.id),
