@@ -71,7 +71,9 @@ export async function getUser(token) {
   const hit = token && userCache.get(token)
   if (hit && Date.now() - hit.at < 20000) return hit.user
   const user = await getUserFresh(token)
-  if (token) {
+  // mods flip between mod mode and member view: always read them fresh, or a
+  // warm server still holding the old mode makes the switch look broken
+  if (token && !(user && isMod(user.memberNo))) {
     if (userCache.size > 2000) userCache.clear()
     userCache.set(token, { at: Date.now(), user })
   }

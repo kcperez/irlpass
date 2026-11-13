@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react"
+import { useState, lazy, Suspense, useEffect } from "react"
 const Welcome = lazy(() => import("./screens/Welcome"))
 const Join = lazy(() => import("./screens/Join"))
 const Ops = lazy(() => import("./screens/Ops"))
@@ -75,6 +75,13 @@ export default function App() {
   const [screen, setScreen] = useState(initialScreen)
   const [applicant, setApplicant] = useState(initialApplicant)
   const [handle, setHandle] = useState(params.get("ig")?.replace(/^@+/, "") || "")
+  // the app itself is dark (frosted glass, like the events feed); the public
+  // pages around it keep their own look
+  useEffect(() => {
+    const dark = screen === "app"
+    document.documentElement.classList.toggle("irl-dark", dark)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#15110f" : "#f7f3ed")
+  }, [screen])
 
   return (
     // one layout everywhere: the app fills a phone, and on bigger screens it

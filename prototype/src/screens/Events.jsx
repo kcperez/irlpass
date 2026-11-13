@@ -129,7 +129,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
       </button>
 
       <motion.div initial={false} animate={{ opacity: active ? 1 : 0, y: active ? 0 : 28 }} transition={{ ...spring, delay: active ? 0.05 : 0 }} className="px-5 pb-5 text-white">
-        {alt && <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
+        {alt && <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink keep-light"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
         <button onClick={() => onOpen(e)} className="block w-full text-left">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/40 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em]">
             <span className="h-2 w-2 rounded-full" style={{ background: DOT[e.category] || "#ddd0f6" }} />
@@ -156,7 +156,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
             whileTap={{ scale: 0.97 }}
             disabled={busy || (!e.going && e.spotsLeft === 0)}
             onClick={() => { haptic(e.going ? "soft" : "pop"); e.going ? onChat(e) : onToggle(e) }}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-3.5 text-[15px] font-bold ${e.going ? "bg-lime text-ink" : "bg-white text-ink"}`}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-3.5 text-[15px] font-bold ${e.going ? "bg-lime text-ink" : "bg-white text-ink keep-light"}`}
           >
             {busy ? <CircleNotch size={16} className="animate-spin" /> : e.going ? <ChatsCircle size={17} weight="fill" /> : e.hosted && e.priceCents ? <Ticket size={17} weight="fill" /> : null}
             {e.going ? t("open the group chat") : e.spotsLeft === 0 ? t("it's full") : e.hosted && e.priceCents ? `${t("get a ticket")} · ${priceOf(e)}` : t("i'm going")}
@@ -186,7 +186,7 @@ function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, o
         ) : (
           <span className="flex h-full w-full items-center justify-center text-[72px]">{kindEmoji(e.category)}</span>
         )}
-        {alt && <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
+        {alt && <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink keep-light"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
         {e.perk && <span className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/40 px-2.5 py-1 text-[11.5px] font-bold backdrop-blur-md">🎁 {e.perk.item}</span>}
       </button>
       <div className="flex flex-1 flex-col p-4">
@@ -202,7 +202,7 @@ function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, o
         <div className="mt-3 flex items-center gap-2">
           <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-white/60">{e.goingCount ? `${e.goingCount} ${t("going")}` : t("go first, the chat is yours")}</span>
           <motion.button whileTap={{ scale: 0.96 }} disabled={busy || (!e.going && e.spotsLeft === 0)} onClick={() => (e.going ? onChat(e) : onToggle(e))}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold ${e.going ? "bg-lime text-ink" : "bg-white text-ink"}`}>
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold ${e.going ? "bg-lime text-ink" : "bg-white text-ink keep-light"}`}>
             {busy ? <CircleNotch size={14} className="animate-spin" /> : e.going ? <ChatsCircle size={15} weight="fill" /> : null}
             {e.going ? t("chat") : e.hosted && e.priceCents ? t("get a ticket") : t("i'm going")}
           </motion.button>
@@ -386,7 +386,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                   <ChatsCircle size={17} weight="fill" /> {t("your plans")} <span className="rounded-full bg-lime px-1.5 text-[11px] text-ink">{mine.length}</span>
                 </button>
               )}
-              <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[14px] font-bold text-ink"><Plus size={16} weight="bold" /> {t("add an event")}</button>
+              <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[14px] font-bold text-ink keep-light"><Plus size={16} weight="bold" /> {t("add an event")}</button>
             </div>
             <AnimatePresence>
               {plansOpen && (
@@ -404,13 +404,13 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
               <Sparkle size={18} weight="fill" className="shrink-0" />
               <input value={q} onChange={(ev) => setQ(ev.target.value)} placeholder={t("ask for anything: football, techno tonight, a run club")} className="min-w-0 flex-1 bg-transparent py-2 text-[16px] font-semibold text-white outline-none placeholder:text-white/45" />
               {search && <button type="button" onClick={clear} aria-label={t("clear")} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><X size={15} weight="bold" /></button>}
-              <button className="rounded-full bg-white px-5 py-2.5 text-[14px] font-bold text-ink">{t("ask")}</button>
+              <button className="rounded-full bg-white px-5 py-2.5 text-[14px] font-bold text-ink keep-light">{t("ask")}</button>
             </form>
 
             {!search && (
               <div className="mt-5 flex flex-wrap gap-2">
                 {order.map((k) => (
-                  <button key={k || "all"} onClick={() => pickKind(k)} className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-bold transition-colors ${kindOn === k ? "border-white bg-white text-ink" : "border-white/15 bg-white/[0.04] text-white/80 hover:bg-white/10"}`}>
+                  <button key={k || "all"} onClick={() => pickKind(k)} className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-bold transition-colors ${kindOn === k ? "border-white bg-white text-ink keep-light" : "border-white/15 bg-white/[0.04] text-white/80 hover:bg-white/10"}`}>
                     {kindName(k)} <span className="text-[12px] opacity-50">{countOf(k)}</span>
                   </button>
                 ))}
@@ -489,7 +489,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
               </button>
             )}
             <button onClick={() => setSearchOpen(true)} aria-label={t("search")} className={`flex h-10 w-10 items-center justify-center rounded-full ${glass}`}><MagnifyingGlass size={17} weight="bold" /></button>
-            <button onClick={() => setAddOpen(true)} aria-label={t("add")} className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-ink"><Plus size={17} weight="bold" /></button>
+            <button onClick={() => setAddOpen(true)} aria-label={t("add")} className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-ink keep-light"><Plus size={17} weight="bold" /></button>
             {onProfile && (
               <button onClick={onProfile} aria-label={t("you")} className="relative h-10 w-10 overflow-hidden rounded-full border border-white/30 bg-white/15">
                 {me?.photo && <img src={me.photo} alt="" className="h-full w-full object-cover" />}
@@ -504,7 +504,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
             <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={spring} style={{ transformOrigin: "top left" }} className={`pointer-events-auto mt-2 w-64 overflow-hidden rounded-[1.3rem] p-1.5 ${glass} bg-black/45`}>
               <p className="px-3 pb-1 pt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white/60">{t("what are you into?")}</p>
               {order.map((k) => (
-                <button key={k || "all"} onClick={() => switchKind(k)} className={`flex w-full items-center justify-between rounded-full px-3 py-2 text-left text-[14px] font-bold ${kindOn === k && !search ? "bg-white text-ink" : ""}`}>
+                <button key={k || "all"} onClick={() => switchKind(k)} className={`flex w-full items-center justify-between rounded-full px-3 py-2 text-left text-[14px] font-bold ${kindOn === k && !search ? "bg-white text-ink keep-light" : ""}`}>
                   <span>{kindName(k)}</span><span className="text-[12px] opacity-60">{countOf(k)}</span>
                 </button>
               ))}
@@ -551,7 +551,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
       <AnimatePresence>
         {flash && !desk && (
           <motion.p key={flash} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center">
-            <span className="display inline-block rounded-full bg-white px-5 py-2.5 text-[22px] text-ink shadow-2xl">{flash}</span>
+            <span className="display inline-block rounded-full bg-white px-5 py-2.5 text-[22px] text-ink keep-light shadow-2xl">{flash}</span>
           </motion.p>
         )}
       </AnimatePresence>

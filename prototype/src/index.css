@@ -183,3 +183,63 @@ textarea {
 
 /* round icon button (shuffle) */
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; }
+
+/* ---------- the app is dark, like the events feed ----------
+   the palette tokens flip, so every bg-cream / text-ink / border-line follows.
+   light fills (lilac, peach, white pills) keep dark text on top of them. */
+html.irl-dark {
+  --color-cream: #15110f;
+  --color-cream-deep: #221c19;
+  --color-ink: #f4eee7;
+  --color-ink-soft: rgba(244, 238, 231, 0.6);
+  --color-line: rgba(255, 255, 255, 0.12);
+  --color-plum: #ddd0f6;
+  color-scheme: dark;
+}
+html.irl-dark,
+html.irl-dark body {
+  background: #15110f;
+}
+html.irl-dark .wash {
+  background:
+    radial-gradient(50% 40% at 12% 4%, rgba(221, 208, 246, 0.16) 0%, transparent 70%),
+    radial-gradient(46% 38% at 92% 18%, rgba(248, 217, 198, 0.1) 0%, transparent 70%),
+    #15110f;
+}
+/* white cards become frosted glass */
+html.irl-dark .bg-white,
+html.irl-dark .bg-white\/95,
+html.irl-dark .bg-white\/90,
+html.irl-dark .bg-white\/80,
+html.irl-dark .bg-white\/70,
+html.irl-dark .bg-white\/60 {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+html.irl-dark .border-white,
+html.irl-dark .border-white\/80,
+html.irl-dark .border-white\/70 {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+/* light fills: text on them stays dark */
+html.irl-dark .bg-lime,
+html.irl-dark .bg-lime-deep,
+html.irl-dark .bg-peach,
+html.irl-dark .bg-lime .text-ink,
+html.irl-dark .bg-peach .text-ink,
+html.irl-dark .bg-lime .text-ink-soft,
+html.irl-dark .bg-peach .text-ink-soft {
+  color: #15110f;
+}
+/* light pills that are meant to be light (the events feed buttons) */
+html.irl-dark .keep-light {
+  background-color: #f4eee7 !important;
+  color: #15110f !important;
+}
+html.irl-dark input::placeholder,
+html.irl-dark textarea::placeholder {
+  color: rgba(244, 238, 231, 0.4);
+}
+html.irl-dark .grain::after {
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+}

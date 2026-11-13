@@ -2490,7 +2490,7 @@ export default function Club({ token }) {
         <nav className="mt-8 flex flex-col gap-1">
           {TABS.map((tb) => {
             const on = tab === tb.key
-            const dark = tab === "events"
+            const dark = false
             return (
               <button key={tb.key} onClick={() => { if (tb.key === "mood") clearMoodNew(); setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }}
                 className={`relative flex items-center gap-3 rounded-full px-3.5 py-2.5 text-left text-[15px] font-bold transition-colors ${on ? (dark ? "bg-white text-ink" : "bg-ink text-cream") : dark ? "text-white/65 hover:bg-white/10 hover:text-white" : "text-ink-soft hover:bg-ink/5 hover:text-ink"}`}>
@@ -2718,7 +2718,7 @@ export default function Club({ token }) {
           <div className={`mx-auto flex max-w-[440px] rounded-full p-1 backdrop-blur-xl ${tab === "events" ? "border border-white/15 bg-white/10" : "border border-white/80 bg-white/70 shadow-[0_10px_30px_-14px_rgba(58,50,44,0.35)]"}`}>
             {TABS.map((tb) => {
               const on = tab === tb.key
-              const dark = tab === "events"
+              const dark = false
               return (
                 <button key={tb.key} onClick={() => { if (tb.key === "mood") clearMoodNew(); setTab(tb.key); setSpotRoom(null); setCityRoom(null); setDmReturn(null); if (tb.key !== "chats") setActiveChat(null); if (tb.key !== "dms") setDmWith(null) }} className="relative flex flex-1 flex-col items-center gap-0.5 rounded-full py-1.5">
                   {on && <motion.span layoutId="nav-pill" transition={{ type: "spring", stiffness: 500, damping: 38 }} className={`absolute inset-0 rounded-full ${dark ? "bg-white" : "bg-ink"}`} />}
