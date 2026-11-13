@@ -218,6 +218,15 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
           </motion.div>
         )}
       </AnimatePresence>
+      {!ask && (
+        <a href="https://getty.irlpass.xyz" target="_blank" rel="noreferrer" className="mt-8 flex items-center justify-between gap-3 rounded-[1.3rem] border border-line bg-white p-4">
+          <span className="min-w-0">
+            <span className="block text-[14px] font-bold">{t("own a place in")} {name}?</span>
+            <span className="block text-[12.5px] text-ink-soft">{t("turn your guests' stories into your marketing. 20 free a month.")}</span>
+          </span>
+          <span className="shrink-0 rounded-full bg-lime px-3.5 py-2 text-[12.5px] font-bold">getty ↗</span>
+        </a>
+      )}
     </div>
   )
 }

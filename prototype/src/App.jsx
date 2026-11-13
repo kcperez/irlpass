@@ -78,7 +78,9 @@ export default function App() {
   // the app itself is dark (frosted glass, like the events feed); the public
   // pages around it keep their own look
   useEffect(() => {
-    const dark = screen === "app"
+    // the whole member-facing flow is dark now (front door, signup, app); the
+    // internal screens keep their own look
+    const dark = !["admin", "ops", "pro", "traction"].includes(screen)
     document.documentElement.classList.toggle("irl-dark", dark)
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#15110f" : "#f7f3ed")
   }, [screen])

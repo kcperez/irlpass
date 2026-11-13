@@ -10,7 +10,7 @@ import { VIBES, MIN_VIBES, vibeLabel, joinVibes } from "../lib/vibes"
 
 // two taps and you're on the calendar: where + when, then how we reach you.
 
-const QUICK = ["medellin", "cdmx", "miami", "lisboa", "bali"].map((slug) => CITY_INDEX.find((c) => c.slug === slug))
+const QUICK = ["miami", "new-york", "los-angeles", "medellin", "palermo"].map((slug) => CITY_INDEX.find((c) => c.slug === slug))
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const todayIso = () => iso(new Date())

@@ -9,8 +9,8 @@ const BASE = {
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f7f3ed",
-  "theme_color": "#f7f3ed",
+  "background_color": "#15110f",
+  "theme_color": "#15110f",
   "icons": [
     {
       "src": "/icon-192.png",

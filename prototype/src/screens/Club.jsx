@@ -391,6 +391,13 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
           <span className="text-[14px] font-bold">{t("want to host a night?")}</span>
           <span className="text-[18px]">🏠</span>
         </button>
+        <a href="https://getty.irlpass.xyz" target="_blank" rel="noreferrer" className="mt-2 flex w-full items-center justify-between rounded-[1.3rem] border border-line bg-white/70 px-4 py-3 text-left">
+          <span className="min-w-0">
+            <span className="block text-[14px] font-bold">{t("own a bar, café or studio?")}</span>
+            <span className="block text-[12px] text-ink-soft">{t("getty turns your guests' stories into your marketing")}</span>
+          </span>
+          <span className="text-[13px] font-bold text-lime-deep">getty ↗</span>
+        </a>
         <label className={`mt-3 flex w-full cursor-pointer items-center justify-center rounded-full bg-lime px-6 py-3.5 text-[14.5px] font-semibold text-ink shadow-[inset_0_-2px_0_rgba(28,27,23,0.18)] ${busy ? "opacity-60" : ""}`}>
           {busy ? t("uploading…") : me.photo ? t("change your photo") : t("add your photo")}
           <input type="file" accept="image/*" className="hidden" onChange={pick} disabled={busy} />

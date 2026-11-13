@@ -2,9 +2,13 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowRight, InstagramLogo, CircleNotch } from "@phosphor-icons/react"
 import { signInWithGoogle } from "../lib/auth"
+import { Logo } from "../components/bits"
 import { t } from "../lib/i18n"
 
-// the whole pitch in one glance: never travel alone, drop your instagram, go.
+// the front door, in the app's own look (dark, cobalt, real screens). the pitch
+// in one glance: land anywhere, the city is already in your pocket, and the
+// people going are one tap away. drop your instagram, go.
+const FACES = [0, 1, 6, 3, 8]
 const fmtD = (iso) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
 
@@ -88,138 +92,96 @@ export default function Welcome({ onStart, invitedBy, invite }) {
   }
 
   return (
-    <div className="relative flex min-h-[var(--app-h)] flex-col overflow-hidden lg:justify-center">
-      <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] lg:absolute lg:inset-x-0 lg:top-0 lg:px-10 lg:pt-8">
-        <span className="display text-[22px] font-bold lowercase tracking-tight lg:text-[26px]">
-          irl<span className="ml-[3px] inline-block -rotate-3 rounded-[0.45em] bg-lime px-[0.3em] pb-[0.06em] leading-none">pass</span>
-        </span>
+    <div className="relative min-h-[100dvh] overflow-x-hidden">
+      <div aria-hidden className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(45% 35% at 15% 5%, rgba(74,102,255,.28), transparent 70%), radial-gradient(40% 35% at 90% 30%, rgba(143,160,255,.12), transparent 70%), #15110f" }} />
+      <header className="relative z-10 mx-auto flex max-w-[1160px] items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] lg:px-10 lg:pt-7">
+        <Logo h="h-10" />
         {memberToken ? (
-          <a href={`/?screen=app&t=${memberToken}`} className="rounded-full bg-ink px-4 py-2 text-[12px] font-semibold text-cream">
-            {t("open")}
-          </a>
+          <a href={`/?screen=app&t=${memberToken}`} className="rounded-full bg-lime px-4 py-2 text-[13px] font-bold">{t("open")}</a>
         ) : (
-          <button
-            onClick={() => setLoginOpen(true)}
-            className="rounded-full border border-line bg-white/70 px-4 py-2 text-[12px] font-bold"
-          >
-            {t("log in")}
-          </button>
+          <button onClick={() => setLoginOpen(true)} className="rounded-full border border-line px-4 py-2 text-[13px] font-bold">{t("log in")}</button>
         )}
       </header>
 
-      {/* phone: stacked. desktop: text left, art right, all on one horizon. */}
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:grid lg:min-h-0 lg:flex-none lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-10 lg:px-10">
-        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col lg:flex-none lg:order-1">
-          {invitedBy && (
-            <div className="mx-5 mb-3 flex w-fit items-center gap-2 rounded-full bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-3.5 py-1.5 lg:mx-0">
-              <img src="/art/icon-people.png" alt="" className="h-5 w-5 object-contain" draggable="false" />
-              <span className="text-[12.5px] font-bold">@{invitedBy} {t("invited you")}</span>
-            </div>
+      <main className="relative z-10 mx-auto grid max-w-[1160px] items-center gap-10 px-5 pb-14 pt-8 lg:grid-cols-[1.05fr_1fr] lg:px-10 lg:pt-14">
+        <div>
+          {invitedBy ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-lime shadow-[0_0_10px_#4a66ff]" />@{invitedBy} {t("invited you")}</span>
+          ) : (
+            <span className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-lime shadow-[0_0_10px_#4a66ff]" />{t("for people who travel")}</span>
           )}
-
-          <motion.h1
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 140, damping: 18 }}
-            className="display mt-5 whitespace-nowrap px-5 font-bold leading-[0.95] tracking-[-0.035em] lg:mt-0 lg:px-0"
-            style={{ fontSize: "clamp(28px, 7.4vw, 46px)" }}
-          >
-            {invite ? t("come meet them") : t("never travel")}{" "}
-            <span className="relative inline-block">
-              {invite ? invite.cityName.toLowerCase() : t("alone")}
-              <motion.span
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ delay: 0.35, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute -bottom-0.5 left-0 h-[0.14em] w-full origin-left rounded-full bg-lime"
-                aria-hidden
-              />
-            </span>
+          <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 140, damping: 18 }}
+            className="serif-display mt-4 leading-[0.98]" style={{ fontSize: "clamp(42px, 9vw, 76px)" }}>
+            {invite ? t("come meet them in") : t("never travel")}{" "}
+            <span className="inline-block -rotate-2 rounded-[0.22em] bg-lime px-[0.14em] pb-[0.04em] text-white">{invite ? invite.cityName.toLowerCase() : t("alone")}</span>
           </motion.h1>
-
-          <p className="mt-3 px-5 text-[16px] text-ink-soft lg:px-0 lg:text-[19px]">
+          <p className="mt-4 max-w-[520px] text-[17px] leading-snug text-ink-soft lg:text-[19px]">
             {invite
               ? `@${invitedBy} ${t("is there")} ${fmtD(invite.starts)} – ${fmtD(invite.ends)}. ${t("drop your instagram and we'll put you on the same days.")}`
-              : t("drop your instagram, post your dates, see who's there.")}
+              : t("land anywhere and the city's already in your pocket: what's on tonight, where locals eat, and the people going with you.")}
           </p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 140, damping: 20 }}
-            className="mt-auto flex flex-col gap-2 px-5 pb-[max(1.1rem,env(safe-area-inset-bottom))] lg:mt-7 lg:max-w-[440px] lg:px-0 lg:pb-0"
-          >
-            <div className="flex items-center gap-2 rounded-[1.6rem] border border-line bg-white/85 px-4 py-3 shadow-[0_18px_40px_-24px_rgba(58,50,44,0.7)]">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, type: "spring", stiffness: 140, damping: 20 }} className="mt-7 flex max-w-[460px] flex-col gap-2">
+            <div className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-3">
               <InstagramLogo size={22} weight="duotone" className="shrink-0" />
               <span className="text-[17px] font-semibold text-ink-soft">@</span>
-              <input
-                id="welcome-ig"
-                value={ig}
-                onChange={(e) => setIg(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && start()}
-                autoCapitalize="none" autoCorrect="off" spellCheck="false"
-                placeholder={t("your instagram")}
-                className="w-full bg-transparent text-[17px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/50"
-              />
+              <input id="welcome-ig" value={ig} onChange={(e) => setIg(e.target.value)} onKeyDown={(e) => e.key === "Enter" && start()}
+                autoCapitalize="none" autoCorrect="off" spellCheck="false" placeholder={t("your instagram")}
+                className="w-full bg-transparent text-[17px] font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/60" />
             </div>
-
             {welcomeBack ? (
-              <div className="rounded-[1.4rem] bg-white shadow-[0_1px_2px_rgba(58,50,44,0.05),0_10px_28px_-16px_rgba(58,50,44,0.28)] px-4 py-3">
+              <div className="rounded-[1.4rem] border border-line bg-white px-4 py-3">
                 <p className="text-[15px] font-bold">{t("welcome back")} @{handle}</p>
-                <p className="mt-0.5 text-[13px]">
-                  {t("you're already a member. we emailed a link that opens your account to")} {welcomeBack}.
-                </p>
+                <p className="mt-0.5 text-[13px]">{t("you're already a member. we emailed a link that opens your account to")} {welcomeBack}.</p>
               </div>
             ) : (
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                disabled={handle.length < 3 || checking}
-                onClick={start}
-                className="flex items-center justify-center gap-2 rounded-full bg-ink py-4 text-[17px] font-bold text-cream disabled:opacity-40"
-              >
-                {invite ? t("join them") : t("see who's around")} <ArrowRight size={18} weight="bold" />
+              <motion.button whileTap={{ scale: 0.97 }} disabled={handle.length < 3 || checking} onClick={start}
+                className="flex items-center justify-center gap-2 rounded-full bg-lime py-4 text-[17px] font-bold shadow-[0_14px_40px_-12px_rgba(74,102,255,.7)] disabled:opacity-40">
+                {checking ? <CircleNotch size={18} className="animate-spin" /> : null}{invite ? t("join them") : t("get in")} <ArrowRight size={18} weight="bold" />
               </motion.button>
             )}
-
-            {!memberToken && (
-              <button
-                onClick={() => setLoginOpen(true)}
-                className="rounded-full border border-line bg-white/70 py-3 text-center text-[14px] font-bold"
-              >
-                {t("already a member? log in")}
-              </button>
-            )}
-
-            <div className="flex flex-col items-center gap-1 pt-2 lg:items-start">
-              <p className="flex items-center gap-2 text-[13.5px] font-bold">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-deep" />
-                {stats?.members ?? 200} {t("travelers")}
-                {stats?.travelling > 0 && (
-                  <span className="font-semibold text-ink-soft">
-                    · {stats.travelling} {t("with dates up")}
-                  </span>
-                )}
-              </p>
-              <p className="text-[12.5px] text-ink-soft">
-                {t("post your dates")} <span className="text-ink-soft/40">·</span> {t("see who overlaps")}{" "}
-                <span className="text-ink-soft/40">·</span> {t("say hi")}
-              </p>
+            <div className="mt-2 flex items-center gap-3">
+              <span className="flex -space-x-2">{FACES.map((f) => <img key={f} src={`/getty/pfp/${f}.jpg`} alt="" className="h-8 w-8 rounded-full border-2 border-cream object-cover" />)}</span>
+              <p className="text-[13.5px] font-semibold text-ink-soft"><span className="font-bold text-ink">{stats?.members ?? 480}</span> {t("travelers in 5 cities")}</p>
             </div>
+            {!memberToken && (
+              <button onClick={() => setLoginOpen(true)} className="mt-1 w-fit text-[13px] font-semibold text-ink-soft underline underline-offset-4">{t("already a member? log in")}</button>
+            )}
           </motion.div>
         </div>
 
-        <div className="relative flex min-h-[180px] w-full min-w-0 flex-1 items-center justify-center px-4 lg:order-2 lg:min-h-0 lg:flex-none lg:px-0">
-          <motion.img
-            src="/art/hero.png"
-            alt=""
-            initial={{ opacity: 0, scale: 0.94, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 110, damping: 18, delay: 0.1 }}
-            className="h-full max-h-[42vh] w-auto max-w-full select-none object-contain lg:max-h-none lg:w-full"
-            draggable="false"
-          />
+        {/* the app itself: real screens, floating */}
+        <div className="relative mx-auto h-[560px] w-full max-w-[470px] lg:h-[640px]">
+          <motion.img src="/landing/city.jpg" alt="" initial={{ opacity: 0, y: 30, rotate: -8 }} animate={{ opacity: 1, y: 0, rotate: -6 }} transition={{ type: "spring", stiffness: 90, damping: 16, delay: 0.1 }}
+            className="absolute left-0 top-6 w-[52%] rounded-[2rem] border border-white/15 shadow-[0_40px_90px_-30px_rgba(0,0,0,.9)]" />
+          <motion.img src="/landing/buatta.jpg" alt="" initial={{ opacity: 0, y: 40, rotate: 9 }} animate={{ opacity: 1, y: 0, rotate: 5 }} transition={{ type: "spring", stiffness: 90, damping: 16, delay: 0.22 }}
+            className="absolute right-0 top-0 w-[52%] rounded-[2rem] border border-white/15 shadow-[0_40px_90px_-30px_rgba(0,0,0,.9)]" />
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 18 }}
+            className="absolute bottom-10 left-[18%] flex items-center gap-2.5 rounded-[1.2rem] border border-white/15 bg-black/55 px-3.5 py-2.5 backdrop-blur-xl">
+            <span className="flex -space-x-2">{[0, 6, 3].map((f) => <img key={f} src={`/getty/pfp/${f}.jpg`} alt="" className="h-7 w-7 rounded-full border-2 border-black object-cover" />)}</span>
+            <span className="text-[13px] font-bold text-white">{t("4 going tonight")} · <span className="text-[#8fa0ff]">{t("chat open")}</span></span>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+            className="absolute bottom-28 right-[4%] max-w-[210px] rounded-[1.2rem] rounded-br-md bg-lime px-3.5 py-2.5 text-[13.5px] font-semibold text-white shadow-[0_18px_40px_-14px_rgba(74,102,255,.8)]">
+            {t("anyone down for dinner at buatta? 9pm")}
+          </motion.div>
         </div>
-      </div>
+      </main>
+
+      <section className="relative z-10 mx-auto grid max-w-[1160px] gap-3 px-5 pb-20 sm:grid-cols-3 lg:px-10">
+        {[["🧭", t("ask your city anything"), t("dinner tonight, the airport, techno. michelin picks, real answers, what's on.")], ["🎟️", t("everything on this week"), t("swipe through what's happening. tap i'm going and you're in the group chat.")], ["💬", t("meet the people going"), t("every event has its own chat, so you walk in already knowing someone.")]].map(([e, h, b]) => (
+          <div key={h} className="rounded-[1.5rem] border border-line bg-white p-5">
+            <p className="text-[22px]">{e}</p>
+            <p className="serif-display mt-2 text-[22px] leading-tight">{h}</p>
+            <p className="mt-1.5 text-[14px] leading-snug text-ink-soft">{b}</p>
+          </div>
+        ))}
+      </section>
+
+      <footer className="relative z-10 mx-auto flex max-w-[1160px] flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-6 text-[13px] text-ink-soft lg:px-10">
+        <span>irlpass · {t("meet people where you are")}</span>
+        <a href="https://getty.irlpass.xyz" className="font-bold text-ink">{t("own a bar, café or studio?")} <span className="text-lime-deep">getty ↗</span></a>
+      </footer>
 
       {loginOpen && (
         <>

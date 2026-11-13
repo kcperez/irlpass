@@ -2,20 +2,50 @@ import { useEffect, useState, memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { avatarUrl, MEMBERS } from "../data"
 
-// the wordmark. default = official 3d logo image; text variant for surfaces
-// where the lime pill would blend in (e.g. the lime pass card)
-export function Logo({ size = "text-[20px]", pill = "bg-lime text-ink", className = "", text = true, h = "h-11" }) {
-  if (!text) {
-    return <img src="/logo.png" alt="irlpass" className={`${h} w-auto ${className}`} />
-  }
+// the mark: a glossy cobalt app tile with a white ticket in it (the pass),
+// lit from the top so it reads 3d. used alone as the app icon, or with the
+// wordmark everywhere else.
+export function Mark({ size = 32, className = "" }) {
   return (
-    <span className={`display inline-flex items-center font-bold lowercase tracking-tight ${size} ${className}`}>
-      irl
-      <span
-        className={`ml-[3px] inline-block -rotate-3 rounded-[0.45em] px-[0.32em] pb-[0.08em] pt-[0.02em] leading-none ${pill}`}
-      >
-        pass
-      </span>
+    <svg viewBox="0 0 64 64" width={size} height={size} className={`shrink-0 ${className}`} aria-hidden>
+      <defs>
+        <linearGradient id="irl-tile" x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0" stopColor="#7d93ff" />
+          <stop offset="0.55" stopColor="#4a66ff" />
+          <stop offset="1" stopColor="#2a3fd6" />
+        </linearGradient>
+        <linearGradient id="irl-sheen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="irl-ticket" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#dfe5ff" />
+        </linearGradient>
+        <filter id="irl-drop" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2.2" floodColor="#0b1260" floodOpacity="0.45" />
+        </filter>
+      </defs>
+      <rect x="2" y="2" width="60" height="60" rx="17" fill="url(#irl-tile)" />
+      <path d="M7 18 Q7 7 19 7 H45 Q57 7 57 18 V24 Q32 30 7 24 Z" fill="url(#irl-sheen)" />
+      <g transform="rotate(-10 32 33)" filter="url(#irl-drop)">
+        <path d="M16 22 H48 a3 3 0 0 1 3 3 V30 a4 4 0 0 0 0 8 V43 a3 3 0 0 1 -3 3 H16 a3 3 0 0 1 -3 -3 V38 a4 4 0 0 0 0 -8 V25 a3 3 0 0 1 3 -3 Z" fill="url(#irl-ticket)" />
+        <path d="M38 24.5 V43.5" stroke="#4a66ff" strokeOpacity="0.35" strokeWidth="1.6" strokeDasharray="2.4 2.4" />
+        <circle cx="25.5" cy="34" r="4.2" fill="#4a66ff" />
+      </g>
+      <rect x="2.5" y="2.5" width="59" height="59" rx="16.5" fill="none" stroke="#fff" strokeOpacity="0.22" />
+    </svg>
+  )
+}
+
+// the logo: mark + "irlpass". text=false gives the mark alone.
+export function Logo({ size = "text-[20px]", className = "", text = true, h = "h-11" }) {
+  const px = { "h-7": 24, "h-8": 26, "h-9": 30, "h-10": 32, "h-11": 34, "h-12": 38 }[h] || 30
+  if (!text) return <Mark size={px} className={className} />
+  return (
+    <span className={`inline-flex items-center gap-2 ${className}`}>
+      <Mark size={px} />
+      <span className={`serif-display lowercase leading-none tracking-[-0.04em] ${size}`} style={{ fontSize: px * 0.72 }}>irlpass</span>
     </span>
   )
 }
