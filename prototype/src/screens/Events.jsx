@@ -301,7 +301,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
     const r = await fetch("/api/event-search", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, city, q: query }),
+      body: JSON.stringify({ t: token, city, q: query, lang: LANG }),
     }).then((x) => x.json()).catch(() => ({ error: t("search is down for a sec. try again.") }))
     if (r.error) return setSearch({ q: query, error: r.error })
     // the web may have added new listings: reload so they show up with going buttons

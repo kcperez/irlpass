@@ -81,7 +81,7 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
     let live = true
     setAsk(null); setGuide(null); setPeople(null); setEvents([])
     cachedJson(`/api/events?t=${token}&city=${city}&lang=${LANG}`, (d) => live && setEvents(d.events || [])).catch(() => {})
-    cachedJson(`/api/city-guide?t=${token}&city=${city}`, (d) => live && setGuide(d.places || [])).catch(() => live && setGuide([]))
+    cachedJson(`/api/city-guide?t=${token}&city=${city}&lang=${LANG}`, (d) => live && setGuide(d.places || [])).catch(() => live && setGuide([]))
     cachedJson(`/api/members?t=${token}&city=${city}`, (d) => live && setPeople(d.people || [])).catch(() => live && setPeople([]))
     cachedJson(`/api/trips?t=${token}`, (d) => live && setTrips(d.trips || [])).catch(() => {})
     return () => { live = false }
@@ -106,7 +106,7 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
     haptic("soft")
     setQ(query)
     setAsk({ q: query, loading: true })
-    const r = await fetch("/api/event-search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, city, q: query }) })
+    const r = await fetch("/api/event-search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, city, q: query, lang: LANG }) })
       .then((x) => x.json()).catch(() => ({ error: t("search is down for a sec. try again.") }))
     if (r.error) return setAsk({ q: query, error: r.error })
     // the web may have added events: reload so the new ones have cards

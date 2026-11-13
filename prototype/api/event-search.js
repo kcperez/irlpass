@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const q = String(req.body?.q || "").trim().slice(0, 120)
   const city = String(req.body?.city || me.city || "medellin")
   if (q.length < 2) return res.status(400).json({ error: "say what you're into" })
-  const out = await askCity(city, q)
+  const out = await askCity(city, q, req.body?.lang === "es" ? "es" : "en")
   if (out.error) return res.status(out.status || 500).json({ error: out.error })
   return res.status(200).json(out)
 }

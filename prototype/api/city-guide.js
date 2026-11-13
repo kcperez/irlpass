@@ -14,7 +14,8 @@ export default async function handler(req, res) {
   const me = await getUser(req.query?.t)
   if (!me) return res.status(401).json({ error: "not a member" })
   const city = String(req.query?.city || me.city || "medellin").toLowerCase().replace(/[^a-z-]/g, "").slice(0, 40)
-  const key = `guide:${city}`
+  const lang = req.query?.lang === "es" ? "es" : "en"
+  const key = lang === "es" ? `guide:${city}:es` : `guide:${city}`
   const { data: row } = await db.from("app_settings").select("value").eq("key", key).maybeSingle()
   let cached = null
   try { cached = row?.value ? JSON.parse(row.value) : null } catch { cached = null }
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
     res.setHeader("cache-control", "private, max-age=600")
     return res.status(200).json(cached)
   }
-  const out = await askCity(city, ASK)
+  const out = await askCity(city, ASK, lang)
   if (out.error || !out.places?.length) return res.status(200).json(cached || { places: [], at: 0 })
   const fresh = { places: out.places, at: Date.now() }
   await db.from("app_settings").upsert({ key, value: JSON.stringify(fresh) }).then(() => {}, () => {})

@@ -69,23 +69,23 @@ async function enrich(p, place) {
   }
 }
 
-export async function askCity(city, q) {
+export async function askCity(city, q, lang = "en") {
   // the same question in the same city gets the same answer for a few hours:
   // the chips and common asks come back instantly
-  const ckey = `ask:${city}:${crypto.createHash("sha1").update(String(q).toLowerCase().replace(/\s+/g, " ").trim()).digest("hex").slice(0, 16)}`
+  const ckey = `ask:${city}:${lang === "es" ? "es:" : ""}${crypto.createHash("sha1").update(String(q).toLowerCase().replace(/\s+/g, " ").trim()).digest("hex").slice(0, 16)}`
   try {
     const { data: hit } = await db.from("app_settings").select("value").eq("key", ckey).maybeSingle()
     const c = hit?.value ? JSON.parse(hit.value) : null
     if (c?.at && Date.now() - c.at < 6 * 3600e3) return c.out
   } catch { /* fall through */ }
-  const res = await askCityFresh(city, q)
+  const res = await askCityFresh(city, q, lang)
   if (!res.error && (res.places?.length || res.ids?.length)) {
     await db.from("app_settings").upsert({ key: ckey, value: JSON.stringify({ at: Date.now(), out: res }) }).then(() => {}, () => {})
   }
   return res
 }
 
-async function askCityFresh(city, q) {
+async function askCityFresh(city, q, lang = "en") {
   const now = Date.now()
   const { data: rows } = await db
     .from("events")
@@ -105,7 +105,7 @@ async function askCityFresh(city, q) {
   try {
     const messages = [{
       role: "user",
-      content: `city: ${place}\n${sourcesFor(city)}\ntoday: ${new Date().toISOString().slice(0, 10)}\nrequest: ${q}\n\nlisted events (id | starts | kind | title):\n${listed || "(none yet)"}`,
+      content: `city: ${place}\n${sourcesFor(city)}\ntoday: ${new Date().toISOString().slice(0, 10)}\nrequest: ${q}\n${lang === "es" ? "write reply, tip and every why in spanish (latin american, lowercase, casual). keep place names as they are.\n" : ""}\nlisted events (id | starts | kind | title):\n${listed || "(none yet)"}`,
     }]
     let msg
     // web search can pause a long turn: hand it back so the server finishes it

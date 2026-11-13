@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, MagnifyingGlass, X } from "@phosphor-icons/react"
-import { t } from "../lib/i18n"
+import { t, LANG } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import Poster from "./Poster"
 import { haptic } from "../lib/haptic"
@@ -19,7 +19,7 @@ export default function PlanDeck({ token, me, person, city, onClose, onSent, onP
   const place = String(cityChip(city).name || city).toLowerCase()
 
   useEffect(() => {
-    fetch(`/api/city-guide?t=${token}&city=${city}`).then((r) => r.json()).then((d) => setPlaces(d.places || [])).catch(() => setPlaces([]))
+    fetch(`/api/city-guide?t=${token}&city=${city}&lang=${LANG}`).then((r) => r.json()).then((d) => setPlaces(d.places || [])).catch(() => setPlaces([]))
   }, [token, city])
 
   // have somewhere in mind? search it, the results become the deck
@@ -30,7 +30,7 @@ export default function PlanDeck({ token, me, person, city, onClose, onSent, onP
     const d = await fetch("/api/event-search", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, city, q: q.trim() }),
+      body: JSON.stringify({ t: token, city, q: q.trim(), lang: LANG }),
     }).then((r) => r.json()).catch(() => null)
     setLooking(false)
     if (d?.places?.length) { setPlaces(d.places); setI(0) }

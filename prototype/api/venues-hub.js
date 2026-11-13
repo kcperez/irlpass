@@ -1,7 +1,8 @@
 import crypto from "crypto"
+import { wantsEs, toEs } from "./_getty_es.js"
 import QRCode from "qrcode"
 import { db } from "./_db.js"
-import { esc, glass, send } from "./_page.js"
+import { esc, glass, send as sendPage } from "./_page.js"
 import { sendEmail } from "./_email.js"
 import { kindOf } from "./_events.js"
 import { ASK, FREE, PACKS, addCredits, cleanHandle, monthStart, okHandle, slots, useSlot } from "./_perks.js"
@@ -598,6 +599,9 @@ async function bought(v, sid) {
 export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
+      // spanish browsers get getty in spanish (the cache can't tell them apart)
+      const es = wantsEs(req)
+      const send = (r, html, cache) => sendPage(r, es ? toEs(html) : html, es || cache ? "no-store" : cache)
       const view = String(req.query?.view || "landing")
       if (view === "start") return send(res, startPage())
       if (view === "in") return send(res, signInPage())
@@ -610,7 +614,7 @@ export default async function handler(req, res) {
         const flash = req.query?.session_id ? await bought(v, String(req.query.session_id)) : ""
         return send(res, await dashPage(v, e, flash))
       }
-      return send(res, await landing(), "public, max-age=0, s-maxage=60")
+      return send(res, await landing(), "no-store")
     }
     if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
     const b = req.body || {}
