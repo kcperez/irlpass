@@ -68,7 +68,7 @@ export async function tellHostOut(e) {
     const { data: v } = await db.from("venues").select("name, contact_email, owner_token, out_noticed_at").eq("slug", slug).maybeSingle()
     if (!v?.contact_email || (v.out_noticed_at && Date.now() - Date.parse(v.out_noticed_at) < 864e5)) return
     await db.from("venues").update({ out_noticed_at: new Date().toISOString() }).eq("slug", slug)
-    const url = `https://irlpass.xyz/venues/g/${v.owner_token}`
+    const url = `https://getty.irlpass.xyz/g/${v.owner_token}`
     await sendEmail({
       to: v.contact_email,
       subject: "guests are trying to post for you",

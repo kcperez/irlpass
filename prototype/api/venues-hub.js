@@ -23,11 +23,12 @@ const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-ang
 const stripeKey = () => (process.env.STRIPE_MODE === "test" ? process.env.STRIPE_TEST_KEY : process.env.STRIPE_SECRET_KEY)
 const slugify = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 36)
 const clean = (s, n = 80) => String(s || "").trim().slice(0, n)
-const dashUrl = (k) => `${SITE}/venues/g/${k}`
+const GETTY = "https://getty.irlpass.xyz"
+const dashUrl = (k) => `${GETTY}/g/${k}`
 const usd = (c) => `$${Math.round(c / 100)}`
 
-const NAV = (right = `<a class="btn ghost" href="/venues/in" style="padding:10px 16px;font-size:14px">sign in</a>`) =>
-  `<nav class="nav"><a class="logo" href="/venues">getty<span>by irlpass</span></a>${right}</nav>`
+const NAV = (right = `<a class="btn ghost" href="${GETTY}/in" style="padding:10px 16px;font-size:14px">sign in</a>`) =>
+  `<nav class="nav"><a class="logo" href="${GETTY}/">getty<span>by irlpass</span></a>${right}</nav>`
 
 async function byToken(k) {
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(String(k || ""))) return null
@@ -99,7 +100,7 @@ function landing() {
     <h1>your guests are the best <em>influencers</em> you'll ever book</h1>
     <p class="soft" style="font-size:18px;max-width:520px">a guest posts a story tagging you, shows it at the counter, and gets the perk you picked. their friends see your place that night, from someone they trust.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
-      <a class="btn" href="/venues/start">set it up in a minute</a>
+      <a class="btn" href="${GETTY}/start">set it up in a minute</a>
       <a class="btn ghost" href="#how">how it works</a>
     </div>
     <p class="faint" style="font-size:13px;margin-top:14px">20 stories a month on us. no app for your guests.</p>
@@ -152,7 +153,7 @@ function landing() {
 <section class="card" style="text-align:center;padding:40px 22px;margin-top:8px">
   <h2>put the first one on the counter tonight</h2>
   <p class="soft">venue name, instagram, perk. you'll have the qr in a minute.</p>
-  <a class="btn" href="/venues/start" style="margin-top:8px">set it up</a>
+  <a class="btn" href="${GETTY}/start" style="margin-top:8px">set it up</a>
 </section>
 <p class="faint" style="text-align:center;font-size:12px;margin-top:28px">irlpass · <a href="/" class="faint">meet people where you are</a></p>
 <style>
@@ -226,9 +227,9 @@ function signInPage() {
   <button class="block" id="go" style="margin-top:18px">email me the link</button>
   <p class="err" id="err"></p>
 </form>
-<p class="soft" style="text-align:center;margin-top:16px">new here? <a href="/venues/start">set it up</a></p>`
+<p class="soft" style="text-align:center;margin-top:16px">new here? <a href="${GETTY}/start">set it up</a></p>`
   const script = `
-try{const k=localStorage.getItem("venue-k");if(k)location.replace("/venues/g/"+k)}catch(e){}
+try{const k=localStorage.getItem("venue-k");if(k)location.replace("/g/"+k)}catch(e){}
 const f=document.getElementById("f"),go=document.getElementById("go"),err=document.getElementById("err");
 f.onsubmit=async e=>{e.preventDefault();go.disabled=true;
 const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"login",email:document.getElementById("email").value})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
@@ -264,7 +265,7 @@ async function dashPage(v, e, flash = "") {
   const qr = link ? await QRCode.toDataURL(link, { width: 720, margin: 1, color: { dark: "#15110f", light: "#ffffff" } }) : ""
   const perk = e?.perk || {}
   const stat = (n, l, id) => `<div class="card" style="padding:16px"><p class="num" id="${id}" style="font-size:34px;margin:0;line-height:1">${n}</p><p class="faint" style="margin:6px 0 0;font-size:12.5px">${l}</p></div>`
-  const body = `${NAV(`<a class="btn ghost" href="/venues/g/${v.owner_token}?print=1" target="_blank" style="padding:10px 16px;font-size:14px">counter card</a>`)}
+  const body = `${NAV(`<a class="btn ghost" href="${GETTY}/g/${v.owner_token}?print=1" target="_blank" style="padding:10px 16px;font-size:14px">counter card</a>`)}
 ${flash ? `<div class="card" style="border-color:rgba(205,238,69,.45);margin:10px 0">${esc(flash)}</div>` : ""}
 <div class="rise" style="padding-top:10px">
   <span class="tag">the guestlist · ${esc(CITIES[v.city] || v.city)}</span>
@@ -292,7 +293,7 @@ ${flash ? `<div class="card" style="border-color:rgba(205,238,69,.45);margin:10p
 <div class="card" style="margin-top:14px;text-align:center">
   <span class="tag" style="--dot:var(--lilac)">the qr for your counter</span>
   ${qr ? `<a href="${qr}" download="${esc(v.slug)}-qr.png"><img src="${qr}" alt="qr code" style="display:block;width:220px;max-width:70%;margin:18px auto 10px;border-radius:18px;background:#fff;padding:10px"></a>` : ""}
-  <p class="soft" style="font-size:13px;margin:0 0 14px">tap the qr to save it, or print the <a href="/venues/g/${v.owner_token}?print=1" target="_blank">counter card</a>.</p>
+  <p class="soft" style="font-size:13px;margin:0 0 14px">tap the qr to save it, or print the <a href="${GETTY}/g/${v.owner_token}?print=1" target="_blank">counter card</a>.</p>
   <a class="btn ghost block" href="${esc(link)}" target="_blank">see what guests see</a>
 </div>
 
@@ -326,7 +327,7 @@ ${flash ? `<div class="card" style="border-color:rgba(205,238,69,.45);margin:10p
 
   const script = `
 const K=${JSON.stringify(v.owner_token)};try{localStorage.setItem("venue-k",K)}catch(e){}
-if(location.search.includes("session_id"))history.replaceState(null,"","/venues/g/"+K);
+if(location.search.includes("session_id"))history.replaceState(null,"",location.pathname);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const post=b=>fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({k:K,...b})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 function draw(d){
@@ -362,7 +363,7 @@ async function printPage(v, e) {
   return glass(`${v.name} · counter card`, body, { head: `<meta name="robots" content="noindex">` })
 }
 
-const gonePage = () => glass("getty", `${NAV()}<div style="padding-top:30px"><h1 style="font-size:46px">that link doesn't open anything</h1><p class="soft">sign in with your email and we'll send a fresh one.</p><a class="btn" href="/venues/in">sign in</a></div>`)
+const gonePage = () => glass("getty", `${NAV()}<div style="padding-top:30px"><h1 style="font-size:46px">that link doesn't open anything</h1><p class="soft">sign in with your email and we'll send a fresh one.</p><a class="btn" href="${GETTY}/in">sign in</a></div>`)
 
 // ---------- actions ----------
 
