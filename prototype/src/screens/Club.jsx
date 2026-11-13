@@ -2513,13 +2513,11 @@ export default function Club({ token }) {
     if (ev) {
       let via = ""
       try { via = p.get("ref") || localStorage.getItem("irl:ref") || "" } catch { /* private mode */ }
-      fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, id: Number(ev[1]), going: true, via }) })
-        .then((r) => r.json())
-        .then((r) => {
-          if (r?.event) { setTab("events"); setSpotRoom({ channel: r.event.channel, title: r.event.title }) }
-          else { setTab("events"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:open-event", { detail: ev[1] })), 600) }
-        })
-        .catch(() => {})
+      // open it and let them decide; the sharer's card lands in your dm
+      try { if (via) sessionStorage.setItem(`irl:via-${ev[1]}`, via) } catch { /* private mode */ }
+      fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, id: Number(ev[1]), action: "opened", via }) }).catch(() => {})
+      setTab("events")
+      setTimeout(() => window.dispatchEvent(new CustomEvent("irl:open-event", { detail: ev[1] })), 600)
     }
     if (now) { setTab("trips"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:now", { detail: now[1] })), 700) }
     if (dm) { setDmWith({ memberNo: dm[1] }); setTab("dms") }

@@ -65,6 +65,22 @@ async function withGoing(rows, me, lang = "en") {
   })
 }
 
+// a shared event lands in the dm between sharer and opener (once), so the
+// conversation about it happens in irlpass
+async function cardToDm(via, meNo, id) {
+  const [a, b] = via < meNo ? [via, meNo] : [meNo, via]
+  const body = `https://irlpass.xyz/e/${id}`
+  const now = new Date().toISOString()
+  let { data: th } = await db.from("dm_threads").select("id").eq("a_no", a).eq("b_no", b).maybeSingle()
+  if (!th) ({ data: th } = await db.from("dm_threads").insert({ a_no: a, b_no: b, last_at: now }).select("id").single())
+  if (!th) return false
+  const { count } = await db.from("dm_messages").select("id", { count: "exact", head: true }).eq("thread_id", th.id).eq("body", body)
+  if (count) return false
+  await db.from("dm_messages").insert({ thread_id: th.id, from_no: via, body })
+  await db.from("dm_threads").update({ last_at: now }).eq("id", th.id)
+  return true
+}
+
 export default async function handler(req, res) {
   const token = req.method === "POST" ? req.body?.t : req.query?.t
   const me = await getUser(token)
@@ -122,6 +138,21 @@ export default async function handler(req, res) {
       const { data: e } = await db.from("events").select("id, title, starts_at, price_cents, source, capacity").eq("id", id).eq("hidden", false).maybeSingle()
       if (!e) return res.status(404).json({ error: "that event is gone" })
       const channel = `ev-${id}`
+      const via = /^\d{3}$/.test(String(req.body?.via || "")) && req.body.via !== me.memberNo ? req.body.via : null
+      // opened someone's share: the card goes to your dm with them, they hear you looked
+      if (req.body?.action === "opened") {
+        if (via && (await cardToDm(via, me.memberNo, id))) {
+          await notifyMemberNo(via, {
+            subject: `${first(me.name)} opened the event you sent`,
+            line: `${first(me.name)} is looking at ${String(e.title).toLowerCase().slice(0, 80)}. it's in your chat now.`,
+            ctaLabel: "open the chat",
+            email: false,
+            push: { title: `${first(me.name)} opened your event 👀`, body: String(e.title).toLowerCase().slice(0, 80), go: `dm-${me.memberNo}`, tag: `opened-${id}` },
+          }).catch(() => {})
+        }
+        const [out] = await withGoing([{ ...(await db.from("events").select("*").eq("id", id).single()).data }], me, lang)
+        return res.status(200).json({ event: out })
+      }
       if (req.body?.going === false) {
         await db.from("event_going").delete().eq("event_id", id).eq("member_no", me.memberNo)
       } else {
@@ -132,7 +163,6 @@ export default async function handler(req, res) {
             const { count } = await db.from("event_going").select("event_id", { count: "exact", head: true }).eq("event_id", id)
             if (count >= e.capacity) return res.status(409).json({ error: "it's full" })
           }
-          const via = /^\d{3}$/.test(String(req.body?.via || "")) && req.body.via !== me.memberNo ? req.body.via : null
           await db.from("event_going").insert({ event_id: id, member_no: me.memberNo, via })
           // say it in the room, so the chat is never a blank page
           await db.from("messages").insert({
@@ -142,24 +172,11 @@ export default async function handler(req, res) {
             from_ig: "@irlpass.xyz",
             from_member_no: "000",
           })
-          // came in through someone's share: the event lands in their dm (so the
-          // conversation moves into irlpass) and the sharer hears they're going
           if (via) {
-            const [a, b] = via < me.memberNo ? [via, me.memberNo] : [me.memberNo, via]
-            const body = `https://irlpass.xyz/e/${id}`
-            const now = new Date().toISOString()
-            let { data: th } = await db.from("dm_threads").select("id").eq("a_no", a).eq("b_no", b).maybeSingle()
-            if (!th) ({ data: th } = await db.from("dm_threads").insert({ a_no: a, b_no: b, last_at: now }).select("id").single())
-            if (th) {
-              const { count } = await db.from("dm_messages").select("id", { count: "exact", head: true }).eq("thread_id", th.id).eq("body", body)
-              if (!count) {
-                await db.from("dm_messages").insert({ thread_id: th.id, from_no: via, body })
-                await db.from("dm_threads").update({ last_at: now }).eq("id", th.id)
-              }
-            }
+            await cardToDm(via, me.memberNo, id)
             await notifyMemberNo(via, {
               subject: `${first(me.name)} is going to ${String(e.title).toLowerCase().slice(0, 60)}`,
-              line: `${first(me.name)} opened the event you shared and tapped going. say hi in your chat.`,
+              line: `${first(me.name)} tapped going on the event you sent. say hi in your chat.`,
               ctaLabel: "say hi",
               push: { title: `${first(me.name)} is going 🙌`, body: `to ${String(e.title).toLowerCase().slice(0, 80)}. say hi`, go: `dm-${me.memberNo}`, tag: `going-${id}` },
             }).catch(() => {})

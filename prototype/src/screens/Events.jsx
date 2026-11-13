@@ -334,7 +334,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
     const r = await fetch("/api/events", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ t: token, id: e.id, going: !e.going, lang: LANG }),
+      body: JSON.stringify({ t: token, id: e.id, going: !e.going, lang: LANG, via: (() => { try { return sessionStorage.getItem(`irl:via-${e.id}`) || "" } catch { return "" } })() }),
     }).then((x) => x.json()).catch(() => null)
     setBusy(null)
     if (!r?.event) return
