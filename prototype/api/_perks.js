@@ -10,7 +10,7 @@ export const ASK = { story: "a story", post: "a post", reel: "a reel" }
 
 // a host is a member ("021") or a venue that signed up on its own ("v:paraiso-market")
 export const venueSlug = (hostNo) => (String(hostNo || "").startsWith("v:") ? String(hostNo).slice(2) : null)
-const credits = (hostNo) => {
+const creditRow = (hostNo) => {
   const v = venueSlug(hostNo)
   return v ? { table: "venues", key: "slug", id: v } : { table: "members", key: "member_no", id: hostNo }
 }
@@ -21,7 +21,7 @@ export async function slots(hostNo) {
   if (!hostNo) return { free: FREE, credits: 0, left: Infinity }
   const [{ count }, { data: m }] = await Promise.all([
     db.from("perk_claims").select("id", { count: "exact", head: true }).eq("host_no", hostNo).eq("status", "given").gte("given_at", monthStart()),
-    (({ table, key, id }) => db.from(table).select("perk_credits").eq(key, id).maybeSingle())(credits(hostNo)),
+    (({ table, key, id }) => db.from(table).select("perk_credits").eq(key, id).maybeSingle())(creditRow(hostNo)),
   ])
   const free = Math.max(0, FREE - (count || 0))
   const credits = m?.perk_credits || 0
@@ -38,7 +38,7 @@ export async function useSlot(hostNo) {
 
 // optimistic add (or take, with a negative n). null when there isn't enough.
 export async function addCredits(hostNo, n) {
-  const { table, key, id } = credits(hostNo)
+  const { table, key, id } = creditRow(hostNo)
   for (let i = 0; i < 5; i++) {
     const { data: m } = await db.from(table).select("perk_credits").eq(key, id).maybeSingle()
     if (!m) return null
