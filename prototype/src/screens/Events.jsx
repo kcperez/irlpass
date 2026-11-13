@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, ShareNetwork, Sparkle, X } from "@phosphor-icons/react"
+import { ArrowUpRight, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, Plus, ShareNetwork, Sparkle, Ticket, X } from "@phosphor-icons/react"
 import { cachedJson } from "../lib/cached"
 import { t, LANG } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import CityNow from "../components/CityNow"
+import HostEvent from "../components/HostEvent"
 
 // events first: what's on in your city, found by asking ("football", "techno")
 // instead of scrolling forever. going puts you in the event's group chat.
@@ -83,12 +84,12 @@ function GoingButton({ e, busy, onToggle }) {
   return (
     <motion.button
       whileTap={{ scale: 0.97 }}
-      disabled={busy}
+      disabled={busy || (!e.going && e.spotsLeft === 0)}
       onClick={() => onToggle(e)}
       className={`flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 text-[15px] font-bold ${e.going ? "bg-lime text-ink" : "bg-ink text-cream"}`}
     >
-      {busy ? <CircleNotch size={16} className="animate-spin" /> : e.going ? <CheckCircle size={17} weight="fill" /> : null}
-      {e.going ? t("you're going") : t("i'm going")}
+      {busy ? <CircleNotch size={16} className="animate-spin" /> : e.going ? <CheckCircle size={17} weight="fill" /> : e.hosted && e.priceCents ? <Ticket size={17} weight="fill" /> : null}
+      {e.going ? t("you're going") : e.spotsLeft === 0 ? t("it's full") : e.hosted && e.priceCents ? `${t("get a ticket")} · ${priceOf(e)}` : t("i'm going")}
     </motion.button>
   )
 }
@@ -105,6 +106,22 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const [q, setQ] = useState("")
   const [search, setSearch] = useState(null) // { q, reply, ids } | { q, loading } | { q, error }
   const inputRef = useRef(null)
+  const [hostOpen, setHostOpen] = useState(false)
+  const canHost = !!(me?.canHost || me?.isMod)
+  // a shared link to a paid event opens its sheet (club sends this)
+  useEffect(() => {
+    const onOpen = (ev) => {
+      const id = Number(ev.detail)
+      fetch(`/api/events?t=${token}&id=${id}&lang=${LANG}`).then((r) => r.json()).then((r) => r?.event && setOpen(r.event)).catch(() => {})
+    }
+    window.addEventListener("irl:open-event", onOpen)
+    return () => window.removeEventListener("irl:open-event", onOpen)
+  }, [token])
+  const takeDown = async (e) => {
+    await fetch("/api/event-host", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, action: "hide", id: e.id }) }).catch(() => {})
+    setOpen(null)
+    load()
+  }
 
   const load = () => fetch(`/api/events?t=${token}&city=${city}&lang=${LANG}`).then((r) => r.json()).then(setData).catch(() => {})
   useEffect(() => {
@@ -157,6 +174,18 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
 
   const toggle = async (e) => {
     setBusy(e.id)
+    if (!e.going && e.hosted && e.priceCents) {
+      let via = ""
+      try { via = localStorage.getItem("irl:ref") || "" } catch { /* private mode */ }
+      const r = await fetch("/api/event-host", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ t: token, action: "ticket", id: e.id, via }),
+      }).then((x) => x.json()).catch(() => null)
+      if (r?.url) { window.location.href = r.url; return }
+      setBusy(null)
+      return
+    }
     const r = await fetch("/api/events", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -188,7 +217,15 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
           {cityChip(city).emoji} {String(cityChip(city).name || city).toLowerCase()} <span aria-hidden className="text-[10px]">▾</span>
         </button>
       </p>
-      <h2 className="display mt-1 text-[34px] font-bold leading-[0.95] tracking-tight">{t("find your people")}</h2>
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <h2 className="display text-[34px] font-bold leading-[0.95] tracking-tight">{t("find your people")}</h2>
+        {canHost && (
+          <button onClick={() => setHostOpen(true)} className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[12.5px] font-bold text-cream active:scale-95">
+            <Plus size={13} weight="bold" /> {t("host")}
+          </button>
+        )}
+      </div>
+      <HostEvent token={token} city={city} open={hostOpen} onClose={() => setHostOpen(false)} onCreated={async (id) => { setHostOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
 
       {/* one row: what you're into. filters instantly, remembered for next time */}
@@ -321,11 +358,19 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                   </a>
                 )}
 
+                {open.hosted && (
+                  <div className="mt-4">
+                    <p className="inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-[11.5px] font-bold">✦ {t("hosted on irlpass")}{open.host ? ` · ${String(open.host).split(/\s+/)[0].toLowerCase()}` : ""}</p>
+                    {open.details && <p className="mt-2 whitespace-pre-line text-[14px] leading-snug">{open.details}</p>}
+                  </div>
+                )}
+
                 {/* the "get in" card */}
                 <div className="mt-5 overflow-hidden rounded-[1.4rem] border border-white/70 bg-white/70 shadow-[0_10px_30px_-18px_rgba(58,50,44,0.4)] backdrop-blur">
                   <p className="border-b border-line/70 bg-white/60 px-4 py-2 text-[12px] font-bold text-ink-soft">{t("who's going")}</p>
                   <div className="px-4 py-3.5">
                     {open.goingCount ? <Faces e={open} size={28} /> : <p className="text-[13.5px] font-semibold">{t("nobody from irlpass yet. go first and the chat is yours.")}</p>}
+                    {open.spotsLeft != null && open.spotsLeft > 0 && <p className="mt-2 text-[12.5px] font-bold text-ink-soft">{open.spotsLeft} {t("spots left")}</p>}
                     {priceOf(open) && (
                       <p className="mt-3 text-[12px] font-bold text-ink-soft">{t("entry")} <span className="ml-1 text-[18px] text-ink">{priceOf(open)}</span></p>
                     )}
@@ -348,7 +393,10 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
                     {open.isFree ? t("rsvp on") : t("tickets on")} {open.source === "web" ? new URL(open.url).hostname.replace(/^www\./, "") : open.source} <ArrowUpRight size={14} />
                   </a>
                 )}
-                {!open.claimed && (
+                {(open.mine || (me?.isMod && open.hosted)) && (
+                  <button onClick={() => takeDown(open)} className="block w-full pb-2 text-center text-[12px] font-bold text-red-600">{t("take it down")}</button>
+                )}
+                {!open.claimed && !open.hosted && (
                   <a href={`mailto:hello@irlpass.xyz?subject=${encodeURIComponent(`claim: ${open.title} (#${open.id})`)}`} className="block pb-2 text-center text-[12px] text-ink-soft">
                     {t("is this your event? claim it")}
                   </a>

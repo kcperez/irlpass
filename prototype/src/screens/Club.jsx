@@ -2316,13 +2316,23 @@ export default function Club({ token }) {
       try { via = p.get("ref") || localStorage.getItem("irl:ref") || "" } catch { /* private mode */ }
       fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, id: Number(ev[1]), going: true, via }) })
         .then((r) => r.json())
-        .then((r) => { if (r?.event) { setTab("events"); setSpotRoom({ channel: r.event.channel, title: r.event.title }) } })
+        .then((r) => {
+          if (r?.event) { setTab("events"); setSpotRoom({ channel: r.event.channel, title: r.event.title }) }
+          else { setTab("events"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:open-event", { detail: ev[1] })), 600) }
+        })
         .catch(() => {})
     }
     if (now) { setTab("trips"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:now", { detail: now[1] })), 700) }
     if (dm) { setDmWith({ memberNo: dm[1] }); setTab("dms") }
     else if (spot) { setFocusSpot(Number(spot[1])); setTab("mood") }
-    if (p.get("go")) window.history.replaceState({}, "", `/?screen=app&t=${token}`)
+    // back from a ticket checkout: confirm it and drop them in the chat
+    if (p.get("ticket") && p.get("session_id")) {
+      fetch(`/api/event-host?t=${token}&id=${encodeURIComponent(p.get("ticket"))}&session_id=${encodeURIComponent(p.get("session_id"))}`)
+        .then((r) => r.json())
+        .then((r) => { if (r?.ok) { setTab("events"); setSpotRoom({ channel: r.channel, title: t("you're in") }) } })
+        .catch(() => {})
+    }
+    if (p.get("go") || p.get("ticket")) window.history.replaceState({}, "", `/?screen=app&t=${token}`)
   }, [state, token])
 
   // what to do after someone unlocks: deliver the message they wrote, or buy the ride

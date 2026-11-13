@@ -40,6 +40,11 @@ async function withGoing(rows, me, lang = "en") {
       category: e.category === "music" ? "party" : e.category,
       host: e.host,
       featured: e.featured,
+      hosted: e.source === "irlpass",
+      details: e.details || null,
+      capacity: e.capacity || null,
+      spotsLeft: e.capacity ? Math.max(0, e.capacity - who.length) : null,
+      mine: !!e.host_no && e.host_no === me.memberNo,
       claimed: !!e.claimed_by,
       channel: `ev-${e.id}`,
       going: mine.has(e.id),
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       const id = Number(req.body?.id)
-      const { data: e } = await db.from("events").select("id, title, starts_at").eq("id", id).eq("hidden", false).maybeSingle()
+      const { data: e } = await db.from("events").select("id, title, starts_at, price_cents, source, capacity").eq("id", id).eq("hidden", false).maybeSingle()
       if (!e) return res.status(404).json({ error: "that event is gone" })
       const channel = `ev-${id}`
       if (req.body?.going === false) {
@@ -93,6 +98,11 @@ export default async function handler(req, res) {
       } else {
         const { data: had } = await db.from("event_going").select("event_id").eq("event_id", id).eq("member_no", me.memberNo).maybeSingle()
         if (!had) {
+          if (e.price_cents && e.source === "irlpass") return res.status(402).json({ error: "this one needs a ticket", gate: "ticket" })
+          if (e.capacity) {
+            const { count } = await db.from("event_going").select("event_id", { count: "exact", head: true }).eq("event_id", id)
+            if (count >= e.capacity) return res.status(409).json({ error: "it's full" })
+          }
           const via = /^\d{3}$/.test(String(req.body?.via || "")) && req.body.via !== me.memberNo ? req.body.via : null
           await db.from("event_going").insert({ event_id: id, member_no: me.memberNo, via })
           // say it in the room, so the chat is never a blank page
