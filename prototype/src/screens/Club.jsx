@@ -2680,7 +2680,8 @@ export default function Club({ token }) {
     <SpotLink.Provider value={(id) => { setCityRoom(null); setSpotRoom(null); setDmWith(null); setActiveChat(null); setFocusSpot(id); setTab("mood") }}>
     <EventLink.Provider value={eventLink}>
     <MotionConfig reducedMotion="user">
-    <div className="relative flex h-[var(--app-h)] flex-col lg:pl-[236px]">
+    {/* pinned to the real screen edges: an iphone's 100dvh can come up short and leave a dead band under the tabs */}
+    <div className="fixed inset-0 flex flex-col lg:pl-[236px]">
       {/* on a computer: the tabs live in a sidebar, the bottom bar goes away */}
       <aside className={`fixed inset-y-0 left-0 z-30 hidden w-[236px] flex-col border-r px-4 py-6 lg:flex ${tab === "events" ? "border-white/10 bg-[#15110f] text-white" : "border-line/70 bg-cream text-ink"}`}>
         <span className="px-3"><Logo h="h-9" /></span>

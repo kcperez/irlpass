@@ -110,12 +110,13 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
 
       <div className="relative flex h-full flex-col">
-      <button onClick={tap} className="relative flex min-h-0 flex-1 items-center justify-center px-8 pt-16 [touch-action:manipulation]">
-        <motion.span animate={{ scale: active ? 1 : 0.9, rotate: active ? 0 : -2, opacity: active ? 1 : 0.6 }} transition={spring} style={{ width: "min(84%, 360px, 44vh)" }} className="block">
+      <button onClick={tap} className="relative flex min-h-0 flex-1 items-center justify-center px-8 pb-3 pt-[4.5rem] [touch-action:manipulation]">
+        {/* the cover takes whatever height is left, so it never runs into the title on a short screen */}
+        <motion.span animate={{ scale: active ? 1 : 0.9, rotate: active ? 0 : -2, opacity: active ? 1 : 0.6 }} transition={spring} style={{ height: "100%", maxHeight: 360, aspectRatio: "1 / 1", maxWidth: "100%" }} className="block">
           {img ? (
-            near && <img src={img} alt="" draggable={false} onError={() => setBroken(true)} className="aspect-square w-full rounded-[1.6rem] object-cover shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]" />
+            near && <img src={img} alt="" draggable={false} onError={() => setBroken(true)} className="h-full w-full rounded-[1.6rem] object-cover shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]" />
           ) : (
-            <span className="flex aspect-square w-full items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-[84px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">{kindEmoji(e.category)}</span>
+            <span className="flex h-full w-full items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-[72px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">{kindEmoji(e.category)}</span>
           )}
         </motion.span>
         <AnimatePresence>
