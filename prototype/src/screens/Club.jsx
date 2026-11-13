@@ -2580,7 +2580,8 @@ export default function Club({ token }) {
     { key: "dms", label: t("chat"), icon: ChatsCircle },
     { key: "mood", label: t("mood"), icon: Sparkle },
   ]
-  const wide = { members: "lg:max-w-[1120px]", dms: "lg:max-w-[1120px]" }[tab] || "lg:max-w-[720px]"
+  // on a computer these tabs are drawn a size up, so text matches the events page
+  const wide = { members: "lg:max-w-[980px]", dms: "lg:max-w-[980px]" }[tab] || "lg:max-w-[640px]"
   const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || ((tab === "mood" || tab === "events") && spotRoom) || cityRoom
 
   return (
@@ -2624,7 +2625,7 @@ export default function Club({ token }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab !== "events" ? `lg:mx-auto lg:w-full ${wide}` : ""}`}
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab !== "events" ? `lg:mx-auto lg:w-full lg:pt-6 lg:[zoom:1.15] ${wide}` : ""}`}
       >
         {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => { setViewCity(c); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} onPaywall={setPaywall} onJoinTrip={(p, nights, city) => makePlan(p, nights, city)} onPostCityUsed={() => setPostCity(null)} />}
         {!cityRoom && tab === "members" && (

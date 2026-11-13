@@ -259,3 +259,24 @@ html.irl-dark [class*="from-black"] .text-cream,
 html.irl-dark [class*="from-black"].text-cream {
   color: #f4eee7;
 }
+
+/* the "selected / primary" fill is cobalt in the app, with white type on it
+   (it was the flipped light fill, which lost its second line of text) */
+html.irl-dark .bg-ink {
+  background-color: var(--color-lime);
+  color: #fff;
+}
+html.irl-dark .bg-ink .text-cream,
+html.irl-dark .bg-ink.text-cream,
+html.irl-dark .bg-ink .text-ink {
+  color: #fff;
+}
+html.irl-dark .bg-ink .text-ink-soft,
+html.irl-dark .bg-ink .text-cream\/70 {
+  color: rgba(255, 255, 255, 0.75);
+}
+/* a button sitting on a cobalt card stands out in white */
+html.irl-dark .bg-ink .bg-ink {
+  background-color: #fff;
+  color: #15110f;
+}
