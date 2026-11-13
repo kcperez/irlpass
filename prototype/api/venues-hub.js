@@ -60,14 +60,14 @@ function scatter() {
     <span class="st-bars"><i style="--w:100%"></i><i style="--w:${40 + i * 9}%"></i><i></i></span>
     <span class="st-who"><b style="background-image:url(/getty/pfp/${face}.jpg)"></b>${who}</span>
     <span class="st-tag">@yourplace</span>
-    <span class="st-views"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg><span class="cnt" data-to="${views}">0</span></span>
+    <span class="st-views"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg><span class="cnt" data-to="${views}">${views.toLocaleString("en-US")}</span></span>
   </div>`
   return `<div class="scatter rise" aria-hidden="true">
   ${STORIES.map(card).join("")}
   <div class="pings" id="pings"></div>
   <div class="big card">
-    <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">people who saw your place</p>
-    <p class="num" style="margin:4px 0 0;font-size:44px;line-height:1"><span id="bigcnt">0</span></p>
+    <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">people who saw your business</p>
+    <p class="num" style="margin:4px 0 0;font-size:44px;line-height:1"><span id="bigcnt">18,240</span></p>
     <svg viewBox="0 0 200 40" class="spark"><path id="sparkp" d="M0 38 C40 36 60 33 90 28 S150 12 200 2" fill="none" stroke="var(--lime)" stroke-width="2.5" stroke-linecap="round"/></svg>
     <p class="soft" style="margin:2px 0 0;font-size:12.5px;display:flex;align-items:center;gap:8px"><span class="faces">${[0, 1, 6, 3, 8].map((f) => `<i style="background-image:url(/getty/pfp/${f}.jpg)"></i>`).join("")}</span>from 46 guest stories this week</p>
   </div>
@@ -110,9 +110,9 @@ async function demo() {
       <span class="tap" id="tap"></span>
     </div>
     <div class="scr s2">
-      <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">this week at your place</p>
-      <p class="num" style="margin:6px 0 0;font-size:48px;line-height:1" id="wk">0</p>
-      <p class="soft" style="margin:4px 0 14px;font-size:13px">views from <b id="wkn" style="color:var(--ink)">0</b> guest stories</p>
+      <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">this week at your business</p>
+      <p class="num" style="margin:6px 0 0;font-size:48px;line-height:1" id="wk">18,240</p>
+      <p class="soft" style="margin:4px 0 14px;font-size:13px">views from <b id="wkn" style="color:var(--ink)">46</b> guest stories</p>
       <div class="tiles" id="tiles"></div>
     </div>
   </div>
@@ -148,7 +148,7 @@ async function landing() {
   <div class="rise">
     <span class="tag">for bars, cafés, studios and clubs</span>
     <h1>your guests are the best <em>influencers</em> you'll ever book</h1>
-    <p class="soft" style="font-size:18px;max-width:500px">every guest who posts a story tagging you gets a perk you pick. their friends see your place that night, from someone they trust. you get a list of every one of them.</p>
+    <p class="soft" style="font-size:18px;max-width:500px">every guest who posts a story tagging you gets a perk you pick. their friends see your business that night, from someone they trust. you get a list of every one of them.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
       ${cta}
       <a class="btn ghost" href="#demo">watch it work</a>
@@ -275,7 +275,7 @@ ${await demo()}
 </style>`
   const script = `
 var fmt=function(n){return Math.round(n).toLocaleString("en-US")};
-function count(el,to,ms,from){from=from||0;var t0=performance.now();(function f(t){var p=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-p,3);el.textContent=fmt(from+(to-from)*e);if(p<1)requestAnimationFrame(f)})(t0)}
+function count(el,to,ms,from){if(!el)return;from=from||0;if(document.hidden){el.textContent=fmt(to);return}var t0=performance.now();(function f(t){var p=Math.min(1,Math.max(0,(t-t0)/ms)),e=1-Math.pow(1-p,3);el.textContent=fmt(from+(to-from)*e);if(p<1)requestAnimationFrame(f)})(t0);setTimeout(function(){el.textContent=fmt(to)},ms+300)}
 // the scatter: views tick up, mentions stack, a heart floats now and then
 var cnts=[].slice.call(document.querySelectorAll(".cnt"));var big=document.getElementById("bigcnt");var total=18240;
 cnts.forEach(function(c,i){setTimeout(function(){count(c,+c.dataset.to,2600)},400+i*160)});
