@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     .select("id, title, category, host, venue, starts_at")
     .eq("city", city)
     .eq("hidden", false)
+    .neq("source", "venue")
     .or(`starts_at.gte.${new Date(now - 3 * 3600e3).toISOString()},ends_at.gte.${new Date(now).toISOString()}`)
     .lte("starts_at", new Date(now + DAYS * 864e5).toISOString())
     .order("starts_at")

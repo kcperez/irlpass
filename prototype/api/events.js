@@ -83,6 +83,7 @@ export default async function handler(req, res) {
         .select("*")
         .eq("city", city)
         .eq("hidden", false)
+        .neq("source", "venue")
         .or(`starts_at.gte.${from},ends_at.gte.${new Date().toISOString()}`)
         .lte("starts_at", to)
         .order("featured", { ascending: false })

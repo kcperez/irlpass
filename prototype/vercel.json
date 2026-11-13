@@ -1,6 +1,22 @@
 {
   "rewrites": [
     {
+      "source": "/venues",
+      "destination": "/api/venues-hub?view=landing"
+    },
+    {
+      "source": "/venues/start",
+      "destination": "/api/venues-hub?view=start"
+    },
+    {
+      "source": "/venues/in",
+      "destination": "/api/venues-hub?view=in"
+    },
+    {
+      "source": "/venues/g/:k",
+      "destination": "/api/venues-hub?view=dash&k=:k"
+    },
+    {
       "source": "/v/:slug",
       "destination": "/api/venue?slug=:slug"
     },

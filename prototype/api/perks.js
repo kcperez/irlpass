@@ -1,7 +1,7 @@
 import { getUser } from "./_lib.js"
 import { db } from "./_db.js"
 import { isMod } from "./_mods.js"
-import { PACKS, FREE, perksLeft, slots } from "./_perks.js"
+import { PACKS, FREE, addCredits, perksLeft, slots } from "./_perks.js"
 
 // the host side of story perks (the guest side is public: api/perk-page.js)
 // GET  ?t&id                        -> { perk, left, link, mine?, host?: { claims, slots, packs } }
@@ -20,14 +20,7 @@ export default async function handler(req, res) {
       if (!r.ok || s.payment_status !== "paid" || s.metadata?.kind !== "slots" || s.metadata?.hostNo !== me.memberNo) return res.status(402).json({ error: "that payment didn't go through" })
       const n = Number(s.metadata.slots) || 0
       const { error: dup } = await db.from("perk_purchases").insert({ session_id: sid, host_no: me.memberNo, slots: n, cents: s.amount_total || 0 })
-      if (!dup) {
-        for (let i = 0; i < 5; i++) {
-          const { data: m } = await db.from("members").select("perk_credits").eq("member_no", me.memberNo).maybeSingle()
-          const have = m?.perk_credits || 0
-          const { data: done } = await db.from("members").update({ perk_credits: have + n }).eq("member_no", me.memberNo).eq("perk_credits", have).select("member_no")
-          if (done?.length) break
-        }
-      }
+      if (!dup) await addCredits(me.memberNo, n)
       return res.status(200).json({ ok: true, added: n, slots: await slots(me.memberNo), id: Number(s.metadata.eventId) || null })
     }
 
@@ -37,7 +30,7 @@ export default async function handler(req, res) {
       if (!e?.perk) return res.status(404).json({ error: "no perk on this one" })
       const out = { perk: e.perk, left: await perksLeft(e), link: `https://irlpass.xyz/p/${id}` }
       if (me.ig) {
-        const { data: mine } = await db.from("perk_claims").select("code, status").eq("event_id", id).eq("handle", String(me.ig).toLowerCase().replace(/^@+/, "")).maybeSingle()
+        const { data: mine } = await db.from("perk_claims").select("code, status").eq("event_id", id).eq("handle", String(me.ig).toLowerCase().replace(/^@+/, "")).order("created_at", { ascending: false }).limit(1).maybeSingle()
         out.mine = mine || null
       }
       if (e.host_no === me.memberNo || isMod(me.memberNo)) {

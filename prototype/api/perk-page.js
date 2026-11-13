@@ -1,7 +1,7 @@
 import crypto from "crypto"
 import { db } from "./_db.js"
 import { page, esc, send } from "./_page.js"
-import { ASK, cleanHandle, okHandle, perksLeft, slots, tellHostOut, useSlot } from "./_perks.js"
+import { ASK, cleanHandle, okHandle, perksLeft, slots, standing, tellHostOut, useSlot } from "./_perks.js"
 
 // the story perk, for anyone. no irlpass account needed.
 // GET  /p/<event id>    -> claim page: what to post, type your instagram, get a pass
@@ -9,11 +9,11 @@ import { ASK, cleanHandle, okHandle, perksLeft, slots, tellHostOut, useSlot } fr
 // POST { action: "claim", id, handle } -> { code }
 // POST { action: "given", code }       -> { ok } (uses one of the host's story slots)
 const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
-const over = (e) => Date.now() > Date.parse(e.ends_at || e.starts_at) + 12 * 3600e3
+const over = (e) => !standing(e) && Date.now() > Date.parse(e.ends_at || e.starts_at) + 12 * 3600e3
 const tagsOf = (e) => [...new Set([...(e.perk?.tags || []), "@irlpass.xyz"])]
 
 async function getEvent(id) {
-  const { data } = id ? await db.from("events").select("id, title, titles, city, venue, cover, starts_at, ends_at, perk, host_no, hidden").eq("id", id).maybeSingle() : { data: null }
+  const { data } = id ? await db.from("events").select("id, title, titles, city, venue, cover, starts_at, ends_at, perk, host_no, hidden, source").eq("id", id).maybeSingle() : { data: null }
   return data && !data.hidden && data.perk ? data : null
 }
 
@@ -24,7 +24,19 @@ async function goingCount(id) {
 
 const gone = (msg) => page("irlpass", `<p class="k">irlpass</p><h1>${esc(msg)}</h1><a class="btn" href="/">see what's on</a>`)
 
+const today = () => new Date().toISOString().slice(0, 10)
+// a guest's claim: one per event, or one a day at a venue's always-on perk
+const mine = (e, handle) => {
+  const q = db.from("perk_claims").select("code").eq("event_id", e.id).eq("handle", handle)
+  return (standing(e) ? q.eq("claim_day", today()) : q.order("created_at").limit(1)).maybeSingle()
+}
+
 function upsell(e, n) {
+  if (standing(e)) return `<div class="card" style="text-align:center">
+  <p style="margin:0 0 10px;font-weight:600">see what's on tonight near ${esc(e.venue || "you")}</p>
+  <a class="btn" href="/">open irlpass</a>
+  <p class="soft" style="font-size:13px;margin:10px 0 0">events, people and group chats in your city.</p>
+</div>`
   return `<div class="card" style="text-align:center">
   <p style="margin:0 0 10px;font-weight:600">${n ? `${n} ${n === 1 ? "person" : "people"} from irlpass ${n === 1 ? "is" : "are"} going` : "meet the people here tonight"}</p>
   <a class="btn" href="/e/${e.id}">join the group chat</a>
@@ -42,7 +54,7 @@ async function claimPage(e) {
   if (left > 0 && s.left <= 0) await tellHostOut(e)
   const body = `
 ${e.cover ? `<img src="${esc(e.cover)}" alt="" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:22px;display:block">` : ""}
-<p class="k" style="margin-top:18px">${esc(when)}${e.venue ? ` · ${esc(e.venue)}` : ""}</p>
+<p class="k" style="margin-top:18px">${standing(e) ? "every day" : esc(when)}${e.venue ? ` · ${esc(e.venue)}` : ""}</p>
 <h1>${esc(title)}</h1>
 <div class="card">
   <p class="k" style="margin:0">free for you</p>
@@ -60,10 +72,10 @@ ${e.cover ? `<img src="${esc(e.cover)}" alt="" style="width:100%;aspect-ratio:16
 ${upsell(e, await goingCount(e.id))}`
   const script = `
 const h=document.getElementById("h"),b=document.getElementById("go"),err=document.getElementById("err");
-try{const q=new URLSearchParams(location.search).get("h");if(q&&h)h.value=q;const k=localStorage.getItem("perk-${e.id}");if(k)location.replace("/pass/"+k)}catch(e){}
+try{const q=new URLSearchParams(location.search).get("h");if(q&&h)h.value=q;const k=localStorage.getItem("perk-${e.id}${standing(e) ? `-${today()}` : ""}");if(k)location.replace("/pass/"+k)}catch(e){}
 b&&b.addEventListener("click",async()=>{err.textContent="";b.disabled=true;
 const r=await fetch("/api/perk-page",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"claim",id:${e.id},handle:h.value})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
-if(r.code){try{localStorage.setItem("perk-${e.id}",r.code)}catch(e){}location.href="/pass/"+r.code}else{err.textContent=r.error||"try again";b.disabled=false}});`
+if(r.code){try{localStorage.setItem("perk-${e.id}${standing(e) ? `-${today()}` : ""}",r.code)}catch(e){}location.href="/pass/"+r.code}else{err.textContent=r.error||"try again";b.disabled=false}});`
   let html = page(`${e.perk.item} at ${e.venue || title}`, body, script)
   html = html.replace("</title>", `</title>
 <meta property="og:title" content="${esc(`${e.perk.item} for a story`)}">
@@ -118,14 +130,14 @@ export default async function handler(req, res) {
       if (!e || over(e)) return res.status(404).json({ error: "this one's over" })
       const handle = cleanHandle(req.body?.handle)
       if (!okHandle(handle)) return res.status(400).json({ error: "type your instagram handle, like @yourname" })
-      const { data: had } = await db.from("perk_claims").select("code").eq("event_id", e.id).eq("handle", handle).maybeSingle()
+      const { data: had } = await mine(e, handle)
       if (had) return res.status(200).json({ code: had.code })
       if ((await perksLeft(e)) <= 0) return res.status(409).json({ error: "they're all claimed" })
       if ((await slots(e.host_no)).left <= 0) { await tellHostOut(e); return res.status(409).json({ error: "all claimed for now. ask at the counter." }) }
       const code = crypto.randomBytes(8).toString("base64url")
       const { error } = await db.from("perk_claims").insert({ event_id: e.id, host_no: e.host_no, handle, code })
       if (error) {
-        const { data: again } = await db.from("perk_claims").select("code").eq("event_id", e.id).eq("handle", handle).maybeSingle()
+        const { data: again } = await mine(e, handle)
         if (again) return res.status(200).json({ code: again.code })
         throw error
       }
