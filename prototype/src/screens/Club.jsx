@@ -2361,6 +2361,11 @@ export default function Club({ token }) {
   const [planWith, setPlanWith] = useState(null) // { memberNo, first, photo, nights }
   const [deckWith, setDeckWith] = useState(null) // the tinder-simple plan picker: { person, city }
   const makePlan = (p, nights = null, city = null) => {
+    // the old "before the night" board is retired: every "make a plan" opens
+    // the tinder-simple deck, which ends in a dm
+    setPersonNo(null)
+    return setDeckWith({ person: { memberNo: p.memberNo, first: p.first || String(p.name || "").split(/\s+/)[0], photo: p.photo || null }, city: city || p.trips?.[0]?.city || me?.city })
+
     // every city has a guide now (josh v5): the plan opens that city's board
     if (city) { setViewCity(city); setPlanCity(city) }
     setPersonNo(null)
