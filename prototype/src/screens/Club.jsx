@@ -2881,6 +2881,8 @@ export default function Club({ token }) {
               else if (key === "mood") { clearMoodNew(); setTab("mood") }
               else if (key === "dms") setTab("dms")
               else if (key === "now") setTab("trips")
+              else if (key === "city") setTab("city")
+              else if (key === "events") setTab("events")
             }}
           />
         )}

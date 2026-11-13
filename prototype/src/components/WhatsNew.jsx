@@ -3,12 +3,12 @@ import { t } from "../lib/i18n"
 
 // shown once after an update: what changed, and a button that takes you
 // straight to each thing. close it and it's gone (the dots stay until visited).
-export const WHATS_NEW = "whatsnew-2026-10b"
+export const WHATS_NEW = "whatsnew-2026-11-city"
 
 const ITEMS = [
-  { key: "now", emoji: "📍", title: "what's good near me", body: "say your mood. three spots open right now, and who from irlpass is already there." },
-  { key: "mood", emoji: "🔥", title: "never go out alone", body: "pick a spot and a night. a group chat forms and the people you like get invited." },
-  { key: "profile", emoji: "🛂", title: "keep the people you meet", body: "everyone you've hung out with, stamped by city, and where they're headed next." },
+  { key: "city", emoji: "🧭", title: "ask your city anything", body: "dinner tonight, the airport, techno. michelin picks, real answers, what's on." },
+  { key: "events", emoji: "🎟️", title: "everything on this week", body: "swipe through what's happening. tap i'm going and you're in the group chat." },
+  { key: "dms", emoji: "💬", title: "your events, one inbox", body: "every event you're going to has its own chat, next to your city's group." },
 ]
 
 export default function WhatsNew({ onGo, onClose }) {
