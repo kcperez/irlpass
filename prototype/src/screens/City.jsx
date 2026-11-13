@@ -115,7 +115,7 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
   const found = ask?.ids ? [...ask.ids, ...(ask.near || [])].map((id) => byId.get(id)).filter(Boolean) : []
 
   return (
-    <div className="px-5 pb-28 pt-4">
+    <div className="min-w-0 px-5 pb-28 pt-4">
       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">{t("your travel pack")}</p>
       <div className="mt-1 flex items-end justify-between gap-3">
         <h1 className="serif-display text-[40px] leading-none">{name}</h1>
@@ -160,7 +160,7 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
                   </div>
                 )}
                 {ask.places?.length > 0 && (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">{ask.places.map((p, i) => <PlaceCard key={p.name} p={p} i={i} />)}</div>
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">{ask.places.map((p, i) => <PlaceCard key={p.name} p={p} i={i} />)}</div>
                 )}
                 {found.length > 0 && (
                   <>
@@ -185,7 +185,7 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
             {/* eat & drink, ranked by the guides */}
             <p className="mt-7 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">{t("eat & drink")}</p>
             <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("michelin picks first, then the places locals line up for")}</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {guide === null
                 ? [0, 1].map((i) => <div key={i} className="aspect-[16/14] animate-pulse rounded-[1.4rem] bg-ink/5" />)
                 : guide.slice(0, 6).map((p, i) => <PlaceCard key={p.name} p={p} i={i} />)}
