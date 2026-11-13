@@ -112,15 +112,17 @@ export default async function handler(req, res) {
           reply_to: Number.isInteger(replyTo) ? replyTo : null,
         })
         if (error) throw error
+        // serverless freezes once we respond, so wait for the pings to go out
+        const pings = []
         // if this is a reply, email the person being replied to
         if (Number.isInteger(replyTo)) {
           const { data: parent } = await db.from("messages").select("from_member_no, body").eq("id", replyTo).maybeSingle()
           if (parent && parent.from_member_no !== me.memberNo && parent.from_member_no !== "000") {
-            notifyMemberNo(parent.from_member_no, {
+            pings.push(notifyMemberNo(parent.from_member_no, {
               subject: `${me.name.toLowerCase()} replied to you`,
               line: `${me.name.toLowerCase()} replied: "${String(text).trim().slice(0, 120)}"`,
               ctaLabel: "reply back",
-            })
+            }))
           }
         }
         // @mentions: email whoever was tagged, by name or instagram handle
@@ -135,13 +137,15 @@ export default async function handler(req, res) {
           }
           hit.delete(me.memberNo)
           for (const no of hit) {
-            notifyMemberNo(no, {
+            pings.push(notifyMemberNo(no, {
               subject: `${me.name.toLowerCase()} mentioned you`,
               line: `${me.name.toLowerCase()}: "${String(text).trim().slice(0, 120)}"`,
               ctaLabel: "open the chat",
-            })
+              push: { title: `${me.name.toLowerCase()} mentioned you`, body: String(text).trim().slice(0, 120), tag: `mention-${channel}` },
+            }))
           }
         }
+        await Promise.allSettled(pings)
         return res.status(200).json({ ok: true })
       }
 
