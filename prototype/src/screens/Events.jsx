@@ -171,6 +171,31 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
   )
 }
 
+// a place to eat or drink, ranked by the guides
+const MICHELIN = { star: "michelin ★", bib: "bib gourmand", guide: "michelin guide" }
+function PlaceRow({ p, i, dark = true }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 * i, type: "spring", stiffness: 260, damping: 26 }}
+      className={`rounded-[1.3rem] border p-3.5 ${dark ? "border-white/15 bg-white/[0.07] text-white" : "border-line bg-white"}`}>
+      <div className="flex items-start gap-3">
+        <span className="serif-display mt-0.5 w-6 shrink-0 text-[22px] leading-none text-white/40">{i + 1}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="serif-display text-[21px] leading-[1.05]">{p.name}</span>
+            {p.michelin && <span className="rounded-full bg-[#4a66ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white">{MICHELIN[p.michelin]}</span>}
+          </div>
+          <p className="mt-0.5 truncate text-[12.5px] text-white/60">{[p.kind, p.area, p.price].filter(Boolean).join(" · ")}</p>
+          {p.why && <p className="mt-1.5 text-[13.5px] leading-snug text-white/85">{p.why}</p>}
+          <div className="mt-2.5 flex gap-2">
+            <a href={p.maps} target="_blank" rel="noreferrer" className="keep-light rounded-full bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-ink">{t("open in maps")}</a>
+            <a href={p.url} target="_blank" rel="noreferrer" className="rounded-full border border-white/25 px-3.5 py-1.5 text-[12.5px] font-bold text-white/85">{t("why it's here")}</a>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, onChat }) {
   const [broken, setBroken] = useState(false)
   const img = e.cover && !broken ? e.cover : null
@@ -275,7 +300,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
     // the web may have added new listings: reload so they show up with going buttons
     await load()
     haptic("soft")
-    setSearch({ q: query, reply: r.reply, ids: r.ids || [], near: r.near || [] })
+    setSearch({ q: query, reply: r.reply, ids: r.ids || [], near: r.near || [], places: r.places || [] })
     feedRef.current?.scrollTo({ top: 0 }); setIdx(0)
   }
   const pickKind = (k) => {
@@ -425,14 +450,23 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
                 <p className="serif-display text-[26px]">{t("looking around")} {String(cityChip(city).name || city).toLowerCase()} {t("for")} “{search.q}”</p>
               </div>
             ) : (
+              <>
+              {search?.places?.length > 0 && (
+                <div className="mt-6">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">{t("top spots")}</p>
+                  <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3">{search.places.map((p, i) => <PlaceRow key={p.name} p={p} i={i} />)}</div>
+                  {feed.length > 0 && <p className="mt-7 text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">{t("events that fit")}</p>}
+                </div>
+              )}
               <div className="mt-7 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5">
                 {feed.map((e) => (
                   <GridCard key={e.id} e={e} tz={tz} alt={isNear(e.id) ? search.q : ""} todayKey={todayKey} tomorrowKey={tomorrowKey}
                     busy={busy === e.id} onOpen={setOpen} onToggle={toggle} onChat={chat} />
                 ))}
               </div>
+              </>
             )}
-            {data && !search?.loading && !feed.length && <p className="serif-display py-20 text-center text-[30px]">{t("nothing here yet")}</p>}
+            {data && !search?.loading && !feed.length && !search?.places?.length && <p className="serif-display py-20 text-center text-[30px]">{t("nothing here yet")}</p>}
           </div>
         </div>
       )}
@@ -449,11 +483,22 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
         onTouchEnd={onTouchEnd}
         className="no-scrollbar absolute inset-0 snap-y snap-mandatory overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
+        {!search?.loading && search?.places?.length > 0 && (
+          <section className="relative h-full snap-start snap-always overflow-y-auto px-4 pb-6 pt-24 text-white">
+            <div className="absolute inset-0 -z-0" style={{ background: "radial-gradient(70% 50% at 20% 10%, rgba(74,102,255,.25), transparent 70%), #15110f" }} />
+            <div className="relative">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-white/80"><span className="h-2 w-2 rounded-full bg-[#4a66ff]" />{t("top spots")}</span>
+              <p className="serif-display mt-2.5 text-[28px] leading-[1.05]">“{search.q}”</p>
+              <div className="mt-3 space-y-2">{search.places.map((p, i) => <PlaceRow key={p.name} p={p} i={i} />)}</div>
+              {feed.length > 0 && <p className="mt-4 text-center text-[12px] font-semibold text-white/50">{t("swipe up for events that fit")}</p>}
+            </div>
+          </section>
+        )}
         {!search?.loading && feed.map((e, i) => (
           <Card key={e.id} e={e} tz={tz} near={Math.abs(i - idx) <= 1} active={i === idx} alt={isNear(e.id) ? search.q : ""} first={i === 0 && !search} todayKey={todayKey} tomorrowKey={tomorrowKey}
             busy={busy === e.id} onOpen={setOpen} onToggle={toggle} onShare={share} onChat={chat} copied={copied === e.id} />
         ))}
-        {data && !search?.loading && (
+        {data && !search?.loading && !(search?.places?.length && !feed.length) && (
           <section className="relative flex h-full snap-start flex-col items-center justify-center px-8 text-center text-white">
             <p className="serif-display text-[34px] leading-[1.05]">{feed.length ? t("that's everything") : t("nothing here yet")}</p>
             <p className="mt-2 text-[14px] text-white/60">{t("ask for something and we'll look around")} {String(cityChip(city).name || city).toLowerCase()}.</p>

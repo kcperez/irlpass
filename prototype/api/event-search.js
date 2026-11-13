@@ -21,8 +21,9 @@ it's all about interests: never come back empty handed.
 1. pick the listed events that genuinely fit the request, best first. read intent generously: "football" in europe means soccer matches, watch parties and five-a-side; "party" includes club nights, raves and live music; "food" includes wine and food festivals; "running" includes run clubs and races.
 2. if fewer than 3 listed events fit, use web search to find real, specific upcoming events in this city in the next ${DAYS} days that fit (official club fixtures, venue calendars, ticket sites, run club instagram pages). only include events with a confirmed date. never invent anything.
 3. if there still aren't 3 good fits, add the closest listed events by interest as "near": the same energy or the same kind of person. running -> other workouts, yoga, hikes, dancing, active social things; techno -> other club nights and live music; wine -> food, aperitivo, tastings. 3 to 6 near picks, best first. a listed event can be in picks or near, never both.
-4. answer with only this json, no prose around it:
-{"reply": "one short lowercase line for the person, no em dashes. when there's no exact match say so plainly and point at the near ones, like: no runs this week, but these get you moving", "picks": [listed event ids that fit, best first], "near": [listed event ids that are close, best first], "found": [{"title": "", "starts_at": "iso 8601 with timezone offset", "ends_at": "iso 8601 or null", "venue": "", "address": "", "url": "page you found it on"}]}`
+4. places: when the request is about somewhere to eat, drink, have coffee, brunch or go out (a restaurant tonight, aperitivo, best pizza, a cocktail bar, a specific place by name), also give the best real places in this city. use web search. rank by trusted guides first: michelin guide (stars, bib gourmand, then michelin-selected), then gambero rosso, 50 best, eater, time out and serious local press. if they name a place, find that exact place. 4 to 6 places, best first, each one real and currently open for business. never invent a place, a rating or a michelin listing: only tag michelin when the michelin guide site lists it.
+5. answer with only this json, no prose around it:
+{"reply": "one short lowercase line for the person, no em dashes. when there's no exact match say so plainly and point at the near ones, like: no runs this week, but these get you moving", "picks": [listed event ids that fit, best first], "near": [listed event ids that are close, best first], "found": [{"title": "", "starts_at": "iso 8601 with timezone offset", "ends_at": "iso 8601 or null", "venue": "", "address": "", "url": "page you found it on"}], "places": [{"name": "", "area": "neighborhood", "kind": "trattoria, cocktail bar, ...", "why": "one short lowercase line in our voice: what to order or why locals go", "price": "$ to $$$$", "michelin": "star | bib | guide | null", "url": "the guide or official page you found it on"}]}`
 
 const pickJson = (text) => {
   const m = text.match(/\{[\s\S]*\}/)
@@ -50,7 +51,8 @@ export default async function handler(req, res) {
     .order("starts_at")
     .limit(300)
   const listed = (rows || []).map((e) => `${e.id} | ${e.starts_at.slice(0, 16)} | ${e.category} | ${e.title}${e.host ? ` | by ${e.host}` : ""}${e.venue ? ` | ${e.venue}` : ""}`).join("\n")
-  const place = cityLabel(city)
+  // say the country: "palermo" alone could be the buenos aires barrio
+  const place = { palermo: "Palermo, Sicily, Italy", medellin: "Medellín, Colombia", miami: "Miami, Florida, USA", "new-york": "New York City, USA", "los-angeles": "Los Angeles, California, USA" }[city] || cityLabel(city)
 
   let out
   try {
@@ -66,7 +68,7 @@ export default async function handler(req, res) {
         max_tokens: 4000,
         output_config: { effort: "low" },
         system: SYSTEM,
-        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 4 }],
+        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 6 }],
         messages,
       })
       for (const b of msg.content) if (b.type === "web_search_tool_result" && b.content?.error_code) console.error("event search web error:", b.content.error_code)
@@ -114,6 +116,17 @@ export default async function handler(req, res) {
   }
 
   // nothing fit and the web came back empty: still show what's on, soonest first
-  if (!ids.length && !near.length) near.push(...(rows || []).slice(0, 6).map((e) => e.id))
-  return res.status(200).json({ reply: String(out.reply || "").slice(0, 200), ids, near })
+  if (!ids.length && !near.length && !(out.places || []).length) near.push(...(rows || []).slice(0, 6).map((e) => e.id))
+  // places to eat and drink, ranked by the guides (michelin first)
+  const places = (out.places || []).filter((p) => p?.name && /^https?:\/\//.test(String(p.url || ""))).slice(0, 6).map((p) => ({
+    name: String(p.name).slice(0, 80),
+    area: String(p.area || "").slice(0, 60),
+    kind: String(p.kind || "").slice(0, 40),
+    why: String(p.why || "").slice(0, 160),
+    price: /^\$+$/.test(String(p.price || "")) ? p.price : null,
+    michelin: ["star", "bib", "guide"].includes(p.michelin) ? p.michelin : null,
+    url: String(p.url).slice(0, 400),
+    maps: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${p.area || ""} ${place}`)}`,
+  }))
+  return res.status(200).json({ reply: String(out.reply || "").slice(0, 200), ids, near, places })
 }
