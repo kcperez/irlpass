@@ -5,6 +5,7 @@ import { cachedJson } from "../lib/cached"
 import { t, LANG } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import { haptic } from "../lib/haptic"
+import { useDesktop } from "../lib/useDesktop"
 import CityNow from "../components/CityNow"
 import HostEvent from "../components/HostEvent"
 import PerkCard from "../components/PerkCard"
@@ -169,19 +170,6 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
       </div>
     </section>
   )
-}
-
-// a computer gets a browsable grid; a phone gets the one-at-a-time feed
-function useDesktop() {
-  const q = "(min-width: 1024px)"
-  const [desk, setDesk] = useState(() => typeof window !== "undefined" && window.matchMedia(q).matches)
-  useEffect(() => {
-    const m = window.matchMedia(q)
-    const on = () => setDesk(m.matches)
-    m.addEventListener("change", on)
-    return () => m.removeEventListener("change", on)
-  }, [])
-  return desk
 }
 
 function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, onChat }) {

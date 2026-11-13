@@ -88,7 +88,7 @@ export default function App() {
           <p className="absolute bottom-8 left-8 max-w-[240px] text-[13px] leading-snug text-white/45">irlpass lives on your phone. open irlpass.xyz there and add it to your home screen.</p>
         </div>
       )}
-      <div className={`relative z-10 mx-auto w-full ${screen === "welcome" || screen === "pro" || screen === "traction" ? "max-w-[460px] lg:max-w-[1040px]" : screen === "app" ? "max-w-[460px] md:mt-[3vh] md:max-w-[430px] md:overflow-hidden md:rounded-[2.4rem] md:shadow-[0_50px_140px_-30px_rgba(0,0,0,0.9)] md:ring-1 md:ring-white/10 md:[transform:translateZ(0)] lg:mt-0 lg:max-w-none lg:overflow-visible lg:rounded-none lg:shadow-none lg:ring-0 lg:[transform:none]" : "max-w-[460px]"}`}>
+      <div className={`relative z-10 mx-auto w-full ${screen === "welcome" || screen === "pro" || screen === "traction" ? "max-w-[460px] lg:max-w-[1040px]" : screen === "app" ? "max-w-[460px] md:mt-[3vh] md:bg-cream md:max-w-[430px] md:overflow-hidden md:rounded-[2.4rem] md:shadow-[0_50px_140px_-30px_rgba(0,0,0,0.9)] md:ring-1 md:ring-white/10 md:[transform:translateZ(0)] lg:mt-0 lg:max-w-none lg:overflow-visible lg:rounded-none lg:shadow-none lg:ring-0 lg:[transform:none]" : "max-w-[460px]"}`}>
         <div className="grain h-full w-full">
           {/* everything but the homepage loads on demand: members never download signup */}
           <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-ink" /></div>}>

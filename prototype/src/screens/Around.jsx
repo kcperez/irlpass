@@ -125,7 +125,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
       <div className="px-5 pt-4">
         <div className="shimmer h-8 w-40 rounded-xl" />
         <div className="shimmer mt-3 h-4 w-56 rounded-lg" />
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
+        <div className="mt-5 grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-4 lg:gap-4">
           {Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer aspect-[4/5] rounded-[1.5rem]" />)}
         </div>
       </div>
@@ -354,7 +354,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
           items={visible}
           step={12}
           resetKey={`${selectedDay}-${showAll}-${city}`}
-          wrap={(kids) => <div className="mt-4 grid grid-cols-2 gap-2.5">{kids}</div>}
+          wrap={(kids) => <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-4 lg:gap-4">{kids}</div>}
           render={(p) => (
             <div key={`${p.memberNo}-${p.starts}`} className="lift overflow-hidden rounded-[1.5rem] bg-white">
               <div

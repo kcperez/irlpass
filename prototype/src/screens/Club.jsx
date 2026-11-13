@@ -18,6 +18,7 @@ import {
 } from "@phosphor-icons/react"
 import QRCode from "qrcode"
 import { Logo } from "../components/bits"
+import { useDesktop } from "../lib/useDesktop"
 import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
@@ -2136,6 +2137,7 @@ function ModeStrip({ token, me }) {
 export default function Club({ token }) {
   const [me, setMe] = useState(null)
   const [state, setState] = useState("loading")
+  const desk = useDesktop()
   const [tab, setTab] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("dm")) return "dms"
@@ -2475,6 +2477,7 @@ export default function Club({ token }) {
     { key: "dms", label: t("chat"), icon: ChatsCircle },
     { key: "mood", label: t("mood"), icon: Sparkle },
   ]
+  const wide = { members: "lg:max-w-[1120px]", dms: "lg:max-w-[1120px]" }[tab] || "lg:max-w-[720px]"
   const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || ((tab === "mood" || tab === "events") && spotRoom) || cityRoom
 
   return (
@@ -2517,7 +2520,7 @@ export default function Club({ token }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab !== "events" ? "lg:mx-auto lg:w-full lg:max-w-[680px]" : ""}`}
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab !== "events" ? `lg:mx-auto lg:w-full ${wide}` : ""}`}
       >
         {!cityRoom && tab === "trips" && <Trips token={token} me={me} unlockRequest={unlockRequest} closeSheets={closeSheets} postCity={postCity} onCityPosted={(c) => { setViewCity(c); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onOpenDM={(m) => { setDmWith(m); setDmReturn("trips"); setTab("dms") }} onOpenPerson={setPersonNo} onPaywall={setPaywall} onJoinTrip={(p, nights, city) => makePlan(p, nights, city)} onPostCityUsed={() => setPostCity(null)} />}
         {!cityRoom && tab === "members" && (
@@ -2536,7 +2539,7 @@ export default function Club({ token }) {
             onNeedDates={(c) => { setTab("trips"); setPostCity(c) }}
           />
         )}
-        {cityRoom && (
+        {cityRoom && !(desk && tab === "dms") && (
           <Thread
             token={token}
             me={me}
@@ -2564,7 +2567,30 @@ export default function Club({ token }) {
             onBack={() => setSpotRoom(null)}
           />
         )}
-        {!cityRoom && tab === "dms" && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={(v) => {
+        {tab === "dms" && desk && (
+          // a computer: the conversations on the left, the open one on the right
+          <div className="flex min-h-0 flex-1 border-x border-line/70">
+            <div className="w-[360px] shrink-0 overflow-y-auto border-r border-line/70 pt-4">
+              <DMScreen token={token} me={me} openWith={null} setOpenWith={(v) => { setCityRoom(null); setDmWith(v) }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => setPaywall(r === "unlock" ? "dm" : r)} onBuyRide={buyRide} onOpenRoom={(c) => { setDmWith(null); setCityRoom(c) }} />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col">
+              {cityRoom ? (
+                <Thread key={cityRoom.slug} token={token} me={me} channel={cityRoom.slug} title={`${cityRoom.emoji}  ${cityRoom.name} ${t("chat")}`} onBuyRide={buyRide} photoMap={photoMap} onOpenPerson={setPersonNo}
+                  onNeedDates={(c) => { setCityRoom(null); setTab("trips"); setPostCity(c) }} onBack={() => setCityRoom(null)}
+                  onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }} />
+              ) : dmWith ? (
+                <DMScreen key={dmWith.memberNo} token={token} me={me} openWith={dmWith} setOpenWith={(v) => setDmWith(v)} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => setPaywall(r === "unlock" ? "dm" : r)} onBuyRide={buyRide} onOpenRoom={setCityRoom} />
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center px-10 text-center">
+                  <ChatsCircle size={40} weight="fill" className="text-ink/15" />
+                  <p className="display mt-3 text-[22px]">{t("pick a chat")}</p>
+                  <p className="mt-1 text-[14px] text-ink-soft">{t("your city group, event chats and messages all live here.")}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {!cityRoom && tab === "dms" && !desk && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={(v) => {
           setDmWith(v)
           // back out of a thread opened from "say hi": return to that screen
           if (v === null && dmReturn) { setTab(dmReturn); setDmReturn(null) }

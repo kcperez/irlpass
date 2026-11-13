@@ -107,6 +107,8 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "swipe up for more · left or right to change the vibe": "desliza arriba para más · a los lados para cambiar el vibe",
   "swipe up for more · double tap to go · left or right to change the vibe": "desliza arriba para más · doble tap para ir · a los lados para cambiar el vibe",
   "all vibes": "todos los vibes",
+  "pick a chat": "elige un chat",
+  "your city group, event chats and messages all live here.": "el grupo de tu ciudad, los chats de eventos y tus mensajes viven aquí.",
   "ask for anything: football, techno tonight, a run club": "pide lo que sea: fútbol, techno esta noche, un run club",
   "then tap i'm going here to meet people": "luego toca voy aquí para conocer gente",
   "what are you into?": "¿qué te gusta?",
