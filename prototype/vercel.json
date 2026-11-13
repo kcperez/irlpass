@@ -1,6 +1,36 @@
 {
   "rewrites": [
     {
+      "source": "/start",
+      "has": [
+        {
+          "type": "host",
+          "value": "getty.irlpass.xyz"
+        }
+      ],
+      "destination": "/api/venues-hub?view=start"
+    },
+    {
+      "source": "/in",
+      "has": [
+        {
+          "type": "host",
+          "value": "getty.irlpass.xyz"
+        }
+      ],
+      "destination": "/api/venues-hub?view=in"
+    },
+    {
+      "source": "/g/:k",
+      "has": [
+        {
+          "type": "host",
+          "value": "getty.irlpass.xyz"
+        }
+      ],
+      "destination": "/api/venues-hub?view=dash&k=:k"
+    },
+    {
       "source": "/venues",
       "destination": "/api/venues-hub?view=landing"
     },

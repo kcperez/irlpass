@@ -6,7 +6,7 @@ import { sendEmail } from "./_email.js"
 import { kindOf } from "./_events.js"
 import { ASK, FREE, PACKS, addCredits, cleanHandle, monthStart, okHandle, slots, useSlot } from "./_perks.js"
 
-// irlpass for venues (irlpass.xyz/venues). a venue signs up in a minute, gets an
+// getty by irlpass (getty.irlpass.xyz, also irlpass.xyz/venues). a venue signs up in a minute, gets an
 // always-on story perk with a qr for the counter, and the guestlist: every
 // handle that posted for them. no irlpass account, no meta access.
 // GET  ?view=landing|start|in          -> pages
@@ -27,7 +27,7 @@ const dashUrl = (k) => `${SITE}/venues/g/${k}`
 const usd = (c) => `$${Math.round(c / 100)}`
 
 const NAV = (right = `<a class="btn ghost" href="/venues/in" style="padding:10px 16px;font-size:14px">sign in</a>`) =>
-  `<nav class="nav"><a class="logo" href="/venues">irlpass<span>for venues</span></a>${right}</nav>`
+  `<nav class="nav"><a class="logo" href="/venues">getty<span>by irlpass</span></a>${right}</nav>`
 
 async function byToken(k) {
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(String(k || ""))) return null
@@ -122,7 +122,7 @@ function landing() {
 <p class="faint" style="text-align:center;font-size:12px;margin-top:28px">irlpass · <a href="/" class="faint">meet people where you are</a></p>
 <style>@media(min-width:860px){.hero{grid-template-columns:1.25fr 1fr}.duo{grid-template-columns:1fr 1fr}}</style>`
   const script = `const c=document.getElementById("mockclock");const t=()=>c.textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"}).toLowerCase();t();setInterval(t,1000)`
-  return glass("irlpass for venues", body, {
+  return glass("getty by irlpass", body, {
     wide: true,
     script,
     head: `<meta name="description" content="guests post a story tagging you, staff check it at the counter, they get the perk. 20 stories a month free.">
@@ -158,7 +158,7 @@ const f=document.getElementById("f"),go=document.getElementById("go"),err=docume
 f.onsubmit=async e=>{e.preventDefault();err.textContent="";go.disabled=true;go.textContent="one sec…";
 const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create",name:v("name"),ig:v("ig"),city:v("city"),item:v("item"),email:v("email"),qty})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.url){try{localStorage.setItem("venue-k",r.k)}catch(e){}location.href=r.url}else{err.textContent=r.error||"try again";go.disabled=false;go.textContent="get my qr"}};`
-  return glass("set up · irlpass for venues", body, { script })
+  return glass("set up · getty", body, { script })
 }
 
 function signInPage() {
@@ -176,7 +176,7 @@ const f=document.getElementById("f"),go=document.getElementById("go"),err=docume
 f.onsubmit=async e=>{e.preventDefault();go.disabled=true;
 const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"login",email:document.getElementById("email").value})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.ok){f.innerHTML='<p class="serif" style="font-size:30px;margin:0 0 6px">check your email</p><p class="soft" style="margin:0">if that email has a venue, the link is on its way.</p>'}else{err.textContent=r.error||"try again";go.disabled=false}};`
-  return glass("sign in · irlpass for venues", body, { script })
+  return glass("sign in · getty", body, { script })
 }
 
 async function dashData(v, e) {
@@ -302,7 +302,7 @@ async function printPage(v, e) {
   return glass(`${v.name} · counter card`, body, { head: `<meta name="robots" content="noindex">` })
 }
 
-const gonePage = () => glass("irlpass for venues", `${NAV()}<div style="padding-top:30px"><h1 style="font-size:46px">that link doesn't open anything</h1><p class="soft">sign in with your email and we'll send a fresh one.</p><a class="btn" href="/venues/in">sign in</a></div>`)
+const gonePage = () => glass("getty", `${NAV()}<div style="padding-top:30px"><h1 style="font-size:46px">that link doesn't open anything</h1><p class="soft">sign in with your email and we'll send a fresh one.</p><a class="btn" href="/venues/in">sign in</a></div>`)
 
 // ---------- actions ----------
 
