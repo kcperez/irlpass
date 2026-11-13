@@ -107,6 +107,8 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "swipe up for more · left or right to change the vibe": "desliza arriba para más · a los lados para cambiar el vibe",
   "swipe up for more · double tap to go · left or right to change the vibe": "desliza arriba para más · doble tap para ir · a los lados para cambiar el vibe",
   "all vibes": "todos los vibes",
+  "dinner tonight, techno, a run club": "cena esta noche, techno, un run club",
+  "ask for anything: dinner tonight, techno, a run club": "pide lo que sea: cena esta noche, techno, un run club",
   "top spots": "los mejores sitios",
   "open in maps": "abrir en mapas",
   "why it's here": "por qué está aquí",

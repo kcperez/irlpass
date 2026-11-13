@@ -427,7 +427,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
 
             <form onSubmit={(ev) => { ev.preventDefault(); ask() }} className={`mt-6 flex items-center gap-3 rounded-full py-1.5 pl-5 pr-1.5 ${glass}`}>
               <Sparkle size={18} weight="fill" className="shrink-0" />
-              <input value={q} onChange={(ev) => setQ(ev.target.value)} placeholder={t("ask for anything: football, techno tonight, a run club")} className="min-w-0 flex-1 bg-transparent py-2 text-[16px] font-semibold text-white outline-none placeholder:text-white/45" />
+              <input value={q} onChange={(ev) => setQ(ev.target.value)} placeholder={t("ask for anything: dinner tonight, techno, a run club")} className="min-w-0 flex-1 bg-transparent py-2 text-[16px] font-semibold text-white outline-none placeholder:text-white/45" />
               {search && <button type="button" onClick={clear} aria-label={t("clear")} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><X size={15} weight="bold" /></button>}
               <button className="rounded-full bg-white px-5 py-2.5 text-[14px] font-bold text-ink keep-light">{t("ask")}</button>
             </form>
@@ -513,7 +513,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
         {searchOpen ? (
           <form onSubmit={(ev) => { ev.preventDefault(); setSearchOpen(false); ask() }} className={`pointer-events-auto flex items-center gap-2 rounded-full py-1 pl-4 pr-1 ${glass}`}>
             <Sparkle size={16} weight="fill" className="shrink-0" />
-            <input ref={inputRef} autoFocus value={q} onChange={(ev) => setQ(ev.target.value)} enterKeyHint="search" placeholder={t("football, techno tonight, a run club")} className="min-w-0 flex-1 bg-transparent py-2 text-[15px] font-semibold text-white outline-none placeholder:text-white/50" />
+            <input ref={inputRef} autoFocus value={q} onChange={(ev) => setQ(ev.target.value)} enterKeyHint="search" placeholder={t("dinner tonight, techno, a run club")} className="min-w-0 flex-1 bg-transparent py-2 text-[15px] font-semibold text-white outline-none placeholder:text-white/50" />
             <button type="button" onClick={() => { setSearchOpen(false); if (!search) setQ("") }} aria-label={t("close")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15"><X size={15} weight="bold" /></button>
           </form>
         ) : (

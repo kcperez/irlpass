@@ -2260,9 +2260,19 @@ function VibesSheet({ token, me, onSaved, onClose }) {
 /* ---------- mod mode vs member view ---------- */
 // kevin and josh test both sides. a strip that can't be missed says which one
 // they're in, and one tap flips it (the server enforces it, the page reloads).
+// filming: open the app once with ?film=1 and the mod strip hides (?film=0 brings it back)
+const filming = (() => {
+  try {
+    const f = new URLSearchParams(window.location.search).get("film")
+    if (f === "1") localStorage.setItem("irl:film", "1")
+    if (f === "0") localStorage.removeItem("irl:film")
+    return localStorage.getItem("irl:film") === "1"
+  } catch { return false }
+})()
+
 function ModeStrip({ token, me }) {
   const [busy, setBusy] = useState(false)
-  if (!me?.isMod) return null
+  if (!me?.isMod || filming) return null
   const member = !!me.memberView
   const flip = async () => {
     setBusy(true)
