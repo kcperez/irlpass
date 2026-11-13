@@ -6,6 +6,7 @@ import { cityChip } from "../lib/cities"
 import { cachedJson } from "../lib/cached"
 import { haptic } from "../lib/haptic"
 import CityBrief from "../components/CityBrief"
+import Poster from "../components/Poster"
 
 // the city tab: your travel pack for wherever you're looking. ask it anything
 // (dinner, the airport, techno tonight), see what's featured this week, where
@@ -31,7 +32,7 @@ function PlaceCard({ p, i }) {
         {p.photo && !broken ? (
           <img src={p.photo} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[44px]" style={{ background: "radial-gradient(70% 70% at 30% 20%, rgba(74,102,255,.35), transparent 70%), #10142e" }}>{/bar|cocktail|wine/i.test(p.kind) ? "🍸" : /coffee|caf/i.test(p.kind) ? "☕" : "🍝"}</div>
+          <Poster title={p.name} seed={p.name} top={p.kind} bottom={p.area} />
         )}
         <span className="absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur">#{i + 1}</span>
         {p.michelin && <span className="absolute right-2.5 top-2.5 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]">{MICHELIN[p.michelin]}</span>}
@@ -55,8 +56,9 @@ function PlaceCard({ p, i }) {
 function EventTile({ e, city, onOpen }) {
   return (
     <button onClick={() => onOpen(e.id)} className="w-[62vw] max-w-[240px] shrink-0 overflow-hidden rounded-[1.3rem] border border-line bg-white text-left lg:w-[240px]">
-      <div className="aspect-square bg-cream-deep" style={{ background: "radial-gradient(70% 70% at 30% 20%, rgba(74,102,255,.35), transparent 70%), #10142e" }}>
-        {e.cover && <img src={e.cover} alt="" loading="lazy" className="h-full w-full object-cover" />}
+      <div className="relative aspect-square">
+        <span className="absolute inset-0"><Poster title={e.title} seed={e.id} top={e.category} bottom={e.venue || ""} /></span>
+        {e.cover && <img src={e.cover} alt="" loading="lazy" onError={(x) => { x.currentTarget.style.display = "none" }} className="relative h-full w-full object-cover" />}
       </div>
       <div className="p-3">
         <p className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-ink-soft">{when(e.startsAt, city)}{e.goingCount ? ` · ${e.goingCount} ${t("going")}` : ""}</p>

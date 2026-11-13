@@ -9,6 +9,7 @@ import { useDesktop } from "../lib/useDesktop"
 import HostEvent from "../components/HostEvent"
 import PerkCard from "../components/PerkCard"
 import AddEvent from "../components/AddEvent"
+import Poster from "../components/Poster"
 
 // events first: what's on in your city, found by asking ("football", "techno")
 // instead of scrolling forever. going puts you in the event's group chat.
@@ -23,7 +24,12 @@ const KINDS = [
 ]
 const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
 const dayKey = (iso, tz) => new Date(iso).toLocaleDateString("en-CA", { timeZone: tz })
-const timeOf = (iso, tz) => new Date(iso).toLocaleTimeString([], { timeZone: tz, hour: "numeric", minute: "2-digit" }).toLowerCase().replace(":00", "").replace(/\s/g, "")
+// a listing that starts at exactly midnight is an all-day thing, not a 12am party
+const timeOf = (iso, tz) => {
+  const hm = new Date(iso).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false })
+  if (hm === "00:00") return t("all day")
+  return new Date(iso).toLocaleTimeString([], { timeZone: tz, hour: "numeric", minute: "2-digit" }).toLowerCase().replace(":00", "").replace(/\s/g, "")
+}
 const dayParts = (key) => {
   const d = new Date(`${key}T12:00:00`)
   return { mon: d.toLocaleDateString([], { month: "short" }).toUpperCase().replace(".", ""), day: d.getDate(), wk: d.toLocaleDateString([], { weekday: "long" }).toLowerCase() }
@@ -51,8 +57,8 @@ function Faces({ e, size = 22 }) {
 
 function Thumb({ e, className = "" }) {
   return (
-    <span className={`relative block shrink-0 overflow-hidden bg-lime ${className}`}>
-      <span className="absolute inset-0 flex items-center justify-center text-[22px]">{kindEmoji(e.category)}</span>
+    <span className={`relative block shrink-0 overflow-hidden ${className}`}>
+      <span className="absolute inset-0"><Poster title={e.title} seed={e.id} top={e.category} bottom={e.venue || ""} /></span>
       {e.cover && <img src={e.cover} alt="" loading="lazy" onError={(x) => { x.currentTarget.style.display = "none" }} className="relative h-full w-full object-cover" />}
     </span>
   )
@@ -116,7 +122,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
           {img ? (
             near && <img src={img} alt="" draggable={false} onError={() => setBroken(true)} className="h-full w-full rounded-[1.6rem] object-cover shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]" />
           ) : (
-            <span className="flex h-full w-full items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-[72px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">{kindEmoji(e.category)}</span>
+            <span className="block h-full w-full overflow-hidden rounded-[1.6rem] border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]"><Poster title={e.title} seed={e.id} top={`${e.category} · ${timeOf(e.startsAt, tz)}`} bottom={e.venue || e.host || ""} /></span>
           )}
         </motion.span>
         <AnimatePresence>
@@ -209,7 +215,7 @@ function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, o
         {img ? (
           <img src={img} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
         ) : (
-          <span className="flex h-full w-full items-center justify-center text-[72px]">{kindEmoji(e.category)}</span>
+          <Poster title={e.title} seed={e.id} top={e.category} bottom={e.venue || e.host || ""} />
         )}
         {alt && <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink keep-light"><Sparkle size={11} weight="fill" /> {t("close to")} “{alt}”</span>}
         {e.perk && <span className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/40 px-2.5 py-1 text-[11.5px] font-bold backdrop-blur-md">🎁 {e.perk.item}</span>}

@@ -22,6 +22,7 @@ import { Logo } from "../components/bits"
 import { useDesktop } from "../lib/useDesktop"
 import City from "./City"
 import CityPicker from "../components/CityPicker"
+import Poster from "../components/Poster"
 import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
@@ -921,8 +922,9 @@ function EventCard({ id }) {
   if (!e) return <span className="my-1 block h-[76px] w-[min(280px,70vw)] animate-pulse rounded-[1rem] bg-ink/10" />
   return (
     <span role="button" tabIndex={0} onClick={(ev) => { ev.stopPropagation(); open(id) }} className="my-1 flex w-[min(300px,72vw)] cursor-pointer items-center gap-3 overflow-hidden rounded-[1.1rem] border border-line bg-cream/60 p-2 text-left align-top">
-      <span className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[0.8rem] bg-lime">
-        {e.cover && <img src={e.cover} alt="" className="h-full w-full object-cover" />}
+      <span className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[0.8rem]">
+        <span className="absolute inset-0"><Poster title={e.title} seed={e.id} /></span>
+        {e.cover && <img src={e.cover} alt="" className="relative h-full w-full object-cover" />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[10.5px] font-bold uppercase tracking-[0.1em] text-ink-soft">{evTime(e.startsAt, e.city)}</span>
@@ -959,7 +961,7 @@ function EventPicker({ token, city, onPick, onClose }) {
           {list && !hits.length && <p className="py-8 text-center text-[13px] text-ink-soft">{t("nothing for that this week")}</p>}
           {hits.map((e) => (
             <button key={e.id} onClick={() => onPick(e)} className="flex w-full items-center gap-3 rounded-[1rem] p-1.5 text-left hover:bg-ink/5">
-              <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[0.7rem] bg-lime">{e.cover && <img src={e.cover} alt="" className="h-full w-full object-cover" />}</span>
+              <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[0.7rem]"><span className="absolute inset-0"><Poster title={e.title} seed={e.id} /></span>{e.cover && <img src={e.cover} alt="" className="relative h-full w-full object-cover" />}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] font-bold">{e.title}</span>
                 <span className="block truncate text-[12px] text-ink-soft">{evTime(e.startsAt, city)}{e.venue ? ` · ${e.venue}` : ""}{e.goingCount ? ` · ${e.goingCount} ${t("going")}` : ""}</span>
@@ -1960,7 +1962,7 @@ function DMScreen({ token, me, viewing, openWith, setOpenWith, onPaywall, photoM
               return (
                 <div key={c.id} className="group flex items-center">
                   <button onClick={() => onOpenRoom?.({ slug: c.channel, title: c.title })} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/40">
-                    <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[0.8rem] bg-lime">{c.cover && <img src={c.cover} alt="" className="h-full w-full object-cover" />}</span>
+                    <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[0.8rem]"><span className="absolute inset-0"><Poster title={c.title} seed={c.id} /></span>{c.cover && <img src={c.cover} alt="" className="relative h-full w-full object-cover" />}</span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14.5px] font-semibold leading-tight">{c.title}</p>
                       <p className={`truncate text-[12px] ${unread ? "font-semibold text-ink" : "text-ink-soft"}`}>
