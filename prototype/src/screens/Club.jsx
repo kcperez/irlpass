@@ -5,6 +5,7 @@ import { cachedJson, prefetch } from "../lib/cached"
 import { motion, AnimatePresence, MotionConfig, useDragControls } from "framer-motion"
 import {
   CalendarPlus,
+  CaretDown,
   Plus,
   UsersThree,
   ChatsCircle,
@@ -20,6 +21,7 @@ import {
 import QRCode from "qrcode"
 import { Logo } from "../components/bits"
 import { useDesktop } from "../lib/useDesktop"
+import CityPicker from "../components/CityPicker"
 import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
 import Around from "./Around"
@@ -520,10 +522,10 @@ function ProfileSheet({ token, me, onPhoto, onSafety, onVibes, onOpenProfile, on
 
 // typed location that resolves itself via google maps ("pueblito paisa" -> pick
 // from real places, pinned to the city the plan is being created in)
-function TopBar({ me, onProfile, dot }) {
+function TopBar({ me, onProfile, dot, city }) {
   return (
     <header className={`sticky top-0 z-10 flex items-center justify-between border-b border-line/70 bg-cream/95 px-5 pb-3 backdrop-blur lg:hidden ${me?.isMod ? "pt-3" : "pt-[max(1rem,env(safe-area-inset-top))] md:pt-12"}`}>
-      <Logo h="h-9" />
+      <span className="flex items-center gap-2"><Logo h="h-9" />{city}</span>
       <button
         onClick={onProfile}
         className="flex items-center gap-2 rounded-full border border-line bg-cream-deep/70 py-1 pl-1 pr-3 text-[12px] font-medium text-ink-soft active:scale-95"
@@ -1492,7 +1494,7 @@ function DeniedScreen() {
 
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
-function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld, onBuyRide, onOpenRoom }) {
+function DMScreen({ token, me, viewing, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld, onBuyRide, onOpenRoom }) {
   const [pickEvent, setPickEvent] = useState(false)
   const [roomOpen, setRoomOpen] = useState(false)
   const [rooms, setRooms] = useState([])
@@ -1539,7 +1541,8 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       .then((r) => r.json())
       .then((d) => {
         const cities = [...new Set((d.trips || []).map((x) => x.city))]
-        setRooms(cities.length ? cities : [me.city || "medellin"])
+        // your city, every city you have dates in, and whatever city you're looking at
+        setRooms([...new Set([me.city || "medellin", ...cities, ...(viewing ? [viewing] : [])])])
         if (cities.length && !cities.includes(roomCity)) setRoomCity(cities[0])
         // mods (josh, kevin) moderate every room, not only the cities they have dates in
         if (modOn(me)) {
@@ -1555,7 +1558,7 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
       })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [token, viewing])
   const [modRooms, setModRooms] = useState([])
   const [modOpen, setModOpen] = useState(false)
   const [threads, setThreads] = useState(null)
@@ -2299,6 +2302,9 @@ export default function Club({ token }) {
   const [me, setMe] = useState(null)
   const [state, setState] = useState("loading")
   const desk = useDesktop()
+  // the city you're looking at (free, never moves you) vs where you are (me.city)
+  const [browse, setBrowse] = useState(() => { try { return localStorage.getItem("irl:browse") } catch { return null } })
+  const [pickCity, setPickCity] = useState(false)
   const eventLink = useMemo(() => ({
     token,
     open: (id) => { setCityRoom(null); setSpotRoom(null); setDmWith(null); setActiveChat(null); setTab("events"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })), 450) },
@@ -2644,6 +2650,19 @@ export default function Club({ token }) {
     // i'm out now" moved to the top of people. a tapped spot still opens it.
   ]
   // on a computer these tabs are drawn a size up, so text matches the events page
+  const viewing = browse || me?.city || "medellin"
+  const lookAt = (c) => {
+    setPickCity(false)
+    const v = c === me?.city ? null : c
+    setBrowse(v)
+    try { v ? localStorage.setItem("irl:browse", v) : localStorage.removeItem("irl:browse") } catch { /* private mode */ }
+    setViewCity(c)
+  }
+  const CityChip = ({ className = "" }) => (
+    <button onClick={() => setPickCity(true)} className={`flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[13px] font-bold ${className}`}>
+      <span>{cityChip(viewing).emoji}</span>{String(cityChip(viewing).name || viewing).toLowerCase()} <CaretDown size={11} weight="bold" className="opacity-60" />
+    </button>
+  )
   const wide = { members: "lg:max-w-[980px]", dms: "lg:max-w-[980px]" }[tab] || "lg:max-w-[640px]"
   const inThread = (tab === "chats" && activeChat) || (tab === "dms" && dmWith) || ((tab === "mood" || tab === "events") && spotRoom) || cityRoom
 
@@ -2654,7 +2673,8 @@ export default function Club({ token }) {
     <div className="relative flex h-[var(--app-h)] flex-col lg:pl-[236px]">
       {/* on a computer: the tabs live in a sidebar, the bottom bar goes away */}
       <aside className={`fixed inset-y-0 left-0 z-30 hidden w-[236px] flex-col border-r px-4 py-6 lg:flex ${tab === "events" ? "border-white/10 bg-[#15110f] text-white" : "border-line/70 bg-cream text-ink"}`}>
-        <span className={`px-3 ${tab === "events" ? "[&_img]:invert" : ""}`}><Logo h="h-9" /></span>
+        <span className="px-3"><Logo h="h-9" /></span>
+        <CityChip className="mx-2 mt-5 self-start" />
         <nav className="mt-8 flex flex-col gap-1">
           {TABS.map((tb) => {
             const on = tab === tb.key
@@ -2681,8 +2701,9 @@ export default function Club({ token }) {
           </span>
         </button>
       </aside>
+      <CityPicker token={token} me={me} open={pickCity} current={viewing} onPick={lookAt} onClose={() => setPickCity(false)} />
       <ModeStrip token={token} me={me} />
-      {!inThread && tab !== "events" && <TopBar me={me} dot={profileNew} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
+      {!inThread && tab !== "events" && <TopBar me={me} dot={profileNew} city={<CityChip />} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} />}
       <motion.div
         key={`${tab}-${cityRoom?.slug || ""}`}
         initial={{ opacity: 0, y: 6 }}
@@ -2721,7 +2742,7 @@ export default function Club({ token }) {
             onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
         )}
-        {!cityRoom && tab === "events" && !spotRoom && <Events token={token} me={me} city={me.city} onOpenRoom={setSpotRoom} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} profileDot={profileNew} onCityMoved={() => fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {})} />}
+        {!cityRoom && tab === "events" && !spotRoom && <Events token={token} me={me} city={viewing} onPickCity={() => setPickCity(true)} onOpenRoom={setSpotRoom} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} profileDot={profileNew} onCityMoved={() => fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {})} />}
         {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={planCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => { setPlanWith(null); setPlanCity(null) }} onCityMoved={() => { setPlanCity(null); setPlanWith(null); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onPaywall={setPaywall} />}
         {!cityRoom && (tab === "mood" || tab === "events") && spotRoom && (
           <Thread
@@ -2739,7 +2760,7 @@ export default function Club({ token }) {
           // a computer: the conversations on the left, the open one on the right
           <div className="flex min-h-0 flex-1 border-x border-line/70">
             <div className="w-[360px] shrink-0 overflow-y-auto border-r border-line/70 pt-4">
-              <DMScreen token={token} me={me} openWith={null} setOpenWith={(v) => { setCityRoom(null); setDmWith(v) }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => setPaywall(r === "unlock" ? "dm" : r)} onBuyRide={buyRide} onOpenRoom={(c) => { setDmWith(null); setCityRoom(c) }} />
+              <DMScreen token={token} me={me} viewing={viewing} openWith={null} setOpenWith={(v) => { setCityRoom(null); setDmWith(v) }} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => setPaywall(r === "unlock" ? "dm" : r)} onBuyRide={buyRide} onOpenRoom={(c) => { setDmWith(null); setCityRoom(c) }} />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
               {cityRoom ? (
@@ -2747,7 +2768,7 @@ export default function Club({ token }) {
                   onNeedDates={(c) => { setCityRoom(null); setTab("trips"); setPostCity(c) }} onBack={() => setCityRoom(null)}
                   onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }} />
               ) : dmWith ? (
-                <DMScreen key={dmWith.memberNo} token={token} me={me} openWith={dmWith} setOpenWith={(v) => setDmWith(v)} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => setPaywall(r === "unlock" ? "dm" : r)} onBuyRide={buyRide} onOpenRoom={setCityRoom} />
+                <DMScreen key={dmWith.memberNo} token={token} me={me} viewing={viewing} openWith={dmWith} setOpenWith={(v) => setDmWith(v)} photoMap={photoMap} onOpenPerson={setPersonNo} onOpenWorld={() => setWorldOpen(true)} onNeedDates={(city) => { setTab("trips"); setPostCity(city) }} onPaywall={(r) => setPaywall(r === "unlock" ? "dm" : r)} onBuyRide={buyRide} onOpenRoom={setCityRoom} />
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center px-10 text-center">
                   <ChatsCircle size={40} weight="fill" className="text-ink/15" />
@@ -2758,7 +2779,7 @@ export default function Club({ token }) {
             </div>
           </div>
         )}
-        {!cityRoom && tab === "dms" && !desk && <DMScreen token={token} me={me} openWith={dmWith} setOpenWith={(v) => {
+        {!cityRoom && tab === "dms" && !desk && <DMScreen token={token} me={me} viewing={viewing} openWith={dmWith} setOpenWith={(v) => {
           setDmWith(v)
           // back out of a thread opened from "say hi": return to that screen
           if (v === null && dmReturn) { setTab(dmReturn); setDmReturn(null) }

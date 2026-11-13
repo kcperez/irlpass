@@ -6,7 +6,6 @@ import { t, LANG } from "../lib/i18n"
 import { cityChip } from "../lib/cities"
 import { haptic } from "../lib/haptic"
 import { useDesktop } from "../lib/useDesktop"
-import CityNow from "../components/CityNow"
 import HostEvent from "../components/HostEvent"
 import PerkCard from "../components/PerkCard"
 import AddEvent from "../components/AddEvent"
@@ -212,7 +211,7 @@ function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, o
   )
 }
 
-export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMoved, onProfile, profileDot }) {
+export default function Events({ token, me, city: cityProp, onPickCity, onOpenRoom, onCityMoved, onProfile, profileDot }) {
   const city = cityProp || me?.city || "medellin"
   const tz = TZ[city]
   const desk = useDesktop()
@@ -220,7 +219,6 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
   const [kind, setKind] = useState(() => { try { return localStorage.getItem("ev-kind") } catch { return null } })
   const [open, setOpen] = useState(null)
   const [busy, setBusy] = useState(null)
-  const [whereOpen, setWhereOpen] = useState(false)
   const [q, setQ] = useState("")
   const [search, setSearch] = useState(null) // { q, reply, ids } | { q, loading } | { q, error }
   const inputRef = useRef(null)
@@ -370,14 +368,13 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
     <div className="relative min-h-0 flex-1 overflow-hidden bg-[#15110f]">
       <AddEvent token={token} city={city} open={addOpen} canHost={canHost} onClose={() => setAddOpen(false)} onHost={() => { setAddOpen(false); setHostOpen(true) }} onAdded={async (id) => { setAddOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
       <HostEvent token={token} city={city} open={hostOpen} onClose={() => setHostOpen(false)} onCreated={async (id) => { setHostOpen(false); await load(); window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })) }} />
-      <CityNow token={token} city={city} open={whereOpen} onClose={() => setWhereOpen(false)} onMoved={onCityMoved} />
 
       {desk && (
         <div className="no-scrollbar absolute inset-0 overflow-y-auto">
           <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(40% 40% at 20% 0%, rgba(74,102,255,.18), transparent 70%), radial-gradient(40% 40% at 90% 10%, rgba(74,102,255,.08), transparent 70%)" }} />
           <div className="relative mx-auto max-w-[1180px] px-8 pb-16 pt-8 text-white">
             <div className="flex items-center gap-3">
-              <button onClick={() => setWhereOpen(true)} className="serif-display flex items-center gap-2 text-[44px] leading-none">
+              <button onClick={() => onPickCity?.()} className="serif-display flex items-center gap-2 text-[44px] leading-none">
                 {t("what's on in")} <span className="inline-block -rotate-2 rounded-[0.28em] bg-[#4a66ff] px-[0.16em] text-white">{String(cityChip(city).name || city).toLowerCase()}</span> <CaretDown size={18} weight="bold" className="mt-2 opacity-50" />
               </button>
               <span className="flex-1" />
@@ -473,7 +470,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
           </form>
         ) : (
           <div className="pointer-events-auto flex items-center gap-1.5">
-            <button onClick={() => setWhereOpen(true)} className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
+            <button onClick={() => onPickCity?.()} className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
               {cityChip(city).emoji} {String(cityChip(city).name || city).toLowerCase()}
             </button>
             <button onClick={() => { haptic("soft"); setKindOpen((x) => !x) }} aria-label={t("pick a vibe")} className={`flex min-w-0 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-bold ${glass}`}>
