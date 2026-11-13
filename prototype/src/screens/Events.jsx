@@ -135,7 +135,7 @@ function Card({ e, tz, near, active, alt, first, todayKey, tomorrowKey, busy, on
             <span className="h-2 w-2 rounded-full" style={{ background: DOT[e.category] || "#ddd0f6" }} />
             {dayLabel(day, todayKey, tomorrowKey)} · {timeOf(e.startsAt, tz)}{priceOf(e) ? ` · ${priceOf(e)}` : ""}
           </span>
-          <span className="serif-display mt-2.5 line-clamp-3 block text-[34px] leading-[1.02]">{e.title}</span>
+          <span className="serif-display mt-2.5 line-clamp-3 block text-[31px] leading-[1.04]">{e.title}</span>
           {(e.venue || e.host) && <span className="mt-1 block truncate text-[14px] text-white/70">{e.venue || e.host}</span>}
           {e.perk && <span className={`mt-2.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-bold ${glass}`}>🎁 {e.perk.item} {t("for a story")}</span>}
         </button>
@@ -195,7 +195,7 @@ function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, o
           {dayLabel(day, todayKey, tomorrowKey)} · {timeOf(e.startsAt, tz)}{priceOf(e) ? ` · ${priceOf(e)}` : ""}
         </span>
         <button onClick={() => onOpen(e)} className="mt-2 text-left">
-          <span className="serif-display line-clamp-2 block text-[24px] leading-[1.05]">{e.title}</span>
+          <span className="serif-display line-clamp-2 block text-[21px] leading-[1.08]">{e.title}</span>
           {(e.venue || e.host) && <span className="mt-1 block truncate text-[13px] text-white/55">{e.venue || e.host}</span>}
         </button>
         <span className="flex-1" />
@@ -378,7 +378,7 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
           <div className="relative mx-auto max-w-[1180px] px-8 pb-16 pt-8 text-white">
             <div className="flex items-center gap-3">
               <button onClick={() => setWhereOpen(true)} className="serif-display flex items-center gap-2 text-[44px] leading-none">
-                {t("what's on in")} <span className="italic text-[#ddd0f6]">{String(cityChip(city).name || city).toLowerCase()}</span> <CaretDown size={18} weight="bold" className="mt-2 opacity-50" />
+                {t("what's on in")} <span className="inline-block -rotate-2 rounded-[0.28em] bg-[#cdee45] px-[0.16em] text-[#15110f]">{String(cityChip(city).name || city).toLowerCase()}</span> <CaretDown size={18} weight="bold" className="mt-2 opacity-50" />
               </button>
               <span className="flex-1" />
               {mine.length > 0 && (

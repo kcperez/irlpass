@@ -43,30 +43,79 @@ async function perkEvent(v) {
 
 // ---------- pages ----------
 
-// the hero: a guest's story (a real photo, instagram chrome) with the pass
-// sliding in front of it. what the venue gets, at a glance.
-function storyMock() {
-  return `<div class="rise hero-art" style="animation-delay:.15s;position:relative;max-width:380px;width:100%;margin:0 auto">
-  <div style="position:relative;aspect-ratio:9/16;border-radius:34px;overflow:hidden;box-shadow:0 40px 100px -30px rgba(0,0,0,.8);border:1px solid var(--line);transform:rotate(2deg)">
-    <img src="/getty/hero.jpg" alt="friends taking a selfie at an event" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 22%,transparent 65%,rgba(0,0,0,.55))"></div>
-    <div style="position:absolute;left:12px;right:12px;top:12px;display:flex;gap:4px">${[1, 1, 0.5, 0].map((f) => `<span style="flex:1;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35);overflow:hidden"><span style="display:block;height:100%;width:${f * 100}%;background:#fff"></span></span>`).join("")}</div>
-    <div style="position:absolute;left:14px;top:26px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
-      <span style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:linear-gradient(135deg,var(--peach),var(--lilac))"></span>sofi.mtz <span style="opacity:.7;font-weight:500">2m</span>
-    </div>
-    <span style="position:absolute;left:50%;top:58%;transform:translateX(-50%) rotate(-4deg);background:#fff;color:#15110f;border-radius:10px;padding:8px 14px;font:700 17px Geist,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35);white-space:nowrap">@yourplace</span>
-  </div>
-  <div class="card" style="position:absolute;left:-34px;bottom:-26px;width:230px;padding:10px;border-radius:24px;transform:rotate(-5deg);background:rgba(21,17,15,.7)">
-    <div style="border-radius:17px;padding:14px 16px;color:#15110f;background:linear-gradient(110deg,var(--lilac),var(--peach),var(--lime),var(--lilac));background-size:300% 100%;animation:mv 5s linear infinite">
-      <p style="margin:0;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.7">show this + your story</p>
-      <p class="serif" style="margin:5px 0 2px;font-size:25px;line-height:1">a free smoothie</p>
-      <p class="num" id="mockclock" style="margin:4px 0 0;font-size:18px">9:41:07 pm</p>
-    </div>
-  </div>
-  <div class="card" style="position:absolute;right:-22px;top:18%;padding:10px 14px;border-radius:18px;font-size:13px;display:flex;align-items:center;gap:8px;background:rgba(21,17,15,.7)">
-    <span style="width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)"></span><span><b>+1 story</b> <span class="soft">· 1.2k saw it</span></span>
+// the hero: not one story, a whole night of them. stories fly in, each with
+// its own view count ticking, mentions stack up, one big number climbs.
+const STORIES = [
+  ["hero", "sofi.mtz", 2140, 6, 4, -7, 1],
+  ["bar", "juanpa.rv", 1380, 54, 0, 5, 0.92],
+  ["yoga2", "laura.en.med", 960, 30, 34, -3, 1.08],
+  ["party", "cami.ospina", 3120, 68, 40, 8, 0.96],
+  ["cafe2", "dani_vlz", 840, 2, 52, 4, 0.9],
+  ["run", "mateo.runs", 1720, 40, 66, -6, 0.86],
+]
+function scatter() {
+  const card = ([img, who, views, x, y, r, s], i) => `<div class="st" style="left:${x}%;top:${y}%;--r:${r}deg;--s:${s};animation-delay:${0.15 + i * 0.16}s,${1.2 + i * 0.3}s">
+    <img src="/getty/${img}.jpg" alt="" loading="${i < 3 ? "eager" : "lazy"}">
+    <span class="st-bars"><i style="--w:100%"></i><i style="--w:${40 + i * 9}%"></i><i></i></span>
+    <span class="st-who"><b></b>${who}</span>
+    <span class="st-tag">@yourplace</span>
+    <span class="st-views"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg><span class="cnt" data-to="${views}">0</span></span>
+  </div>`
+  return `<div class="scatter rise" aria-hidden="true">
+  ${STORIES.map(card).join("")}
+  <div class="pings" id="pings"></div>
+  <div class="big card">
+    <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">people who saw your place</p>
+    <p class="num" style="margin:4px 0 0;font-size:44px;line-height:1"><span id="bigcnt">0</span></p>
+    <svg viewBox="0 0 200 40" class="spark"><path id="sparkp" d="M0 38 C40 36 60 33 90 28 S150 12 200 2" fill="none" stroke="var(--lime)" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <p class="soft" style="margin:2px 0 0;font-size:12.5px">from 46 guest stories this week</p>
   </div>
 </div>`
+}
+
+// the demo: three beats that play like stories (progress bars and all)
+async function demo() {
+  const qr = await QRCode.toDataURL(`${GETTY}/`, { width: 300, margin: 1, color: { dark: "#15110f", light: "#ffffff" } })
+  const beats = [
+    ["set the perk", "pick what a story is worth: a smoothie, a shot, a free class. print the qr for the counter."],
+    ["they post, you tap", "a guest posts a story tagging you and shows it at the counter. staff double tap their pass. done."],
+    ["watch it spread", "every story lands with hundreds of locals who trust the person posting. it adds up fast."],
+  ]
+  return `<section id="demo" class="demo" style="padding:40px 0 56px">
+  <div>
+    <span class="tag" style="--dot:var(--lilac)">watch it work</span>
+    <h2 style="margin-top:14px">from qr to <em>viral</em> in one night</h2>
+    <div class="beats">${beats.map(([t, d], i) => `<button class="beat${i ? "" : " on"}" data-i="${i}"><span class="bar"><i></i></span><span class="bt">0${i + 1} · ${t}</span><span class="bd">${d}</span></button>`).join("")}</div>
+  </div>
+  <div class="phone">
+    <div class="scr s0 on">
+      <p class="faint" style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">your perk</p>
+      <div class="fake-in"><span id="typed"></span><i class="caret"></i></div>
+      <p class="faint" style="margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">how many a month</p>
+      <div class="chips"><span class="chip">20</span><span class="chip" id="c50">50</span><span class="chip">100</span></div>
+      <div class="qrpop" id="qrpop"><img src="${qr}" alt=""><p>your counter qr is ready</p></div>
+    </div>
+    <div class="scr s1">
+      <img src="/getty/cafe2.jpg" alt="" class="bg">
+      <span class="st-bars" style="top:12px"><i style="--w:100%"></i><i style="--w:60%"></i></span>
+      <span class="st-who" style="top:24px"><b></b>dani_vlz</span>
+      <span class="st-tag" style="top:46%;font-size:17px">@yourplace</span>
+      <div class="pass" id="pass">
+        <p class="pk">unlocked</p>
+        <p class="pi">free smoothie</p>
+        <p class="ph">for @dani_vlz's story</p>
+        <p class="pg" id="pg">staff: double tap</p>
+      </div>
+      <span class="tap" id="tap"></span>
+    </div>
+    <div class="scr s2">
+      <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">this week at your place</p>
+      <p class="num" style="margin:6px 0 0;font-size:48px;line-height:1" id="wk">0</p>
+      <p class="soft" style="margin:4px 0 14px;font-size:13px">views from <b id="wkn" style="color:var(--ink)">0</b> guest stories</p>
+      <div class="tiles" id="tiles"></div>
+    </div>
+  </div>
+</section>`
 }
 
 // a no-brainer: their kind of place, their perk, already working
@@ -84,50 +133,42 @@ function uses() {
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,17,15,.1) 30%,rgba(21,17,15,.88))"></div>
   <figcaption style="position:absolute;left:16px;right:16px;bottom:16px">
     <span class="tag" style="background:rgba(21,17,15,.45);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--ink)">${esc(kind)}</span>
-    <p class="serif" style="font-size:30px;line-height:1.02;margin:10px 0 6px">1 story = ${esc(perk)}</p>
+    <p class="serif" style="font-size:27px;line-height:1.02;margin:10px 0 6px">1 story = ${esc(perk)}</p>
     <p class="soft" style="margin:0;font-size:13.5px">${esc(line)}</p>
   </figcaption>
 </figure>`).join("")
 }
 
-function landing() {
-  const step = (n, t, d) => `<div class="card" style="flex:1;min-width:220px"><p class="num" style="font-size:15px;color:var(--lilac);margin:0 0 18px">0${n}</p><p class="serif" style="font-size:28px;line-height:1.05;margin:0 0 8px">${t}</p><p class="soft" style="margin:0">${d}</p></div>`
+async function landing() {
   const q = (t, d) => `<div style="padding:18px 0;border-top:1px solid var(--line)"><p style="font-weight:600;margin:0 0 6px">${t}</p><p class="soft" style="margin:0">${d}</p></div>`
-  const body = `${NAV()}
-<section style="display:grid;gap:40px;align-items:center;padding:36px 0 56px" class="hero">
+  const cta = `<a class="btn" href="${GETTY}/start">get your free qr <span aria-hidden>→</span></a>`
+  const body = `${NAV(`<span style="display:flex;gap:8px"><a class="btn ghost" href="${GETTY}/in" style="padding:10px 16px;font-size:14px">sign in</a><a class="btn" href="${GETTY}/start" style="padding:10px 16px;font-size:14px">get your free qr</a></span>`)}
+<section class="hero" style="display:grid;gap:28px;align-items:center;padding:28px 0 40px">
   <div class="rise">
-    <span class="tag">story perks for bars, cafes and clubs</span>
+    <span class="tag">for bars, cafés, studios and clubs</span>
     <h1>your guests are the best <em>influencers</em> you'll ever book</h1>
-    <p class="soft" style="font-size:18px;max-width:520px">a guest posts a story tagging you, shows it at the counter, and gets the perk you picked. their friends see your place that night, from someone they trust.</p>
+    <p class="soft" style="font-size:18px;max-width:500px">every guest who posts a story tagging you gets a perk you pick. their friends see your place that night, from someone they trust. you get a list of every one of them.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
-      <a class="btn" href="${GETTY}/start">set it up in a minute</a>
-      <a class="btn ghost" href="#how">how it works</a>
+      ${cta}
+      <a class="btn ghost" href="#demo">watch it work</a>
     </div>
-    <p class="faint" style="font-size:13px;margin-top:14px">20 stories a month on us. no app for your guests.</p>
+    <p class="faint" style="font-size:13px;margin-top:14px">20 stories free every month · no app for guests · works with any instagram</p>
   </div>
-  ${storyMock()}
+  ${scatter()}
 </section>
+
+${await demo()}
 
 <section style="padding:30px 0 48px">
   <span class="tag" style="--dot:var(--peach)">works for any place people love</span>
-  <h2 style="margin-top:14px">pick yours. it's live tonight.</h2>
+  <h2 style="margin-top:14px">pick yours. it's live <em>tonight</em>.</h2>
   <div class="usegrid" style="display:grid;gap:12px">${uses()}</div>
-</section>
-
-<section id="how" style="padding:24px 0 48px">
-  <span class="tag" style="--dot:var(--lilac)">how it works</span>
-  <h2 style="margin-top:14px">three steps, one qr on the counter</h2>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px">
-    ${step(1, "pick the perk", "a free smoothie, a shot, 10% off. you set how many a month.")}
-    ${step(2, "print the qr", "guests scan it, type their instagram and get a pass on their phone. no download.")}
-    ${step(3, "check, then tap", "staff look at the live story in the guest's instagram app and double tap the pass. done.")}
-  </div>
 </section>
 
 <section style="padding:24px 0 48px;display:grid;gap:12px" class="duo">
   <div class="card" style="padding:28px">
     <span class="tag" style="--dot:var(--peach)">what you get</span>
-    <p class="serif" style="font-size:34px;line-height:1.05;margin:16px 0 14px">nano influencers, already at your bar</p>
+    <p class="serif" style="font-size:32px;line-height:1.02;margin:16px 0 14px">nano influencers, already at your bar</p>
     <p class="soft">every story is a real person in your city telling their friends where they are right now. you get the guestlist: every handle that posted, ready to repost, follow back or invite to your next night.</p>
   </div>
   <div class="card" style="padding:28px">
@@ -142,36 +183,125 @@ function landing() {
 
 <section style="padding:24px 0 40px;max-width:680px">
   <span class="tag" style="--dot:var(--lilac)">questions</span>
-  <div style="margin-top:18px">
-    ${q("do we need meta, a business account or an api?", "no. staff see the story in the guest's own instagram app. your instagram also gets the usual \"mentioned you in their story\" message, so you can double check later.")}
-    ${q("what stops someone from deleting the story?", "nothing, same as any story. they post it before they get anything, and the guestlist keeps every handle so you can spot check at the end of the night.")}
-    ${q("can regulars use it every time?", "once a day per instagram. a regular who posts every week is the best ad you have.")}
-    ${q("what happens when we run out?", "the guest page says it's all claimed for now and we email you. top up in two taps.")}
+  <h2 style="margin-top:14px">the stuff owners ask us</h2>
+  <div style="margin-top:12px">
+    ${q("how much does it cost?", "your first 20 stories every month are free. after that it's 50 more for $50, or 200 for $150. no subscription, no contract.")}
+    ${q("do my guests need to download an app?", "no. they scan the qr on your counter, type their instagram and the pass opens on their phone. ten seconds.")}
+    ${q("what does my staff actually do?", "look at the story on the guest's phone, see it tags you, tap the pass twice. that's the whole training.")}
+    ${q("what if someone posts and deletes it right after?", "they have to post before they get anything, and you keep a list of every handle. most people leave it up anyway: it's their night out.")}
+    ${q("can the same person keep coming back?", "once a day each. a regular who posts you every week is the best ad you'll ever run.")}
+    ${q("what happens when we run out?", "the page tells guests it's all claimed for now and we let you know. top up in two taps.")}
   </div>
 </section>
 
-<section class="card" style="text-align:center;padding:40px 22px;margin-top:8px">
-  <h2>put the first one on the counter tonight</h2>
-  <p class="soft">venue name, instagram, perk. you'll have the qr in a minute.</p>
-  <a class="btn" href="${GETTY}/start" style="margin-top:8px">set it up</a>
+<section class="card" style="text-align:center;padding:44px 22px;margin-top:8px">
+  <h2>put the first one on the counter <em>tonight</em></h2>
+  <p class="soft">venue name, instagram, perk. your qr is ready before the next order.</p>
+  <div style="margin-top:10px">${cta}</div>
 </section>
-<p class="faint" style="text-align:center;font-size:12px;margin-top:28px">irlpass · <a href="/" class="faint">meet people where you are</a></p>
+<p class="faint" style="text-align:center;font-size:12px;margin-top:28px">getty by irlpass · <a href="https://irlpass.xyz" class="faint">meet people where you are</a></p>
 <style>
 .usegrid{grid-auto-flow:column;grid-auto-columns:78%;overflow-x:auto;scroll-snap-type:x mandatory;margin:20px 0 0;padding:0 0 6px;scrollbar-width:none}
 .usegrid::-webkit-scrollbar{display:none}.usegrid>*{scroll-snap-align:start}
 @media(min-width:700px){.usegrid{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(3,1fr);overflow:visible;margin:20px 0 0;padding:0}}
 .use:hover img{transform:scale(1.04)}
-.hero-art{margin-bottom:30px}
-@media(min-width:860px){.hero{grid-template-columns:1.2fr 1fr}.duo{grid-template-columns:1fr 1fr}}
-@media(max-width:520px){.hero-art{max-width:300px}}
+@media(min-width:860px){.hero{grid-template-columns:1fr 1.05fr}.duo{grid-template-columns:1fr 1fr}.demo{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}}
+
+/* the scatter */
+.scatter{position:relative;height:560px;max-width:600px;width:100%;margin:0 auto}
+.st{position:absolute;width:31%;aspect-ratio:9/16;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 30px 60px -20px rgba(0,0,0,.75);opacity:0;transform:rotate(var(--r)) scale(var(--s));animation:fly .9s cubic-bezier(.2,.8,.2,1.15) both,bob 6s ease-in-out infinite}
+.st img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.st:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 25%,transparent 60%,rgba(0,0,0,.6))}
+.st-bars{position:absolute;left:8px;right:8px;top:8px;display:flex;gap:3px;z-index:2}
+.st-bars i{flex:1;height:2px;border-radius:2px;background:rgba(255,255,255,.35);position:relative;overflow:hidden}
+.st-bars i:before{content:"";position:absolute;inset:0;width:var(--w,0%);background:#fff}
+.st-who{position:absolute;left:9px;top:16px;z-index:2;display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600}
+.st-who b{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;background:linear-gradient(135deg,var(--peach),var(--lilac))}
+.st-tag{position:absolute;left:50%;top:52%;transform:translateX(-50%) rotate(-4deg);z-index:2;background:#fff;color:#15110f;border-radius:7px;padding:4px 8px;font:700 11.5px Geist,sans-serif;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.st-views{position:absolute;left:9px;bottom:9px;z-index:2;display:flex;align-items:center;gap:4px;font:600 12px Chillax,Geist,sans-serif}
+@keyframes fly{from{opacity:0;transform:translate(var(--fx,40%),var(--fy,30%)) rotate(0) scale(.4)}to{opacity:1;transform:rotate(var(--r)) scale(var(--s))}}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -8px}}
+.big{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);z-index:5;min-width:250px;padding:16px 18px;border-radius:22px;background:rgba(21,17,15,.72);text-align:left}
+.spark{display:block;width:100%;height:30px;margin-top:6px}
+#sparkp{stroke-dasharray:240;stroke-dashoffset:240;animation:draw 3.2s .6s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.pings{position:absolute;right:-6px;top:-8px;z-index:6;display:flex;flex-direction:column;gap:6px;width:250px}
+.ping{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:16px;background:rgba(21,17,15,.78);border:1px solid var(--line);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);font-size:12px;animation:pin .5s cubic-bezier(.2,.8,.2,1.1) both}
+.ping b{font-weight:700}.ping i{width:22px;height:22px;flex:none;border-radius:50%;background:linear-gradient(135deg,var(--peach),var(--lilac))}
+@keyframes pin{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
+.heart{position:absolute;z-index:4;font-size:20px;pointer-events:none;animation:up 2.4s ease-out forwards}
+@keyframes up{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translateY(-120px) scale(1.15)}}
+@media(max-width:600px){.scatter{height:470px}.pings{width:200px;right:0}.ping{font-size:11px}.st-tag{font-size:10px}.big{min-width:220px}}
+
+/* the demo */
+.beats{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.beat{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:14px 16px;cursor:pointer}
+.beat .bar{display:block;height:2.5px;border-radius:2px;background:rgba(255,255,255,.15);overflow:hidden;margin-bottom:10px}
+.beat .bar i{display:block;height:100%;width:0;background:var(--ink)}
+.beat.on .bar i{animation:fill var(--dur,5s) linear forwards}
+.beat.done .bar i{width:100%}
+@keyframes fill{to{width:100%}}
+.beat .bt{display:block;font:600 17px Chillax,Geist,sans-serif;letter-spacing:-.01em}
+.beat .bd{display:none;color:var(--soft);font-size:14px;margin-top:4px}
+.beat.on{background:var(--glass)}.beat.on .bd{display:block}
+.phone{position:relative;width:300px;max-width:100%;aspect-ratio:9/18.5;margin:28px auto 0;border-radius:40px;border:1px solid rgba(255,255,255,.18);background:#1d1815;overflow:hidden;box-shadow:0 50px 120px -30px rgba(0,0,0,.85)}
+.scr{position:absolute;inset:0;padding:54px 20px 20px;opacity:0;transition:opacity .4s;pointer-events:none}
+.scr.on{opacity:1}
+.s1{padding:0}.s1 .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.s1:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.4),transparent 25%,transparent 55%,rgba(0,0,0,.55))}
+.s1 .st-bars,.s1 .st-who,.s1 .st-tag{z-index:3}
+.fake-in{border:1px solid var(--line);border-radius:14px;padding:13px 14px;font-size:16px;background:rgba(255,255,255,.05);min-height:48px}
+.caret{display:inline-block;width:2px;height:18px;background:var(--lilac);vertical-align:-3px;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.chip.hot{background:var(--ink);color:#15110f;border-color:var(--ink)}
+.qrpop{margin-top:18px;text-align:center;opacity:0;transform:scale(.8);transition:all .5s cubic-bezier(.2,.8,.2,1.2)}
+.qrpop.on{opacity:1;transform:none}
+.qrpop img{width:150px;border-radius:16px;background:#fff;padding:8px}
+.qrpop p{font-size:13px;color:var(--soft);margin:8px 0 0}
+.pass{position:absolute;left:16px;right:16px;bottom:18px;z-index:4;border-radius:22px;padding:16px 18px;color:#15110f;background:linear-gradient(110deg,var(--lilac),var(--peach),var(--lime),var(--lilac));background-size:300% 100%;animation:mv 5s linear infinite;transform:translateY(130%);transition:transform .6s cubic-bezier(.2,.8,.2,1.1)}
+.pass.up{transform:none}
+.pass.given{background:var(--lime);animation:none}
+.pass p{margin:0}.pass .pk{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.65}
+.pass .pi{font:600 28px/1 Chillax,Geist,sans-serif;letter-spacing:-.02em;margin-top:6px}
+.pass .ph{font-size:13px;font-weight:600;opacity:.75;margin-top:4px}
+.pass .pg{font-size:12.5px;font-weight:700;margin-top:10px}
+.tap{position:absolute;z-index:5;left:50%;bottom:80px;width:56px;height:56px;margin-left:-28px;border-radius:50%;border:2px solid #fff;opacity:0}
+.tap.go{animation:tap .9s ease-out 2}
+@keyframes tap{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(1.4)}}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.tiles span{aspect-ratio:9/16;border-radius:6px;background-size:cover;background-position:center;animation:pin .35s ease-out both}
 </style>`
-  const script = `const c=document.getElementById("mockclock");const t=()=>c.textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"}).toLowerCase();t();setInterval(t,1000)`
+  const script = `
+var fmt=function(n){return Math.round(n).toLocaleString("en-US")};
+function count(el,to,ms,from){from=from||0;var t0=performance.now();(function f(t){var p=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-p,3);el.textContent=fmt(from+(to-from)*e);if(p<1)requestAnimationFrame(f)})(t0)}
+// the scatter: views tick up, mentions stack, a heart floats now and then
+var cnts=[].slice.call(document.querySelectorAll(".cnt"));var big=document.getElementById("bigcnt");var total=18240;
+cnts.forEach(function(c,i){setTimeout(function(){count(c,+c.dataset.to,2600)},400+i*160)});
+setTimeout(function(){count(big,total,3400)},600);
+setTimeout(function(){setInterval(function(){var c=cnts[Math.floor(Math.random()*cnts.length)];var add=3+Math.floor(Math.random()*24);c.dataset.to=+c.dataset.to+add;c.textContent=fmt(+c.dataset.to);total+=add;big.textContent=fmt(total)},700)},4200);
+var names=["sofi.mtz","juanpa.rv","laura.en.med","cami.ospina","dani_vlz","mateo.runs","vale.gomez","andres_k","isa.travels","nico.mde"];var pings=document.getElementById("pings"),pi=0;
+function ping(){var d=document.createElement("div");d.className="ping";d.innerHTML="<i></i><span><b>"+names[pi++%names.length]+"</b> mentioned you in their story</span>";pings.insertBefore(d,pings.firstChild);while(pings.children.length>3)pings.removeChild(pings.lastChild)}
+setTimeout(function(){ping();setInterval(ping,1700)},1200);
+var sc=document.querySelector(".scatter");setInterval(function(){var s=document.querySelectorAll(".st");var c=s[Math.floor(Math.random()*s.length)];if(!c)return;var h=document.createElement("span");h.className="heart";h.textContent=["❤️","🔥","😍","🙌"][Math.floor(Math.random()*4)];h.style.left=(c.offsetLeft+c.offsetWidth*.6)+"px";h.style.top=(c.offsetTop+c.offsetHeight*.7)+"px";sc.appendChild(h);setTimeout(function(){h.remove()},2500)},900);
+// the demo: three beats on a loop, like stories
+var beats=[].slice.call(document.querySelectorAll(".beat")),scrs=[].slice.call(document.querySelectorAll(".scr")),cur=0,timer=null,DUR=5200,run=[];
+run[0]=function(){var el=document.getElementById("typed"),txt="a free smoothie",i=0;el.textContent="";document.getElementById("c50").classList.remove("hot");document.getElementById("qrpop").classList.remove("on");
+ var iv=setInterval(function(){el.textContent=txt.slice(0,++i);if(i>=txt.length){clearInterval(iv);setTimeout(function(){document.getElementById("c50").classList.add("hot")},350);setTimeout(function(){document.getElementById("qrpop").classList.add("on")},1000)}},75)};
+run[1]=function(){var p=document.getElementById("pass"),g=document.getElementById("pg"),tap=document.getElementById("tap");p.classList.remove("up","given");g.textContent="staff: double tap";tap.classList.remove("go");
+ setTimeout(function(){p.classList.add("up")},700);setTimeout(function(){void tap.offsetWidth;tap.classList.add("go")},2100);setTimeout(function(){p.classList.add("given");p.querySelector(".pk").textContent="given";g.textContent="✓ enjoy it · 9:41 pm"},3000)};
+run[2]=function(){var imgs=["hero","bar","yoga2","party","cafe2","run","cafe","yoga"],t=document.getElementById("tiles");t.innerHTML="";document.getElementById("pass").querySelector(".pk").textContent="unlocked";count(document.getElementById("wk"),18240,3600);count(document.getElementById("wkn"),46,3600);
+ for(var i=0;i<20;i++)(function(i){setTimeout(function(){var s=document.createElement("span");s.style.backgroundImage="url(/getty/"+imgs[i%imgs.length]+".jpg)";t.appendChild(s)},i*160)})(i)};
+function go(i){cur=i;beats.forEach(function(b,j){b.classList.toggle("on",j===i);b.classList.toggle("done",j<i);var bar=b.querySelector(".bar i");bar.style.animation="none";void bar.offsetWidth;bar.style.animation=""});scrs.forEach(function(s,j){s.classList.toggle("on",j===i)});run[i]();clearTimeout(timer);timer=setTimeout(function(){go((cur+1)%3)},DUR)}
+beats.forEach(function(b,i){b.addEventListener("click",function(){go(i)})});
+document.documentElement.style.setProperty("--dur",DUR+"ms");
+var started=false,io=new IntersectionObserver(function(es){if(es[0].isIntersecting&&!started){started=true;go(0)}},{threshold:.3});io.observe(document.getElementById("demo"));`
   return glass("getty by irlpass", body, {
     wide: true,
     script,
-    head: `<meta name="description" content="guests post a story tagging you, staff check it at the counter, they get the perk. 20 stories a month free.">
+    head: `<meta name="description" content="guests post a story tagging you, staff check it at the counter, they get the perk you pick. 20 stories a month free.">
 <meta property="og:title" content="your guests are the best influencers you'll ever book">
-<meta property="og:description" content="story perks for bars, cafes and clubs. 20 stories a month free.">`,
+<meta property="og:description" content="story perks for bars, cafés, studios and clubs. 20 stories a month free.">
+<meta property="og:image" content="${GETTY}/getty/hero.jpg">`,
   })
 }
 
@@ -353,7 +483,7 @@ async function printPage(v, e) {
   const qr = await QRCode.toDataURL(link, { width: 900, margin: 1, color: { dark: "#15110f", light: "#ffffff" } })
   const body = `<div style="text-align:center;padding:20px 0">
   <span class="tag">${esc(v.name)}</span>
-  <p class="serif" style="font-size:54px;line-height:.98;margin:22px 0 10px">post a story,<br>get <em style="color:var(--lilac)">${esc(e.perk.item)}</em></p>
+  <p class="serif" style="font-size:54px;line-height:.98;margin:22px 0 10px">post a story,<br>get <em>${esc(e.perk.item)}</em></p>
   <p class="soft" style="font-size:17px;margin:0 0 22px">tag @${esc(v.instagram || "")} + @irlpass.xyz, then scan</p>
   <img src="${qr}" alt="qr code" style="width:300px;max-width:80%;border-radius:22px;background:#fff;padding:14px">
   <p class="faint" style="margin-top:18px;font-size:13px">no app needed · show your story at the counter</p>
@@ -474,7 +604,7 @@ export default async function handler(req, res) {
         const flash = req.query?.session_id ? await bought(v, String(req.query.session_id)) : ""
         return send(res, await dashPage(v, e, flash))
       }
-      return send(res, landing(), "public, max-age=300")
+      return send(res, await landing(), "public, max-age=300")
     }
     if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" })
     const b = req.body || {}

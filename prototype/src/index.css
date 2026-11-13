@@ -38,9 +38,11 @@ textarea {
 }
 
 /* quote/editorial accent only */
+/* big friendly titles: rounded, bubbly, never italic */
 .serif-display {
-  font-family: var(--font-serif);
-  letter-spacing: -0.015em;
+  font-family: "Chillax", var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.035em;
 }
 
 /* primary display voice — chunky gen-z grotesque */
