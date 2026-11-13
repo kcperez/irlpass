@@ -4,10 +4,9 @@ import { MoreList } from "../lib/more"
 import { cachedJson, prefetch } from "../lib/cached"
 import { motion, AnimatePresence, MotionConfig, useDragControls } from "framer-motion"
 import {
-  CalendarPlus,
+  Compass,
   CaretDown,
   Plus,
-  UsersThree,
   ChatsCircle,
   ArrowLeft,
   PaperPlaneRight,
@@ -21,6 +20,7 @@ import {
 import QRCode from "qrcode"
 import { Logo } from "../components/bits"
 import { useDesktop } from "../lib/useDesktop"
+import City from "./City"
 import CityPicker from "../components/CityPicker"
 import { t, LANG } from "../lib/i18n"
 import Trips from "./Trips"
@@ -2322,8 +2322,8 @@ export default function Club({ token }) {
   const [tab, setTab] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("dm")) return "dms"
-    const wanted = { chat: "dms", people: "members", dates: "trips", mood: "mood", events: "events" }[p.get("tab")]
-    return wanted || "events"
+    const wanted = { chat: "dms", people: "members", dates: "trips", mood: "mood", events: "events", city: "city" }[p.get("tab")]
+    return wanted || "city"
   })
   const [activeChat, setActiveChat] = useState(null)
   const [dmWith, setDmWith] = useState(() => {
@@ -2652,9 +2652,10 @@ export default function Club({ token }) {
   // josh's funnel order: the two discovery tabs lead, chat is the pipe, mood is lightest
   // events first (nov 12): what's on leads, everything else follows from going
   const TABS = [
+    // city = your travel pack + ask anything; events = the feed; chat. dates and
+    // people live inside city now (your dates chip, "who's here"), not as tabs.
+    { key: "city", label: t("city"), icon: Compass },
     { key: "events", label: t("events"), icon: Ticket },
-    { key: "trips", label: t("dates"), icon: CalendarPlus },
-    { key: "members", label: t("people"), icon: UsersThree },
     { key: "dms", label: t("chat"), icon: ChatsCircle },
     // mood is gone from the bar: events covers what's on, and "down to hang /
     // i'm out now" moved to the top of people. a tapped spot still opens it.
@@ -2752,6 +2753,10 @@ export default function Club({ token }) {
             onBack={() => setCityRoom(null)}
             onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }}
           />
+        )}
+        {!cityRoom && tab === "city" && <City token={token} me={me} city={viewing} onOpenEvent={eventLink.open} onGoEvents={() => setTab("events")} onEditDates={() => setTab("trips")} onOpenPeople={() => setTab("members")} />}
+        {!cityRoom && (tab === "trips" || tab === "members") && (
+          <button onClick={() => setTab("city")} className="mx-5 mt-3 flex w-fit items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[12.5px] font-bold">← {String(cityChip(viewing).name || viewing).toLowerCase()}</button>
         )}
         {!cityRoom && tab === "events" && !spotRoom && <Events token={token} me={me} city={viewing} onPickCity={() => setPickCity(true)} onOpenRoom={setSpotRoom} onProfile={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} profileDot={profileNew} onCityMoved={() => fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {})} />}
         {!cityRoom && tab === "mood" && !spotRoom && <Mood token={token} me={me} city={planCity || me.city} onOpenRoom={setSpotRoom} focusSpot={focusSpot} onFocused={() => setFocusSpot(null)} onBuyRide={buyRide} planWith={planWith} onPlanDone={() => { setPlanWith(null); setPlanCity(null) }} onCityMoved={() => { setPlanCity(null); setPlanWith(null); fetch(`/api/me?t=${token}`).then((r) => r.json()).then((m) => m?.memberNo && setMe(m)).catch(() => {}) }} onPaywall={setPaywall} />}
