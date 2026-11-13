@@ -1580,6 +1580,19 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
   const [chatMenu, setChatMenu] = useState(null)
   const [, bumpChats] = useState(0)
   const chatPress = useLongPress((th) => setChatMenu(th), 420, (th) => setOpenWith(th.with))
+  // your event chats: every event you're going to
+  const [evChats, setEvChats] = useState(null)
+  const [evMenu, setEvMenu] = useState(null)
+  const loadEvChats = useCallback(() => {
+    fetch(`/api/events?t=${token}&mine=1&lang=${LANG}`).then((r) => r.json()).then((d) => setEvChats(d.chats || [])).catch(() => setEvChats([]))
+  }, [token])
+  useEffect(() => { if (!openWith) loadEvChats() }, [openWith, loadEvChats])
+  const evSeen = (ch) => { try { return Number(localStorage.getItem(`irlpass_seen_${ch}`)) || 0 } catch { return 0 } }
+  const leaveEvent = async (c) => {
+    setEvMenu(null)
+    setEvChats((l) => (l || []).filter((x) => x.id !== c.id))
+    await fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, id: c.id, going: false }) }).catch(() => {})
+  }
 
   const loadConvo = useCallback((no) => {
     return fetch(`/api/dm?t=${token}&with=${no}`)
@@ -1935,6 +1948,35 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
         )}
       </div>
 
+      {evChats?.length > 0 && (
+        <>
+          <p className="mt-5 px-1 text-[12px] font-semibold text-ink-soft">{t("your events")}</p>
+          <div className="mt-1.5 divide-y divide-line/60 overflow-hidden rounded-[1.25rem] bg-white">
+            {evChats.map((c) => {
+              const unread = c.last && c.last.from !== "you" && Number(c.last.id) > evSeen(c.channel)
+              return (
+                <div key={c.id} className="group flex items-center">
+                  <button onClick={() => onOpenRoom?.({ slug: c.channel, title: c.title })} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/40">
+                    <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[0.8rem] bg-lime">{c.cover && <img src={c.cover} alt="" className="h-full w-full object-cover" />}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14.5px] font-semibold leading-tight">{c.title}</p>
+                      <p className={`truncate text-[12px] ${unread ? "font-semibold text-ink" : "text-ink-soft"}`}>
+                        {c.last ? `${c.last.from}: ${c.last.text}` : `${t("starts")} ${new Date(c.startsAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }).toLowerCase()} · ${t("say hi first")}`}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {c.last && <span className="tabular-nums text-[9.5px] text-ink-soft">{msgTime(c.last.at)}</span>}
+                      {unread && <span className="h-2.5 w-2.5 rounded-full bg-lime" />}
+                    </div>
+                  </button>
+                  <button onClick={() => setEvMenu(c)} aria-label={t("options")} className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-ink/5 lg:opacity-0 lg:group-hover:opacity-100">⋯</button>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
       <p className="mt-5 px-1 text-[12px] font-semibold text-ink-soft">{t("messages")}</p>
       {me.memberNo !== "002" && (
         <button
@@ -1977,7 +2019,9 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             step={15}
             resetKey={inboxQ}
             render={(th) => (
-            <button key={th.with.memberNo} {...chatPress(th)} className="bubble flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/30">
+            <div key={th.with.memberNo} className="group relative">
+            <button onClick={(e) => { e.stopPropagation(); setChatMenu(th) }} aria-label={t("options")} className="absolute right-2 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-cream text-ink-soft lg:flex lg:opacity-0 lg:group-hover:opacity-100">⋯</button>
+            <button {...chatPress(th)} className="bubble flex w-full items-center gap-3 px-4 py-3 text-left active:bg-cream-deep/30">
               <Avatar member={th.with} photo={photoMap[th.with.memberNo]} />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight">{th.with.name.toLowerCase()} <RepBadge score={th.with.repScore} verified={th.with.verified} /></p>
@@ -1988,11 +2032,29 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
                 {th.unread > 0 && <span className="rounded-full bg-lime px-2 py-0.5 tabular-nums text-[10px] font-semibold text-ink">{th.unread}</span>}
               </div>
             </button>
+            </div>
           )}
           />
         </div>
         </>
       )}
+      <AnimatePresence>
+        {evMenu && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEvMenu(null)} className="fixed inset-0 z-[55] bg-ink/40 backdrop-blur-[2px]" />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 420, damping: 36 }}
+              className="fixed inset-x-0 bottom-0 z-[56] mx-auto max-w-[460px] rounded-t-[1.75rem] bg-cream pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5">
+              <div className="mx-auto h-1.5 w-10 rounded-full bg-line" />
+              <p className="mt-3 truncate px-5 text-[15px] font-bold">{evMenu.title}</p>
+              <div className="mt-2 divide-y divide-line/60 border-t border-line/60">
+                <button onClick={() => { onOpenRoom?.({ slug: evMenu.channel, title: evMenu.title }); setEvMenu(null) }} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold">💬 {t("open chat")}</button>
+                <button onClick={() => leaveEvent(evMenu)} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold text-[#ff6b5a]">🚪 {t("leave chat (not going)")}</button>
+                <button onClick={() => setEvMenu(null)} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] font-semibold text-ink-soft">{t("cancel")}</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {chatMenu && (
           <>
@@ -2578,7 +2640,8 @@ export default function Club({ token }) {
     { key: "trips", label: t("dates"), icon: CalendarPlus },
     { key: "members", label: t("people"), icon: UsersThree },
     { key: "dms", label: t("chat"), icon: ChatsCircle },
-    { key: "mood", label: t("mood"), icon: Sparkle },
+    // mood is gone from the bar: events covers what's on, and "down to hang /
+    // i'm out now" moved to the top of people. a tapped spot still opens it.
   ]
   // on a computer these tabs are drawn a size up, so text matches the events page
   const wide = { members: "lg:max-w-[980px]", dms: "lg:max-w-[980px]" }[tab] || "lg:max-w-[640px]"
@@ -2649,7 +2712,7 @@ export default function Club({ token }) {
             token={token}
             me={me}
             channel={cityRoom.slug}
-            title={`${cityRoom.emoji}  ${cityRoom.name} ${t("chat")}`}
+            title={cityRoom.title || `${cityRoom.emoji}  ${cityRoom.name} ${t("chat")}`}
             onBuyRide={buyRide}
             photoMap={photoMap}
             onOpenPerson={setPersonNo}
@@ -2680,7 +2743,7 @@ export default function Club({ token }) {
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
               {cityRoom ? (
-                <Thread key={cityRoom.slug} token={token} me={me} channel={cityRoom.slug} title={`${cityRoom.emoji}  ${cityRoom.name} ${t("chat")}`} onBuyRide={buyRide} photoMap={photoMap} onOpenPerson={setPersonNo}
+                <Thread key={cityRoom.slug} token={token} me={me} channel={cityRoom.slug} title={cityRoom.title || `${cityRoom.emoji}  ${cityRoom.name} ${t("chat")}`} onBuyRide={buyRide} photoMap={photoMap} onOpenPerson={setPersonNo}
                   onNeedDates={(c) => { setCityRoom(null); setTab("trips"); setPostCity(c) }} onBack={() => setCityRoom(null)}
                   onSeen={(lastId) => { try { if (lastId) localStorage.setItem(`irlpass_seen_${cityRoom.slug}`, String(lastId)) } catch { /* private mode */ } }} />
               ) : dmWith ? (

@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react"
+import HangNow from "../components/HangNow"
 import { SpotLink } from "../lib/spotlink"
 import { cachedJson } from "../lib/cached"
 import { CircleNotch, LockSimple, CheckCircle } from "@phosphor-icons/react"
@@ -134,6 +135,7 @@ export default function Around({ token, me, onOpenDM, onMakePlan, onOpenPerson, 
 
   return (
     <div className="px-5 pb-28 pt-4">
+      {city === (me.city || "medellin") && <HangNow token={token} city={city} />}
       <div className="flex items-baseline justify-between">
         <button onClick={() => setPicking((p) => !p)} className="flex items-baseline gap-1.5">
           <h2 className="display text-[30px] font-bold">{cityChip(city).name.toLowerCase()}</h2>

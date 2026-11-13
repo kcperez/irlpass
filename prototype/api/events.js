@@ -77,6 +77,27 @@ export default async function handler(req, res) {
         if (!e) return res.status(404).json({ error: "that event is gone" })
         return res.status(200).json({ event: (await withGoing([e], me, lang))[0] })
       }
+      // the event chats you're in: every event you said you're going to, newest
+      // talk first, for the chat tab
+      if (req.query?.mine) {
+        const { data: mine } = await db.from("event_going").select("event_id").eq("member_no", me.memberNo).limit(200)
+        const ids = (mine || []).map((g) => g.event_id)
+        if (!ids.length) return res.status(200).json({ chats: [] })
+        const since = new Date(Date.now() - 2 * 864e5).toISOString()
+        const { data: evs } = await db.from("events").select("id, title, titles, cover, starts_at, ends_at, city, venue").in("id", ids).eq("hidden", false).or(`starts_at.gte.${since},ends_at.gte.${since}`)
+        const chans = (evs || []).map((e) => `ev-${e.id}`)
+        const { data: msgs } = chans.length ? await db.from("messages").select("id, channel, body, from_name, from_member_no, created_at").in("channel", chans).order("created_at", { ascending: false }).limit(400) : { data: [] }
+        const last = {}
+        for (const m of msgs || []) if (!last[m.channel]) last[m.channel] = m
+        const chats = (evs || []).map((e) => {
+          const m = last[`ev-${e.id}`]
+          return {
+            id: e.id, channel: `ev-${e.id}`, title: (e.titles && e.titles[lang]) || e.title, cover: e.cover, startsAt: e.starts_at, city: e.city, venue: e.venue,
+            last: m ? { id: m.id, text: m.body, from: m.from_member_no === me.memberNo ? "you" : first(m.from_name).toLowerCase(), at: m.created_at } : null,
+          }
+        }).sort((a, b) => Date.parse(b.last?.at || 0) - Date.parse(a.last?.at || 0) || Date.parse(a.startsAt) - Date.parse(b.startsAt))
+        return res.status(200).json({ chats })
+      }
       const city = String(req.query?.city || me.city || "medellin")
       const from = new Date(Date.now() - 3 * 3600e3).toISOString()
       const to = new Date(Date.now() + 14 * 864e5).toISOString()
