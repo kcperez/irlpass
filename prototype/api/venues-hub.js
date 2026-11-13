@@ -42,22 +42,51 @@ async function perkEvent(v) {
 
 // ---------- pages ----------
 
-function passMock() {
-  return `<div class="rise" style="animation-delay:.15s;position:relative;max-width:340px;margin:0 auto">
-  <div class="card" style="padding:14px;border-radius:30px">
-    <div style="display:flex;align-items:center;gap:10px;padding:4px 4px 12px">
-      <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--peach),var(--lilac))"></span>
-      <div style="line-height:1.2"><b style="font-size:14px">@sofi.mtz</b><br><span class="faint" style="font-size:12px">mentioned you in their story</span></div>
+// the hero: a guest's story (a real photo, instagram chrome) with the pass
+// sliding in front of it. what the venue gets, at a glance.
+function storyMock() {
+  return `<div class="rise hero-art" style="animation-delay:.15s;position:relative;max-width:380px;width:100%;margin:0 auto">
+  <div style="position:relative;aspect-ratio:9/16;border-radius:34px;overflow:hidden;box-shadow:0 40px 100px -30px rgba(0,0,0,.8);border:1px solid var(--line);transform:rotate(2deg)">
+    <img src="/getty/hero.jpg" alt="friends taking a selfie at an event" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 22%,transparent 65%,rgba(0,0,0,.55))"></div>
+    <div style="position:absolute;left:12px;right:12px;top:12px;display:flex;gap:4px">${[1, 1, 0.5, 0].map((f) => `<span style="flex:1;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35);overflow:hidden"><span style="display:block;height:100%;width:${f * 100}%;background:#fff"></span></span>`).join("")}</div>
+    <div style="position:absolute;left:14px;top:26px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
+      <span style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:linear-gradient(135deg,var(--peach),var(--lilac))"></span>sofi.mtz <span style="opacity:.7;font-weight:500">2m</span>
     </div>
-    <div style="border-radius:22px;padding:22px;color:#15110f;background:linear-gradient(110deg,var(--lilac),var(--peach),var(--lime),var(--lilac));background-size:300% 100%;animation:mv 5s linear infinite">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.7">show this + your story</p>
-      <p class="serif" style="margin:8px 0 4px;font-size:36px;line-height:1">a free smoothie</p>
-      <p style="margin:0;font-size:20px;font-weight:700">@sofi.mtz</p>
-      <p class="num" id="mockclock" style="margin:10px 0 0;font-size:28px">9:41:07 pm</p>
+    <span style="position:absolute;left:50%;top:58%;transform:translateX(-50%) rotate(-4deg);background:#fff;color:#15110f;border-radius:10px;padding:8px 14px;font:700 17px Geist,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35);white-space:nowrap">@yourplace</span>
+  </div>
+  <div class="card" style="position:absolute;left:-34px;bottom:-26px;width:230px;padding:10px;border-radius:24px;transform:rotate(-5deg);background:rgba(21,17,15,.7)">
+    <div style="border-radius:17px;padding:14px 16px;color:#15110f;background:linear-gradient(110deg,var(--lilac),var(--peach),var(--lime),var(--lilac));background-size:300% 100%;animation:mv 5s linear infinite">
+      <p style="margin:0;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.7">show this + your story</p>
+      <p class="serif" style="margin:5px 0 2px;font-size:25px;line-height:1">a free smoothie</p>
+      <p class="num" id="mockclock" style="margin:4px 0 0;font-size:18px">9:41:07 pm</p>
     </div>
-    <p class="faint" style="text-align:center;font-size:12.5px;margin:12px 0 2px">staff double tap after they see the story</p>
+  </div>
+  <div class="card" style="position:absolute;right:-22px;top:18%;padding:10px 14px;border-radius:18px;font-size:13px;display:flex;align-items:center;gap:8px;background:rgba(21,17,15,.7)">
+    <span style="width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)"></span><span><b>+1 story</b> <span class="soft">· 1.2k saw it</span></span>
   </div>
 </div>`
+}
+
+// a no-brainer: their kind of place, their perk, already working
+const USES = [
+  ["yoga2", "wellness studio", "bring a friend free", "a class full of people posting the studio they love"],
+  ["cafe2", "café", "a free oat latte", "every morning regular tells their friends where to go"],
+  ["bar", "cocktail bar", "a round of shots", "the table tags you before the first drink is gone"],
+  ["run", "run club", "a smoothie after", "fifty runners, fifty stories, every sunday"],
+  ["party", "club night", "skip the line", "the line becomes your best promo"],
+  ["cafe", "brunch spot", "a free pastry", "two friends, two stories, a full saturday"],
+]
+function uses() {
+  return USES.map(([img, kind, perk, line]) => `<figure class="use" style="margin:0;position:relative;aspect-ratio:4/5;border-radius:26px;overflow:hidden;border:1px solid var(--line)">
+  <img src="/getty/${img}.jpg" alt="${esc(kind)}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.85) contrast(1.05);transition:transform .6s">
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,17,15,.1) 30%,rgba(21,17,15,.88))"></div>
+  <figcaption style="position:absolute;left:16px;right:16px;bottom:16px">
+    <span class="tag" style="background:rgba(21,17,15,.45);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--ink)">${esc(kind)}</span>
+    <p class="serif" style="font-size:30px;line-height:1.02;margin:10px 0 6px">1 story = ${esc(perk)}</p>
+    <p class="soft" style="margin:0;font-size:13.5px">${esc(line)}</p>
+  </figcaption>
+</figure>`).join("")
 }
 
 function landing() {
@@ -75,7 +104,13 @@ function landing() {
     </div>
     <p class="faint" style="font-size:13px;margin-top:14px">20 stories a month on us. no app for your guests.</p>
   </div>
-  ${passMock()}
+  ${storyMock()}
+</section>
+
+<section style="padding:30px 0 48px">
+  <span class="tag" style="--dot:var(--peach)">works for any place people love</span>
+  <h2 style="margin-top:14px">pick yours. it's live tonight.</h2>
+  <div class="usegrid" style="display:grid;gap:12px">${uses()}</div>
 </section>
 
 <section id="how" style="padding:24px 0 48px">
@@ -120,7 +155,15 @@ function landing() {
   <a class="btn" href="/venues/start" style="margin-top:8px">set it up</a>
 </section>
 <p class="faint" style="text-align:center;font-size:12px;margin-top:28px">irlpass · <a href="/" class="faint">meet people where you are</a></p>
-<style>@media(min-width:860px){.hero{grid-template-columns:1.25fr 1fr}.duo{grid-template-columns:1fr 1fr}}</style>`
+<style>
+.usegrid{grid-auto-flow:column;grid-auto-columns:78%;overflow-x:auto;scroll-snap-type:x mandatory;margin:20px 0 0;padding:0 0 6px;scrollbar-width:none}
+.usegrid::-webkit-scrollbar{display:none}.usegrid>*{scroll-snap-align:start}
+@media(min-width:700px){.usegrid{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(3,1fr);overflow:visible;margin:20px 0 0;padding:0}}
+.use:hover img{transform:scale(1.04)}
+.hero-art{margin-bottom:30px}
+@media(min-width:860px){.hero{grid-template-columns:1.2fr 1fr}.duo{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.hero-art{max-width:300px}}
+</style>`
   const script = `const c=document.getElementById("mockclock");const t=()=>c.textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"}).toLowerCase();t();setInterval(t,1000)`
   return glass("getty by irlpass", body, {
     wide: true,
