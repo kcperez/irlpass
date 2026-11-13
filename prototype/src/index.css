@@ -11,9 +11,9 @@
   --color-cream-deep: #efe8df;
   --color-ink: #3a322c;
   --color-ink-soft: #837a70;
-  --color-lime: #ddd0f6;
-  --color-lime-deep: #c7b4ee;
-  --color-peach: #f8d9c6;
+  --color-lime: #4a66ff;
+  --color-lime-deep: #8fa0ff;
+  --color-peach: #c9d2ff;
   --color-plum: #4a3f52;
   --color-line: #e3dad0;
 }
@@ -193,7 +193,7 @@ html.irl-dark {
   --color-ink: #f4eee7;
   --color-ink-soft: rgba(244, 238, 231, 0.6);
   --color-line: rgba(255, 255, 255, 0.12);
-  --color-plum: #ddd0f6;
+  --color-plum: #8fa0ff;
   color-scheme: dark;
 }
 html.irl-dark,
@@ -202,8 +202,8 @@ html.irl-dark body {
 }
 html.irl-dark .wash {
   background:
-    radial-gradient(50% 40% at 12% 4%, rgba(221, 208, 246, 0.16) 0%, transparent 70%),
-    radial-gradient(46% 38% at 92% 18%, rgba(248, 217, 198, 0.1) 0%, transparent 70%),
+    radial-gradient(50% 40% at 12% 4%, rgba(74, 102, 255, 0.18) 0%, transparent 70%),
+    radial-gradient(46% 38% at 92% 18%, rgba(143, 160, 255, 0.08) 0%, transparent 70%),
     #15110f;
 }
 /* white cards become frosted glass */
@@ -220,13 +220,9 @@ html.irl-dark .border-white\/80,
 html.irl-dark .border-white\/70 {
   border-color: rgba(255, 255, 255, 0.12);
 }
-/* light fills: text on them stays dark */
-html.irl-dark .bg-lime,
-html.irl-dark .bg-lime-deep,
+/* the brand fill (cobalt) carries white text; the pale fill keeps dark text */
 html.irl-dark .bg-peach,
-html.irl-dark .bg-lime .text-ink,
 html.irl-dark .bg-peach .text-ink,
-html.irl-dark .bg-lime .text-ink-soft,
 html.irl-dark .bg-peach .text-ink-soft {
   color: #15110f;
 }
@@ -242,4 +238,12 @@ html.irl-dark textarea::placeholder {
 html.irl-dark .grain::after {
   opacity: 0.08;
   mix-blend-mode: overlay;
+}
+
+/* cobalt is the brand: whatever sits on it is white, light or dark mode */
+.bg-lime,
+.bg-lime .text-ink,
+.bg-lime .text-ink-soft,
+.bg-lime-deep {
+  color: #fff;
 }

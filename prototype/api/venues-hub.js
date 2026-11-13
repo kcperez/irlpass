@@ -27,8 +27,11 @@ const GETTY = "https://getty.irlpass.xyz"
 const dashUrl = (k) => `${GETTY}/g/${k}`
 const usd = (c) => `$${Math.round(c / 100)}`
 
+// the mark: a cobalt app tile holding a story ring (someone posted), like an icon on a home screen
+const RING = `<svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#4a66ff"/><circle cx="16" cy="16" r="8.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-dasharray="44 8" stroke-linecap="round" transform="rotate(-60 16 16)"/><circle cx="16" cy="16" r="3.4" fill="#fff"/></svg>`
+const MARK = `<span class="mark">${RING}</span>`
 const NAV = (right = `<a class="btn ghost" href="${GETTY}/in" style="padding:10px 16px;font-size:14px">sign in</a>`) =>
-  `<nav class="nav"><a class="logo" href="${GETTY}/">getty<span>by irlpass</span></a>${right}</nav>`
+  `<nav class="nav"><a class="logo" href="${GETTY}/">${MARK}getty<span>by irlpass</span></a>${right}</nav>`
 
 async function byToken(k) {
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(String(k || ""))) return null
@@ -46,18 +49,16 @@ async function perkEvent(v) {
 // the hero: not one story, a whole night of them. stories fly in, each with
 // its own view count ticking, mentions stack up, one big number climbs.
 const STORIES = [
-  ["hero", "sofi.mtz", 2140, 6, 4, -7, 1],
-  ["bar", "juanpa.rv", 1380, 54, 0, 5, 0.92],
-  ["yoga2", "laura.en.med", 960, 30, 34, -3, 1.08],
-  ["party", "cami.ospina", 3120, 68, 40, 8, 0.96],
-  ["cafe2", "dani_vlz", 840, 2, 52, 4, 0.9],
-  ["run", "mateo.runs", 1720, 40, 66, -6, 0.86],
+  ["hero", "sofi.mtz", 0, 2140, 2, 6, -6, 1],
+  ["bar", "juanpa.rv", 1, 1380, 54, 0, 5, 0.95],
+  ["party", "cami.ospina", 6, 3120, 60, 40, 7, 0.98],
+  ["cafe2", "dani_vlz", 3, 840, 10, 46, -4, 0.94],
 ]
 function scatter() {
-  const card = ([img, who, views, x, y, r, s], i) => `<div class="st" style="left:${x}%;top:${y}%;--r:${r}deg;--s:${s};animation-delay:${0.15 + i * 0.16}s,${1.2 + i * 0.3}s">
+  const card = ([img, who, face, views, x, y, r, s], i) => `<div class="st" style="left:${x}%;top:${y}%;--r:${r}deg;--s:${s};animation-delay:${0.15 + i * 0.16}s,${1.2 + i * 0.3}s">
     <img src="/getty/${img}.jpg" alt="" loading="${i < 3 ? "eager" : "lazy"}">
     <span class="st-bars"><i style="--w:100%"></i><i style="--w:${40 + i * 9}%"></i><i></i></span>
-    <span class="st-who"><b></b>${who}</span>
+    <span class="st-who"><b style="background-image:url(/getty/pfp/${face}.jpg)"></b>${who}</span>
     <span class="st-tag">@yourplace</span>
     <span class="st-views"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg><span class="cnt" data-to="${views}">0</span></span>
   </div>`
@@ -68,7 +69,7 @@ function scatter() {
     <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">people who saw your place</p>
     <p class="num" style="margin:4px 0 0;font-size:44px;line-height:1"><span id="bigcnt">0</span></p>
     <svg viewBox="0 0 200 40" class="spark"><path id="sparkp" d="M0 38 C40 36 60 33 90 28 S150 12 200 2" fill="none" stroke="var(--lime)" stroke-width="2.5" stroke-linecap="round"/></svg>
-    <p class="soft" style="margin:2px 0 0;font-size:12.5px">from 46 guest stories this week</p>
+    <p class="soft" style="margin:2px 0 0;font-size:12.5px;display:flex;align-items:center;gap:8px"><span class="faces">${[0, 1, 6, 3, 8].map((f) => `<i style="background-image:url(/getty/pfp/${f}.jpg)"></i>`).join("")}</span>from 46 guest stories this week</p>
   </div>
 </div>`
 }
@@ -98,7 +99,7 @@ async function demo() {
     <div class="scr s1">
       <img src="/getty/cafe2.jpg" alt="" class="bg">
       <span class="st-bars" style="top:12px"><i style="--w:100%"></i><i style="--w:60%"></i></span>
-      <span class="st-who" style="top:24px"><b></b>dani_vlz</span>
+      <span class="st-who" style="top:24px"><b style="background-image:url(/getty/pfp/3.jpg)"></b>dani_vlz</span>
       <span class="st-tag" style="top:46%;font-size:17px">@yourplace</span>
       <div class="pass" id="pass">
         <p class="pk">unlocked</p>
@@ -209,25 +210,26 @@ ${await demo()}
 
 /* the scatter */
 .scatter{position:relative;height:560px;max-width:600px;width:100%;margin:0 auto}
-.st{position:absolute;width:31%;aspect-ratio:9/16;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 30px 60px -20px rgba(0,0,0,.75);opacity:0;transform:rotate(var(--r)) scale(var(--s));animation:fly .9s cubic-bezier(.2,.8,.2,1.15) both,bob 6s ease-in-out infinite}
+.st{position:absolute;width:35%;aspect-ratio:9/16;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 30px 60px -20px rgba(0,0,0,.75);opacity:0;transform:rotate(var(--r)) scale(var(--s));animation:fly .9s cubic-bezier(.2,.8,.2,1.15) both,bob 6s ease-in-out infinite}
 .st img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .st:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 25%,transparent 60%,rgba(0,0,0,.6))}
 .st-bars{position:absolute;left:8px;right:8px;top:8px;display:flex;gap:3px;z-index:2}
 .st-bars i{flex:1;height:2px;border-radius:2px;background:rgba(255,255,255,.35);position:relative;overflow:hidden}
 .st-bars i:before{content:"";position:absolute;inset:0;width:var(--w,0%);background:#fff}
 .st-who{position:absolute;left:9px;top:16px;z-index:2;display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600}
-.st-who b{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;background:linear-gradient(135deg,var(--peach),var(--lilac))}
+.st-who b{width:17px;height:17px;border-radius:50%;border:1.5px solid #fff;background:#333 center/cover}
 .st-tag{position:absolute;left:50%;top:52%;transform:translateX(-50%) rotate(-4deg);z-index:2;background:#fff;color:#15110f;border-radius:7px;padding:4px 8px;font:700 11.5px Geist,sans-serif;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .st-views{position:absolute;left:9px;bottom:9px;z-index:2;display:flex;align-items:center;gap:4px;font:600 12px Chillax,Geist,sans-serif}
 @keyframes fly{from{opacity:0;transform:translate(var(--fx,40%),var(--fy,30%)) rotate(0) scale(.4)}to{opacity:1;transform:rotate(var(--r)) scale(var(--s))}}
 @keyframes bob{0%,100%{translate:0 0}50%{translate:0 -8px}}
 .big{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);z-index:5;min-width:250px;padding:16px 18px;border-radius:22px;background:rgba(21,17,15,.72);text-align:left}
+.faces{display:flex}.faces i{width:20px;height:20px;border-radius:50%;margin-left:-6px;border:2px solid #1d1815;background:#333 center/cover}.faces i:first-child{margin-left:0}
 .spark{display:block;width:100%;height:30px;margin-top:6px}
 #sparkp{stroke-dasharray:240;stroke-dashoffset:240;animation:draw 3.2s .6s ease-out forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
 .pings{position:absolute;right:-6px;top:-8px;z-index:6;display:flex;flex-direction:column;gap:6px;width:250px}
 .ping{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:16px;background:rgba(21,17,15,.78);border:1px solid var(--line);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);font-size:12px;animation:pin .5s cubic-bezier(.2,.8,.2,1.1) both}
-.ping b{font-weight:700}.ping i{width:22px;height:22px;flex:none;border-radius:50%;background:linear-gradient(135deg,var(--peach),var(--lilac))}
+.ping b{font-weight:700}.ping i{width:26px;height:26px;flex:none;border-radius:50%;background:#333 center/cover;box-shadow:0 0 0 2px var(--lime)}
 @keyframes pin{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
 .heart{position:absolute;z-index:4;font-size:20px;pointer-events:none;animation:up 2.4s ease-out forwards}
 @keyframes up{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translateY(-120px) scale(1.15)}}
@@ -253,14 +255,14 @@ ${await demo()}
 .fake-in{border:1px solid var(--line);border-radius:14px;padding:13px 14px;font-size:16px;background:rgba(255,255,255,.05);min-height:48px}
 .caret{display:inline-block;width:2px;height:18px;background:var(--lilac);vertical-align:-3px;margin-left:1px;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.chip.hot{background:var(--ink);color:#15110f;border-color:var(--ink)}
+.chip.hot{background:var(--lime);color:#fff;border-color:var(--lime)}
 .qrpop{margin-top:18px;text-align:center;opacity:0;transform:scale(.8);transition:all .5s cubic-bezier(.2,.8,.2,1.2)}
 .qrpop.on{opacity:1;transform:none}
 .qrpop img{width:150px;border-radius:16px;background:#fff;padding:8px}
 .qrpop p{font-size:13px;color:var(--soft);margin:8px 0 0}
-.pass{position:absolute;left:16px;right:16px;bottom:18px;z-index:4;border-radius:22px;padding:16px 18px;color:#15110f;background:linear-gradient(110deg,var(--lilac),var(--peach),var(--lime),var(--lilac));background-size:300% 100%;animation:mv 5s linear infinite;transform:translateY(130%);transition:transform .6s cubic-bezier(.2,.8,.2,1.1)}
+.pass{position:absolute;left:16px;right:16px;bottom:18px;z-index:4;border-radius:22px;padding:16px 18px;color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 5s linear infinite;transform:translateY(130%);transition:transform .6s cubic-bezier(.2,.8,.2,1.1)}
 .pass.up{transform:none}
-.pass.given{background:var(--lime);animation:none}
+.pass.given{background:#fff;color:#15110f;animation:none}
 .pass p{margin:0}.pass .pk{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.65}
 .pass .pi{font:600 28px/1 Chillax,Geist,sans-serif;letter-spacing:-.02em;margin-top:6px}
 .pass .ph{font-size:13px;font-weight:600;opacity:.75;margin-top:4px}
@@ -279,8 +281,8 @@ var cnts=[].slice.call(document.querySelectorAll(".cnt"));var big=document.getEl
 cnts.forEach(function(c,i){setTimeout(function(){count(c,+c.dataset.to,2600)},400+i*160)});
 setTimeout(function(){count(big,total,3400)},600);
 setTimeout(function(){setInterval(function(){var c=cnts[Math.floor(Math.random()*cnts.length)];var add=3+Math.floor(Math.random()*24);c.dataset.to=+c.dataset.to+add;c.textContent=fmt(+c.dataset.to);total+=add;big.textContent=fmt(total)},700)},4200);
-var names=["sofi.mtz","juanpa.rv","laura.en.med","cami.ospina","dani_vlz","mateo.runs","vale.gomez","andres_k","isa.travels","nico.mde"];var pings=document.getElementById("pings"),pi=0;
-function ping(){var d=document.createElement("div");d.className="ping";d.innerHTML="<i></i><span><b>"+names[pi++%names.length]+"</b> mentioned you in their story</span>";pings.insertBefore(d,pings.firstChild);while(pings.children.length>3)pings.removeChild(pings.lastChild)}
+var names=[["sofi.mtz",0],["juanpa.rv",1],["laura.en.med",8],["cami.ospina",6],["dani_vlz",3],["mateo.runs",7],["vale.gomez",4],["andres_k",2],["isa.travels",10],["nico.mde",5],["tomas.pz",9],["ana.lu",11]];var pings=document.getElementById("pings"),pi=0;
+function ping(){var d=document.createElement("div");d.className="ping";var n=names[pi++%names.length];d.innerHTML="<i style=\"background-image:url(/getty/pfp/"+n[1]+".jpg)\"></i><span><b>"+n[0]+"</b> mentioned you in their story</span>";pings.insertBefore(d,pings.firstChild);while(pings.children.length>3)pings.removeChild(pings.lastChild)}
 setTimeout(function(){ping();setInterval(ping,1700)},1200);
 var sc=document.querySelector(".scatter");setInterval(function(){var s=document.querySelectorAll(".st");var c=s[Math.floor(Math.random()*s.length)];if(!c)return;var h=document.createElement("span");h.className="heart";h.textContent=["❤️","🔥","😍","🙌"][Math.floor(Math.random()*4)];h.style.left=(c.offsetLeft+c.offsetWidth*.6)+"px";h.style.top=(c.offsetTop+c.offsetHeight*.7)+"px";sc.appendChild(h);setTimeout(function(){h.remove()},2500)},900);
 // the demo: three beats on a loop, like stories
@@ -329,7 +331,7 @@ function startPage() {
 </div><div class="side desk" style="padding-top:96px">
   <p class="faint" style="font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;text-align:center">what your guests see</p>
   <div class="card" style="padding:14px;border-radius:30px;max-width:360px;margin:0 auto">
-    <div style="border-radius:22px;padding:22px;color:#15110f;background:linear-gradient(110deg,var(--lilac),var(--peach),var(--lime),var(--lilac));background-size:300% 100%;animation:mv 5s linear infinite">
+    <div style="border-radius:22px;padding:22px;color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 5s linear infinite">
       <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.7" id="pv-venue">your venue</p>
       <p class="serif" style="margin:8px 0 4px;font-size:34px;line-height:1" id="pv-item">a free smoothie</p>
       <p style="margin:0;font-size:15px;font-weight:600;opacity:.8">for a story tagging <span id="pv-ig">@you</span></p>
@@ -396,7 +398,7 @@ async function dashPage(v, e, flash = "") {
   const perk = e?.perk || {}
   const stat = (n, l, id) => `<div class="card" style="padding:16px"><p class="num" id="${id}" style="font-size:34px;margin:0;line-height:1">${n}</p><p class="faint" style="margin:6px 0 0;font-size:12.5px">${l}</p></div>`
   const body = `${NAV(`<a class="btn ghost" href="${GETTY}/g/${v.owner_token}?print=1" target="_blank" style="padding:10px 16px;font-size:14px">counter card</a>`)}
-${flash ? `<div class="card" style="border-color:rgba(205,238,69,.45);margin:10px 0">${esc(flash)}</div>` : ""}
+${flash ? `<div class="card" style="border-color:rgba(74,102,255,.5);margin:10px 0">${esc(flash)}</div>` : ""}
 <div class="rise" style="padding-top:10px">
   <span class="tag">the guestlist · ${esc(CITIES[v.city] || v.city)}</span>
   <h1 style="font-size:46px;margin-bottom:6px">${esc(v.name)}</h1>

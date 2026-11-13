@@ -374,11 +374,11 @@ export default function Events({ token, me, city: cityProp, onOpenRoom, onCityMo
 
       {desk && (
         <div className="no-scrollbar absolute inset-0 overflow-y-auto">
-          <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(40% 40% at 20% 0%, rgba(221,208,246,.14), transparent 70%), radial-gradient(40% 40% at 90% 10%, rgba(248,217,198,.10), transparent 70%)" }} />
+          <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(40% 40% at 20% 0%, rgba(74,102,255,.18), transparent 70%), radial-gradient(40% 40% at 90% 10%, rgba(248,217,198,.10), transparent 70%)" }} />
           <div className="relative mx-auto max-w-[1180px] px-8 pb-16 pt-8 text-white">
             <div className="flex items-center gap-3">
               <button onClick={() => setWhereOpen(true)} className="serif-display flex items-center gap-2 text-[44px] leading-none">
-                {t("what's on in")} <span className="inline-block -rotate-2 rounded-[0.28em] bg-[#cdee45] px-[0.16em] text-[#15110f]">{String(cityChip(city).name || city).toLowerCase()}</span> <CaretDown size={18} weight="bold" className="mt-2 opacity-50" />
+                {t("what's on in")} <span className="inline-block -rotate-2 rounded-[0.28em] bg-[#4a66ff] px-[0.16em] text-white">{String(cityChip(city).name || city).toLowerCase()}</span> <CaretDown size={18} weight="bold" className="mt-2 opacity-50" />
               </button>
               <span className="flex-1" />
               {mine.length > 0 && (
