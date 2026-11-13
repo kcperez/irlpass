@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         console.error("google search fallback:", out.error || "empty")
         let found = await searchPlaces(asked, here)
         if (!found.length) {
-          const fixed = await spellPlace(asked, here)
+          const fixed = guessFromGuide(asked, await guideNames(here?.slug)) || await spellPlace(asked, here)
           if (fixed && fixed.toLowerCase() !== asked.toLowerCase()) found = await searchPlaces(fixed, here)
         }
         if (found.length) return res.status(200).json({ places: found })
@@ -523,6 +523,31 @@ function moodFor(kind) {
   if (["bar", "pub", "biergarten", "restaurant", "hotel"].includes(kind)) return "pregame"
   return "chill"
 }
+// the city's guide picks (cached by the city tab): a close name there is
+// almost always what they meant
+async function guideNames(slug) {
+  const { data } = await db.from("app_settings").select("value").eq("key", `guide:${slug}`).maybeSingle().then((r) => r, () => ({ data: null }))
+  try { return (JSON.parse(data?.value || "{}").places || []).map((p) => p.name).filter(Boolean) } catch { return [] }
+}
+function guessFromGuide(q, names) {
+  const norm = (x) => String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, "")
+  const a = norm(q)
+  const dist = (x, y) => {
+    const m = Array.from({ length: x.length + 1 }, (_, i) => [i, ...Array(y.length).fill(0)])
+    for (let j = 1; j <= y.length; j++) m[0][j] = j
+    for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1))
+    return m[x.length][y.length]
+  }
+  let best = null, score = 9
+  for (const n of names) {
+    for (const w of [norm(n), ...norm(n).split(" ")]) {
+      const d = dist(a, w.slice(0, Math.max(a.length, 3) + 1))
+      if (d < score && d <= Math.max(1, Math.floor(a.length / 4))) { score = d; best = n }
+    }
+  }
+  return best
+}
+
 // "buata" -> "Buatta": one quick fix of a misspelled spot name, for the open map
 async function spellPlace(q, here) {
   if (!process.env.ANTHROPIC_API_KEY) return null
@@ -533,7 +558,7 @@ async function spellPlace(q, here) {
       messages: [{ role: "user", content: `someone in ${here?.name || "the city"} typed this to find a bar, restaurant, cafe or venue there: "${String(q).slice(0, 60)}". reply with only the place's correctly spelled name, nothing else.` }],
     }, { timeout: 4000 })
     return String(d?.content?.[0]?.text || "").replace(/["\n]/g, "").trim().slice(0, 60) || null
-  } catch { return null }
+  } catch (e) { console.error("spellPlace:", e?.status, e?.message); return null }
 }
 
 async function searchPlaces(q, here) {
