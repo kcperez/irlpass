@@ -140,6 +140,7 @@ export default function Join({ ig, onBack, onDone }) {
           interests: vibes,
           homeCity: local ? city : home && home !== "nomad" ? home.slug : null,
           ref: (() => { try { return params.get("ref") || localStorage.getItem("irl:ref") || "" } catch { return "" } })(),
+          go: (() => { try { return params.get("go") || localStorage.getItem("irl:go") || "" } catch { return "" } })(),
         }),
       })
       const d = await r.json()

@@ -244,7 +244,7 @@ function GridCard({ e, tz, alt, todayKey, tomorrowKey, busy, onOpen, onToggle, o
   )
 }
 
-export default function Events({ token, me, city: cityProp, onPickCity, onOpenRoom, onCityMoved, onProfile, profileDot }) {
+export default function Events({ token, me, city: cityProp, onPickCity, onOpenRoom, onCityMoved, onProfile, profileDot, onPaywall, onOpenDM }) {
   const city = cityProp || me?.city || "medellin"
   const tz = TZ[city]
   const desk = useDesktop()
@@ -717,7 +717,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
           </>
         )}
       </AnimatePresence>
-      <ShareSheet share={sharing} onClose={() => setSharing(null)} />
+      <ShareSheet share={sharing} token={token} onPaywall={onPaywall} onSent={onOpenDM} onClose={() => setSharing(null)} />
     </div>
   )
 }

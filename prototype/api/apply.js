@@ -144,6 +144,16 @@ export default async function handler(req, res) {
         if (!inviter) return
         await db.from("members").update({ referred_by: ref }).eq("member_no", memberNo)
         await db.from("referrals").upsert({ referee: memberNo, referrer: ref }, { onConflict: "referee" })
+        // they came in from an event someone shared: that person's dm is
+        // waiting with the event in it, so nobody has to find anybody
+        const ev = String(req.body?.go || "").match(/^ev-(\d+)$/)
+        if (ev) {
+          const [a, b] = ref < memberNo ? [ref, memberNo] : [memberNo, ref]
+          const now = new Date().toISOString()
+          let { data: th } = await db.from("dm_threads").select("id").eq("a_no", a).eq("b_no", b).maybeSingle()
+          if (!th) ({ data: th } = await db.from("dm_threads").insert({ a_no: a, b_no: b, last_at: now }).select("id").single())
+          if (th) await db.from("dm_messages").insert({ thread_id: th.id, from_no: ref, body: `https://irlpass.xyz/e/${ev[1]}` })
+        }
       })().catch((e) => console.error("referral error:", e)))
     }
     // josh's welcome dm is waiting in their chat tab when they land
