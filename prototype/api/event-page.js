@@ -41,7 +41,7 @@ ${e.url ? `<p style="text-align:center;font-size:13px"><a href="${esc(e.url)}" t
   html = html.replace("</title>", `</title>
 <meta property="og:title" content="${esc(`${title} · who's going`)}">
 <meta property="og:description" content="${esc(`${when}${e.venue ? ` at ${e.venue}` : ""}. ${line}. join the group chat on irlpass.`)}">
-${e.cover ? `<meta property="og:image" content="${esc(e.cover)}">` : ""}
+<meta property="og:image" content="${esc(e.cover || "https://irlpass.xyz/og.png")}"><meta name="twitter:card" content="summary_large_image">
 <meta property="og:url" content="https://irlpass.xyz/e/${id}">
 <meta name="twitter:card" content="summary_large_image">`)
   return send(res, html, "public, max-age=120")

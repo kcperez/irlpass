@@ -17,11 +17,11 @@ export function send(res, html, cache = "no-store") {
 // the new look: dark, frosted glass, film grain, serif titles, outlined dot
 // labels. used by irlpass for venues first, the rest follows.
 const GRAIN = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.55'/></svg>")`
-export function glass(title, body, { script = "", head = "", wide = false } = {}) {
+export function glass(title, body, { script = "", head = "", wide = false, getty = false } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#15110f">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%234a66ff'/%3E%3Ccircle cx='16' cy='16' r='8.2' fill='none' stroke='%23fff' stroke-width='2.6' stroke-dasharray='44 8' stroke-linecap='round' transform='rotate(-60 16 16)'/%3E%3Ccircle cx='16' cy='16' r='3.4' fill='%23fff'/%3E%3C/svg%3E">
+${getty ? `<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%234a66ff'/%3E%3Ccircle cx='16' cy='16' r='8.2' fill='none' stroke='%23fff' stroke-width='2.6' stroke-dasharray='44 8' stroke-linecap='round' transform='rotate(-60 16 16)'/%3E%3Ccircle cx='16' cy='16' r='3.4' fill='%23fff'/%3E%3C/svg%3E">` : `<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">`}
 <title>${esc(title)}</title>${head}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">

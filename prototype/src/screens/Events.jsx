@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { ArrowUpRight, CaretDown, ChatsCircle, CheckCircle, CircleNotch, MagnifyingGlass, MapPin, Plus, ShareNetwork, SlidersHorizontal, Sparkle, Ticket, X } from "@phosphor-icons/react"
 import { cachedJson } from "../lib/cached"
 import { t, LANG } from "../lib/i18n"
+import ShareSheet from "../components/ShareSheet"
 import { cityChip } from "../lib/cities"
 import { haptic } from "../lib/haptic"
 import { useDesktop } from "../lib/useDesktop"
@@ -342,14 +343,8 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
   }
   // the way in for everyone not on irlpass yet: a public page for the event that
   // drops them in this chat after signup, credited to you
-  const share = async (e) => {
-    const url = `https://irlpass.xyz/e/${e.id}${me?.memberNo ? `?ref=${me.memberNo}` : ""}`
-    const text = `${e.title}: ${t("who's going? join the group chat")}`
-    try {
-      if (navigator.share) await navigator.share({ title: e.title, text, url })
-      else { await navigator.clipboard.writeText(`${text} ${url}`); setCopied(e.id) }
-    } catch { /* closed the share sheet */ }
-  }
+  const [sharing, setSharing] = useState(null) // { title, url } for the share sheet
+  const share = (e) => setSharing({ title: e.title, url: `https://irlpass.xyz/e/${e.id}${me?.memberNo ? `?ref=${me.memberNo}` : ""}` })
   const [copied, setCopied] = useState(null)
   // the two-line "what is this", written the first time anyone opens the event
   const [abouts, setAbouts] = useState({})
@@ -700,8 +695,8 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
                           <ChatsCircle size={18} weight="fill" /> {t("open the group chat")}
                         </button>
                       )}
-                      <button onClick={() => share(open)} className="flex w-full items-center justify-center gap-2 rounded-full bg-lime py-3 text-[14.5px] font-bold">
-                        <ShareNetwork size={18} weight="bold" /> {copied === open.id ? t("link copied") : t("bring people: share the chat")}
+                      <button onClick={() => share(open)} className="flex w-full items-center justify-center gap-2 rounded-full border border-line py-3 text-[14.5px] font-bold">
+                        <ShareNetwork size={18} weight="bold" /> {t("share")}
                       </button>
                     </div>
                   </div>
@@ -722,6 +717,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
           </>
         )}
       </AnimatePresence>
+      <ShareSheet share={sharing} onClose={() => setSharing(null)} />
     </div>
   )
 }

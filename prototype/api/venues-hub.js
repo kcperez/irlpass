@@ -308,7 +308,7 @@ function go(i){cur=i;beats.forEach(function(b,j){b.classList.toggle("on",j===i);
 beats.forEach(function(b,i){b.addEventListener("click",function(){go(i)})});
 document.documentElement.style.setProperty("--dur",DUR+"ms");
 var started=false,io=new IntersectionObserver(function(es){if(es[0].isIntersecting&&!started){started=true;go(0)}},{threshold:.3});io.observe(document.getElementById("demo"));`
-  return glass("getty by irlpass", body, {
+  return glass("getty by irlpass", body, { getty: true,
     wide: true,
     script,
     head: `<meta name="description" content="guests post a story tagging you, staff check it at the counter, they get the perk you pick. 20 stories a month free.">
@@ -359,7 +359,7 @@ const f=document.getElementById("f"),go=document.getElementById("go"),err=docume
 f.onsubmit=async e=>{e.preventDefault();err.textContent="";go.disabled=true;go.textContent="one sec…";
 const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create",name:v("name"),ig:v("ig"),city:v("city"),item:v("item"),email:v("email"),qty})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.url){try{localStorage.setItem("venue-k",r.k)}catch(e){}location.href=r.url}else{err.textContent=r.error||"try again";go.disabled=false;go.textContent="get my qr"}};`
-  return glass("set up · getty", body, { script, wide: true })
+  return glass("set up · getty", body, { getty: true, script, wide: true })
 }
 
 function signInPage() {
@@ -377,7 +377,7 @@ const f=document.getElementById("f"),go=document.getElementById("go"),err=docume
 f.onsubmit=async e=>{e.preventDefault();go.disabled=true;
 const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"login",email:document.getElementById("email").value})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.ok){f.innerHTML='<p class="serif" style="font-size:30px;margin:0 0 6px">check your email</p><p class="soft" style="margin:0">if that email has a venue, the link is on its way.</p>'}else{err.textContent=r.error||"try again";go.disabled=false}};`
-  return glass("sign in · getty", body, { script })
+  return glass("sign in · getty", body, { getty: true, script })
 }
 
 async function dashData(v, e) {
@@ -488,7 +488,7 @@ document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{b.disabled=true
 document.getElementById("pf").onsubmit=async e=>{e.preventDefault();const s=document.getElementById("save"),er=document.getElementById("perr");s.disabled=true;er.textContent="";
 const r=await post({action:"perk",item:document.getElementById("item").value,ask:document.getElementById("ask").value,qty:+document.getElementById("qty").value});
 s.disabled=false;if(r.ok){s.textContent="saved";setTimeout(()=>s.textContent="save",1500)}else er.textContent=r.error||"try again"};`
-  return glass(`${v.name} · the guestlist`, body, { script, wide: true, head: `<meta name="robots" content="noindex">` })
+  return glass(`${v.name} · the guestlist`, body, { getty: true, script, wide: true, head: `<meta name="robots" content="noindex">` })
 }
 
 async function printPage(v, e) {
@@ -503,10 +503,10 @@ async function printPage(v, e) {
   <button class="ghost noprint" onclick="print()" style="margin-top:18px">print</button>
 </div>
 <style>@media print{.noprint{display:none}body:before,body:after{display:none}html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>`
-  return glass(`${v.name} · counter card`, body, { head: `<meta name="robots" content="noindex">` })
+  return glass(`${v.name} · counter card`, body, { getty: true, head: `<meta name="robots" content="noindex">` })
 }
 
-const gonePage = () => glass("getty", `${NAV()}<div style="padding-top:30px"><h1 style="font-size:46px">that link doesn't open anything</h1><p class="soft">sign in with your email and we'll send a fresh one.</p><a class="btn" href="${GETTY}/in">sign in</a></div>`)
+const gonePage = () => glass("getty", `${NAV()}<div style="padding-top:30px"><h1 style="font-size:46px">that link doesn't open anything</h1><p class="soft">sign in with your email and we'll send a fresh one.</p><a class="btn" href="${GETTY}/in">sign in</a></div>`, { getty: true })
 
 // ---------- actions ----------
 
