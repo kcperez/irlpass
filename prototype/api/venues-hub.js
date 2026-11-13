@@ -66,9 +66,9 @@ function scatter() {
   ${STORIES.map(card).join("")}
   <div class="pings" id="pings"></div>
   <div class="big card">
-    <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">people who saw your business</p>
+    <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">people who saw your page</p>
     <p class="num" style="margin:4px 0 0;font-size:44px;line-height:1"><span id="bigcnt">18,240</span></p>
-    <svg viewBox="0 0 200 40" class="spark"><path id="sparkp" d="M0 38 C40 36 60 33 90 28 S150 12 200 2" fill="none" stroke="var(--lime)" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <svg viewBox="0 0 200 40" preserveAspectRatio="none" class="spark"><defs><linearGradient id="sparkg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a66ff" stop-opacity=".45"/><stop offset="1" stop-color="#4a66ff" stop-opacity="0"/></linearGradient></defs><path id="sparka" d="" fill="url(#sparkg)"/><path id="sparkp" d="" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/><circle id="sparkd" r="2.6" fill="#fff"/></svg>
     <p class="soft" style="margin:2px 0 0;font-size:12.5px;display:flex;align-items:center;gap:8px"><span class="faces">${[0, 1, 6, 3, 8].map((f) => `<i style="background-image:url(/getty/pfp/${f}.jpg)"></i>`).join("")}</span>from 46 guest stories this week</p>
   </div>
 </div>`
@@ -147,8 +147,8 @@ async function landing() {
 <section class="hero" style="display:grid;gap:28px;align-items:center;padding:28px 0 40px">
   <div class="rise">
     <span class="tag">for bars, cafés, studios and clubs</span>
-    <h1>your guests are the best <em>influencers</em> you'll ever book</h1>
-    <p class="soft" style="font-size:18px;max-width:500px">every guest who posts a story tagging you gets a perk you pick. their friends see your business that night, from someone they trust. you get a list of every one of them.</p>
+    <h1>your guests are your <em>influencers</em></h1>
+    <p class="soft" style="font-size:18px;max-width:500px">guests post you on their story, you give them a perk you pick.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
       ${cta}
       <a class="btn ghost" href="#demo">watch it work</a>
@@ -225,7 +225,7 @@ ${await demo()}
 .big{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);z-index:5;min-width:250px;padding:16px 18px;border-radius:22px;background:rgba(21,17,15,.72);text-align:left}
 .faces{display:flex}.faces i{width:20px;height:20px;border-radius:50%;margin-left:-6px;border:2px solid #1d1815;background:#333 center/cover}.faces i:first-child{margin-left:0}
 .spark{display:block;width:100%;height:30px;margin-top:6px}
-#sparkp{stroke-dasharray:240;stroke-dashoffset:240;animation:draw 3.2s .6s ease-out forwards}
+.spark{height:44px;overflow:visible}#sparkd{filter:drop-shadow(0 0 4px #8fa0ff)}
 @keyframes draw{to{stroke-dashoffset:0}}
 .pings{position:absolute;right:-6px;top:-8px;z-index:6;display:flex;flex-direction:column;gap:6px;width:250px}
 .ping{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:16px;background:rgba(21,17,15,.78);border:1px solid var(--line);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);font-size:12px;animation:pin .5s cubic-bezier(.2,.8,.2,1.1) both}
@@ -275,14 +275,18 @@ ${await demo()}
 </style>`
   const script = `
 var fmt=function(n){return Math.round(n).toLocaleString("en-US")};
-function count(el,to,ms,from){if(!el)return;from=from||0;if(document.hidden){el.textContent=fmt(to);return}var t0=performance.now();(function f(t){var p=Math.min(1,Math.max(0,(t-t0)/ms)),e=1-Math.pow(1-p,3);el.textContent=fmt(from+(to-from)*e);if(p<1)requestAnimationFrame(f)})(t0);setTimeout(function(){el.textContent=fmt(to)},ms+300)}
+function count(el,to,ms,from){if(!el)return;from=from==null?Math.round(to*.6):from;if(document.hidden){el.textContent=fmt(to);return}var t0=performance.now(),done=false;(function f(){if(done)return;var p=Math.min(1,(performance.now()-t0)/ms),e=1-Math.pow(1-p,3);el.textContent=fmt(from+(to-from)*e);if(p<1)requestAnimationFrame(f);else done=true})();setTimeout(function(){done=true;el.textContent=fmt(to)},ms+300)}
 // the scatter: views tick up, mentions stack, a heart floats now and then
 var cnts=[].slice.call(document.querySelectorAll(".cnt"));var big=document.getElementById("bigcnt");var total=18240;
+var SP=[],v=40;for(var k=0;k<40;k++){v+=(Math.random()-.32)*9;if(k%9==8)v-=10;SP.push(Math.max(5,v))}
+function drawSpark(){var lo=Math.min.apply(null,SP),hi=Math.max.apply(null,SP),n=SP.length,d="";SP.forEach(function(y,i){var X=(i/(n-1))*200,Y=38-((y-lo)/((hi-lo)||1))*34;d+=(i?"L":"M")+X.toFixed(1)+" "+Y.toFixed(1)});var a=document.getElementById("sparka"),p=document.getElementById("sparkp"),c=document.getElementById("sparkd");if(!p)return;p.setAttribute("d",d);a.setAttribute("d",d+"L200 40L0 40Z");var last=d.split("L").pop().split(" ");c.setAttribute("cx",200);c.setAttribute("cy",parseFloat(last[last.length-1]))}
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',drawSpark):drawSpark();setInterval(function(){var last=SP[SP.length-1],up=Math.random()<.72;SP.push(Math.max(5,last+(up?3+Math.random()*9:-(2+Math.random()*6))));SP.shift();drawSpark()},700);
+
 cnts.forEach(function(c,i){setTimeout(function(){count(c,+c.dataset.to,2600)},400+i*160)});
 setTimeout(function(){count(big,total,3400)},600);
 setTimeout(function(){setInterval(function(){var c=cnts[Math.floor(Math.random()*cnts.length)];var add=3+Math.floor(Math.random()*24);c.dataset.to=+c.dataset.to+add;c.textContent=fmt(+c.dataset.to);total+=add;big.textContent=fmt(total)},700)},4200);
 var names=[["sofi.mtz",0],["juanpa.rv",1],["laura.en.med",8],["cami.ospina",6],["dani_vlz",3],["mateo.runs",7],["vale.gomez",4],["andres_k",2],["isa.travels",10],["nico.mde",5],["tomas.pz",9],["ana.lu",11]];var pings=document.getElementById("pings"),pi=0;
-function ping(){var d=document.createElement("div");d.className="ping";var n=names[pi++%names.length];d.innerHTML="<i style=\"background-image:url(/getty/pfp/"+n[1]+".jpg)\"></i><span><b>"+n[0]+"</b> mentioned you in their story</span>";pings.insertBefore(d,pings.firstChild);while(pings.children.length>3)pings.removeChild(pings.lastChild)}
+function ping(){var d=document.createElement("div");d.className="ping";var n=names[pi++%names.length];d.innerHTML='<i style="background-image:url(/getty/pfp/'+n[1]+'.jpg)"></i><span><b>'+n[0]+'</b> mentioned you in their story</span>';pings.insertBefore(d,pings.firstChild);while(pings.children.length>3)pings.removeChild(pings.lastChild)}
 setTimeout(function(){ping();setInterval(ping,1700)},1200);
 var sc=document.querySelector(".scatter");setInterval(function(){var s=document.querySelectorAll(".st");var c=s[Math.floor(Math.random()*s.length)];if(!c)return;var h=document.createElement("span");h.className="heart";h.textContent=["❤️","🔥","😍","🙌"][Math.floor(Math.random()*4)];h.style.left=(c.offsetLeft+c.offsetWidth*.6)+"px";h.style.top=(c.offsetTop+c.offsetHeight*.7)+"px";sc.appendChild(h);setTimeout(function(){h.remove()},2500)},900);
 // the demo: three beats on a loop, like stories
@@ -301,7 +305,7 @@ var started=false,io=new IntersectionObserver(function(es){if(es[0].isIntersecti
     wide: true,
     script,
     head: `<meta name="description" content="guests post a story tagging you, staff check it at the counter, they get the perk you pick. 20 stories a month free.">
-<meta property="og:title" content="your guests are the best influencers you'll ever book">
+<meta property="og:title" content="your guests are your influencers">
 <meta property="og:description" content="story perks for bars, cafés, studios and clubs. 20 stories a month free.">
 <meta property="og:image" content="${GETTY}/getty/hero.jpg">`,
   })
