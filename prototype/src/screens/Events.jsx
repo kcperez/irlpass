@@ -484,7 +484,7 @@ export default function Events({ token, me, city: cityProp, onPickCity, onOpenRo
         className="no-scrollbar absolute inset-0 snap-y snap-mandatory overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
         {!search?.loading && search?.places?.length > 0 && (
-          <section className="relative h-full snap-start snap-always overflow-y-auto px-4 pb-6 pt-24 text-white">
+          <section className="relative h-full snap-start snap-always overflow-y-auto px-4 pb-6 pt-48 text-white">
             <div className="absolute inset-0 -z-0" style={{ background: "radial-gradient(70% 50% at 20% 10%, rgba(74,102,255,.25), transparent 70%), #15110f" }} />
             <div className="relative">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-white/80"><span className="h-2 w-2 rounded-full bg-[#4a66ff]" />{t("top spots")}</span>
