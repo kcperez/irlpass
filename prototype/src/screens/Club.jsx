@@ -910,7 +910,14 @@ function WithMentions({ text }) {
 const eventCache = {}
 const EV_TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
 // the event's own local time, wherever you're reading it from
-const evTime = (iso, city) => new Date(iso).toLocaleString([], { timeZone: EV_TZ[city] || undefined, weekday: "short", hour: "numeric", minute: "2-digit" }).toLowerCase()
+// midnight starts are all-day listings ("fri · all day", not "fri 12:00 am")
+const evTime = (iso, city) => {
+  const tz = EV_TZ[city] || undefined
+  const d = new Date(iso)
+  const hm = d.toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit" })
+  const day = d.toLocaleDateString([], { timeZone: tz, weekday: "short", month: "short", day: "numeric" }).toLowerCase()
+  return hm === "00:00" ? `${day} · ${t("all day")}` : `${day} · ${d.toLocaleTimeString([], { timeZone: tz, hour: "numeric", minute: "2-digit" }).toLowerCase()}`
+}
 function EventCard({ id }) {
   const { token, open } = useContext(EventLink)
   const [e, setE] = useState(eventCache[id] || null)
@@ -927,10 +934,10 @@ function EventCard({ id }) {
     setBusy(false)
     if (r?.event) { eventCache[id] = r.event; setE(r.event) }
   }
-  if (!e) return <span className="my-1 block h-[76px] w-[min(280px,70vw)] animate-pulse rounded-[1rem] bg-ink/10" />
+  if (!e) return <span className="my-1 block h-[76px] w-[min(270px,60vw)] max-w-full animate-pulse rounded-[1rem] bg-ink/10" />
   return (
-    <span role="button" tabIndex={0} onClick={(ev) => { ev.stopPropagation(); open(id) }} className="my-1 flex w-[min(300px,72vw)] cursor-pointer items-center gap-3 overflow-hidden rounded-[1.1rem] border border-line bg-cream/60 p-2 text-left align-top">
-      <span className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[0.8rem]">
+    <span role="button" tabIndex={0} onClick={(ev) => { ev.stopPropagation(); open(id) }} className="my-1 flex w-[min(270px,60vw)] max-w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-[1.1rem] border border-line bg-cream/60 p-2 text-left align-top">
+      <span className="relative h-[60px] w-[60px] shrink-0 overflow-hidden rounded-[0.8rem]">
         <span className="absolute inset-0"><Poster title={e.title} seed={e.id} /></span>
         {e.cover && <img src={e.cover} alt="" className="relative h-full w-full object-cover" />}
       </span>
