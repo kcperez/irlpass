@@ -26,6 +26,7 @@ async function withGoing(rows, me, lang = "en") {
       id: e.id,
       title: (e.titles && e.titles[lang]) || e.title,
       original: e.title,
+      city: e.city,
       startsAt: e.starts_at,
       endsAt: e.ends_at,
       venue: e.venue,

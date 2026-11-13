@@ -247,3 +247,15 @@ html.irl-dark .grain::after {
 .bg-lime-deep {
   color: #fff;
 }
+
+/* text sitting on a photo (over its dark gradient or a black scrim) stays
+   light in dark mode: there the palette flips back */
+html.irl-dark [class*="from-black"] {
+  --color-cream: #f4eee7;
+  --color-ink: #15110f;
+  --color-ink-soft: rgba(21, 17, 15, 0.6);
+}
+html.irl-dark [class*="from-black"] .text-cream,
+html.irl-dark [class*="from-black"].text-cream {
+  color: #f4eee7;
+}

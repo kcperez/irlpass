@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, useCallback, useContext } from "react"
-import { SpotLink } from "../lib/spotlink"
+import { useEffect, useRef, useState, useCallback, useContext, useMemo } from "react"
+import { SpotLink, EventLink } from "../lib/spotlink"
 import { MoreList } from "../lib/more"
 import { cachedJson, prefetch } from "../lib/cached"
 import { motion, AnimatePresence, MotionConfig, useDragControls } from "framer-motion"
 import {
   CalendarPlus,
+  Plus,
   UsersThree,
   ChatsCircle,
   ArrowLeft,
@@ -849,6 +850,7 @@ function Composer({ id, value, onChange, onSend, placeholder }) {
 
 // chat text: links you can tap, @people in bold, @[spot](s12) as a spot chip.
 // a spot tag is a door into the room: it opens that spot's board.
+const EVENT_LINK = /^(?:https?:\/\/)?(?:www\.)?irlpass\.xyz\/e\/(\d+)/
 const RICH = /(https?:\/\/[^\s]+|(?:www\.)?irlpass\.xyz\/?[^\s]*|@\[[^\]]{1,60}\]\(s\d+\)|@[\w.]{2,30})/g
 function WithMentions({ text }) {
   const openSpot = useContext(SpotLink)
@@ -866,6 +868,8 @@ function WithMentions({ text }) {
         </button>
       )
     }
+    const ev = part.match(EVENT_LINK)
+    if (ev) return <EventCard key={i} id={Number(ev[1])} />
     if (/^(https?:\/\/|(www\.)?irlpass\.xyz)/.test(part)) {
       const trail = part.match(/[).,!?]+$/)?.[0] || ""
       const url = part.slice(0, part.length - trail.length)
@@ -889,6 +893,81 @@ function WithMentions({ text }) {
     if (part.startsWith("@")) return <span key={i} className="font-bold">{part}</span>
     return part
   })
+}
+
+// an event dropped in a chat: cover, when, who's going, and going right there
+const eventCache = {}
+const EV_TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
+// the event's own local time, wherever you're reading it from
+const evTime = (iso, city) => new Date(iso).toLocaleString([], { timeZone: EV_TZ[city] || undefined, weekday: "short", hour: "numeric", minute: "2-digit" }).toLowerCase()
+function EventCard({ id }) {
+  const { token, open } = useContext(EventLink)
+  const [e, setE] = useState(eventCache[id] || null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    if (eventCache[id] || !token) return
+    fetch(`/api/events?t=${token}&id=${id}&lang=${LANG}`).then((r) => r.json()).then((r) => { if (r?.event) { eventCache[id] = r.event; setE(r.event) } }).catch(() => {})
+  }, [id, token])
+  const go = async (ev) => {
+    ev.stopPropagation()
+    if (e.going) return open(id)
+    setBusy(true)
+    const r = await fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: token, id, going: true, lang: LANG }) }).then((x) => x.json()).catch(() => null)
+    setBusy(false)
+    if (r?.event) { eventCache[id] = r.event; setE(r.event) }
+  }
+  if (!e) return <span className="my-1 block h-[76px] w-[min(280px,70vw)] animate-pulse rounded-[1rem] bg-ink/10" />
+  return (
+    <span role="button" tabIndex={0} onClick={(ev) => { ev.stopPropagation(); open(id) }} className="my-1 flex w-[min(300px,72vw)] cursor-pointer items-center gap-3 overflow-hidden rounded-[1.1rem] border border-line bg-cream/60 p-2 text-left align-top">
+      <span className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[0.8rem] bg-lime">
+        {e.cover && <img src={e.cover} alt="" className="h-full w-full object-cover" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10.5px] font-bold uppercase tracking-[0.1em] text-ink-soft">{evTime(e.startsAt, e.city)}</span>
+        <span className="serif-display line-clamp-2 block text-[15px] leading-[1.1]">{e.title}</span>
+        <span className="mt-1 flex items-center gap-2">
+          <span className="truncate text-[11.5px] text-ink-soft">{e.goingCount ? `${e.goingCount} ${t("going")}` : e.venue || ""}</span>
+          <button onClick={go} disabled={busy} className={`ml-auto shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-bold ${e.going ? "bg-lime" : "bg-ink text-cream"}`}>
+            {busy ? "…" : e.going ? t("going ✓") : t("i'm going")}
+          </button>
+        </span>
+      </span>
+    </span>
+  )
+}
+
+// the + next to the message box: drop one of this week's events into the chat
+function EventPicker({ token, city, onPick, onClose }) {
+  const [list, setList] = useState(null)
+  const [q, setQ] = useState("")
+  useEffect(() => {
+    fetch(`/api/events?t=${token}&city=${city}&lang=${LANG}`).then((r) => r.json()).then((d) => setList(d.events || [])).catch(() => setList([]))
+  }, [token, city])
+  const norm = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  const hits = (list || []).filter((e) => !q || norm(`${e.title} ${e.venue} ${e.category}`).includes(norm(q))).slice(0, 40)
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 backdrop-blur-[2px]">
+      <motion.div initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} transition={{ type: "spring", stiffness: 320, damping: 32 }} onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[78dvh] w-full max-w-[460px] flex-col rounded-t-[1.8rem] border-t border-line bg-cream px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
+        <p className="serif-display text-[22px]">{t("share an event")}</p>
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search: techno, run, brunch")} className="mt-3 w-full rounded-full border border-line bg-white/80 px-4 py-2.5 text-[14px] outline-none" />
+        <div className="mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto pb-2">
+          {!list && <p className="py-8 text-center text-[13px] text-ink-soft">{t("loading…")}</p>}
+          {list && !hits.length && <p className="py-8 text-center text-[13px] text-ink-soft">{t("nothing for that this week")}</p>}
+          {hits.map((e) => (
+            <button key={e.id} onClick={() => onPick(e)} className="flex w-full items-center gap-3 rounded-[1rem] p-1.5 text-left hover:bg-ink/5">
+              <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[0.7rem] bg-lime">{e.cover && <img src={e.cover} alt="" className="h-full w-full object-cover" />}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-bold">{e.title}</span>
+                <span className="block truncate text-[12px] text-ink-soft">{evTime(e.startsAt, city)}{e.venue ? ` · ${e.venue}` : ""}{e.goingCount ? ` · ${e.goingCount} ${t("going")}` : ""}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </motion.div>
+  )
 }
 
 // type @ and the guide's spots pop up, like tagging a person. the tag becomes
@@ -951,6 +1030,7 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
   const [replyTo, setReplyTo] = useState(null) // message object being replied to
   const [editing, setEditing] = useState(null) // message object being edited
   const [translated, setTranslated] = useState({}) // key -> translated text | "loading" | "error"
+  const [pickEvent, setPickEvent] = useState(false)
   const bottomRef = useRef(null)
   const pollRef = useRef(() => {})
 
@@ -1329,7 +1409,16 @@ function Thread({ token, me, channel, title, activity, onBack, photoMap = {}, on
             ))}
           </div>
         )}
+        <AnimatePresence>
+          {pickEvent && (
+            <EventPicker token={token} city={isCityChannel(channel) ? channel : me.city} onClose={() => setPickEvent(false)}
+              onPick={(e) => { setPickEvent(false); setText((x) => `${x.trim() ? `${x.trim()} ` : ""}https://irlpass.xyz/e/${e.id} `); setTimeout(() => document.getElementById("room-composer")?.focus(), 50) }} />
+          )}
+        </AnimatePresence>
         <div className="flex items-end gap-2">
+          <button onClick={() => setPickEvent(true)} aria-label={t("share an event")} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-ink">
+            <Plus size={18} weight="bold" />
+          </button>
           <Composer
             id="room-composer"
             value={text}
@@ -1404,6 +1493,7 @@ function DeniedScreen() {
 /* ---------- direct messages ---------- */
 // free to dm anyone you've shared a plan with; reaching strangers needs a pass.
 function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, onNeedDates, onOpenPerson, onOpenWorld, onBuyRide, onOpenRoom }) {
+  const [pickEvent, setPickEvent] = useState(false)
   const [roomOpen, setRoomOpen] = useState(false)
   const [rooms, setRooms] = useState([])
   const [roomCity, setRoomCity] = useState(me.city || "medellin")
@@ -1754,8 +1844,17 @@ function DMScreen({ token, me, openWith, setOpenWith, onPaywall, photoMap = {}, 
             </motion.div>
           )}
         </AnimatePresence>
+        <AnimatePresence>
+          {pickEvent && (
+            <EventPicker token={token} city={me.city} onClose={() => setPickEvent(false)}
+              onPick={(e) => { setPickEvent(false); setText((x) => `${x.trim() ? `${x.trim()} ` : ""}https://irlpass.xyz/e/${e.id} `); setTimeout(() => document.getElementById("dm-composer")?.focus(), 50) }} />
+          )}
+        </AnimatePresence>
         <div className="px-3 pt-2"><SpotSuggest token={token} text={text} setText={setText} city={me.city} /></div>
         <div className="flex items-end gap-2 border-t border-line px-3 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2.5">
+          <button onClick={() => setPickEvent(true)} aria-label={t("share an event")} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-white/80 text-ink">
+            <Plus size={18} weight="bold" />
+          </button>
           <Composer id="dm-composer" value={text} onChange={setText} onSend={() => send()} placeholder={t("message…")} />
           <button onClick={() => send()} disabled={busy || !text.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream active:scale-95 disabled:opacity-40">
             <PaperPlaneRight size={17} weight="fill" />
@@ -2138,6 +2237,10 @@ export default function Club({ token }) {
   const [me, setMe] = useState(null)
   const [state, setState] = useState("loading")
   const desk = useDesktop()
+  const eventLink = useMemo(() => ({
+    token,
+    open: (id) => { setCityRoom(null); setSpotRoom(null); setDmWith(null); setActiveChat(null); setTab("events"); setTimeout(() => window.dispatchEvent(new CustomEvent("irl:open-event", { detail: id })), 450) },
+  }), [token])
   const [tab, setTab] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("dm")) return "dms"
@@ -2482,6 +2585,7 @@ export default function Club({ token }) {
 
   return (
     <SpotLink.Provider value={(id) => { setCityRoom(null); setSpotRoom(null); setDmWith(null); setActiveChat(null); setFocusSpot(id); setTab("mood") }}>
+    <EventLink.Provider value={eventLink}>
     <MotionConfig reducedMotion="user">
     <div className="relative flex h-[var(--app-h)] flex-col lg:pl-[236px]">
       {/* on a computer: the tabs live in a sidebar, the bottom bar goes away */}
@@ -2736,6 +2840,7 @@ export default function Club({ token }) {
       )}
     </div>
     </MotionConfig>
+    </EventLink.Provider>
     </SpotLink.Provider>
   )
 }
