@@ -32,9 +32,23 @@ const pickJson = (text) => {
 
 // the place's own photo, rating and maps link from google (the photo url google
 // hands back carries no key)
+// the photo a place's own page (michelin guide, its website) shows when shared
+async function pagePhoto(url) {
+  try {
+    const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36" }, signal: AbortSignal.timeout(5000) })
+    if (!r.ok) return null
+    const html = (await r.text()).slice(0, 300000)
+    const m = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*content=["']([^"']+)["']/i) || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image|twitter:image)["']/i)
+    const src = m?.[1]?.replace(/&amp;/g, "&")
+    return src && /^https:\/\//.test(src) ? src : null
+  } catch {
+    return null
+  }
+}
+
 async function enrich(p, place) {
   const key = process.env.GOOGLE_MAPS_KEY
-  if (!key) return p
+  if (!key) return { ...p, photo: await pagePhoto(p.url) }
   try {
     const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
       method: "POST",
@@ -49,9 +63,9 @@ async function enrich(p, place) {
       const m = await fetch(`https://places.googleapis.com/v1/${g.photos[0].name}/media?maxWidthPx=700&skipHttpRedirect=true&key=${key}`, { signal: AbortSignal.timeout(4000) }).then((x) => x.json()).catch(() => null)
       photo = m?.photoUri || null
     }
-    return { ...p, photo, rating: g.rating || null, reviews: g.userRatingCount || null, maps: g.googleMapsUri || p.maps }
+    return { ...p, photo: photo || (await pagePhoto(p.url)), rating: g.rating || null, reviews: g.userRatingCount || null, maps: g.googleMapsUri || p.maps }
   } catch {
-    return p
+    return { ...p, photo: await pagePhoto(p.url) }
   }
 }
 
