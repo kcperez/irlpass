@@ -83,7 +83,7 @@ async function demo() {
   const beats = [
     ["set the perk", "pick what a story is worth: a smoothie, a shot, a free class. print the qr for the counter."],
     ["they post, you tap", "a guest posts a story tagging you and shows it at the counter. staff tap give next to their name. done."],
-    ["watch it spread", "every story lands with hundreds of locals who trust the person posting. it adds up fast."],
+    ["watch it spread", "each story hits a few hundred people who trust whoever posted it. by friday, everyone's heard of you."],
   ]
   return `<section id="demo" class="demo" style="padding:40px 0 56px">
   <div>
@@ -124,12 +124,12 @@ async function demo() {
 
 // a no-brainer: their kind of place, their perk, already working
 const USES = [
-  ["yoga2", "wellness studio", "bring a friend free", "a class full of people posting the studio they love"],
-  ["cafe2", "café", "a free oat latte", "every morning regular tells their friends where to go"],
-  ["bar", "cocktail bar", "a round of shots", "the table tags you before the first drink is gone"],
-  ["run", "run club", "a smoothie after", "fifty runners, fifty stories, every sunday"],
-  ["party", "club night", "skip the line", "the line becomes your best promo"],
-  ["cafe", "brunch spot", "a free pastry", "two friends, two stories, a full saturday"],
+  ["yoga2", "wellness studio", "bring a friend free", "namaste, now tag us"],
+  ["cafe2", "café", "a free oat latte", "your regulars already photograph the latte art"],
+  ["bar", "cocktail bar", "a round of shots", "the table posts before the first round lands"],
+  ["run", "run club", "a smoothie after", "nobody runs a 5k without posting it"],
+  ["party", "club night", "skip the line", "the line was going to film anyway"],
+  ["cafe", "brunch spot", "a free pastry", "brunch didn't happen if it's not on the story"],
 ]
 function uses() {
   return USES.map(([img, kind, perk, line]) => `<figure class="use" style="margin:0;position:relative;aspect-ratio:4/5;border-radius:26px;overflow:hidden;border:1px solid var(--line)">
@@ -164,21 +164,21 @@ async function landing() {
 ${await demo()}
 
 <section style="padding:30px 0 48px">
-  <span class="tag" style="--dot:var(--peach)">works for any place people love</span>
-  <h2 style="margin-top:14px">pick yours. it's live <em>tonight</em>.</h2>
+  <span class="tag" style="--dot:var(--peach)">works anywhere people take photos</span>
+  <h2 style="margin-top:14px">pick your vibe. live by <em>tonight</em>.</h2>
   <div class="usegrid" style="display:grid;gap:12px">${uses()}</div>
 </section>
 
 <section style="padding:24px 0 48px;display:grid;gap:12px" class="duo">
   <div class="card" style="padding:28px">
     <span class="tag" style="--dot:var(--peach)">what you get</span>
-    <p class="serif" style="font-size:32px;line-height:1.02;margin:16px 0 14px">nano influencers, already at your bar</p>
-    <p class="soft">every story is a real person in your city telling their friends where they are right now. you get the guestlist: every handle that posted, ready to repost, follow back or invite to your next night.</p>
+    <p class="serif" style="font-size:32px;line-height:1.02;margin:16px 0 14px">a guestlist of people who already like you</p>
+    <p class="soft">every handle that posted lands in one list. repost the good ones, follow back, slide in with an invite to your next night.</p>
   </div>
   <div class="card" style="padding:28px">
     <span class="tag">pricing</span>
     <p style="margin:18px 0 4px"><span class="num" style="font-size:54px">20</span> <span class="soft">stories a month, free</span></p>
-    <p class="soft" style="margin:0 0 18px">a story counts when staff tap give. need more?</p>
+    <p class="soft" style="margin:0 0 18px">after 20 you're officially popular. top up:</p>
     <div class="row">
       ${Object.entries(PACKS).map(([n, c]) => `<div style="border:1px solid var(--line);border-radius:18px;padding:14px"><p class="num" style="font-size:26px;margin:0">+${n}</p><p class="soft" style="margin:0">${usd(c)}</p></div>`).join("")}
     </div>
@@ -187,20 +187,20 @@ ${await demo()}
 
 <section style="padding:24px 0 40px;max-width:680px">
   <span class="tag" style="--dot:var(--lilac)">questions</span>
-  <h2 style="margin-top:14px">the stuff owners ask us</h2>
+  <h2 style="margin-top:14px">things owners text us</h2>
   <div style="margin-top:12px">
-    ${q("how much does it cost?", "your first 20 stories every month are free. after that it's 50 more for $50, or 200 for $150. no subscription, no contract.")}
-    ${q("do my guests need to download an app?", "no. they scan the qr on your counter, type their instagram and the pass opens on their phone. ten seconds.")}
-    ${q("what does my staff actually do?", "look at the story on the guest's phone, see it tags you, tap give next to their name on your list. that's the whole training.")}
-    ${q("what if someone posts and deletes it right after?", "they have to post before they get anything, and you keep a list of every handle. most people leave it up anyway: it's their night out.")}
-    ${q("can the same person keep coming back?", "once a day each. a regular who posts you every week is the best ad you'll ever run.")}
-    ${q("what happens when we run out?", "the page tells guests it's all claimed for now and we let you know. top up in two taps.")}
+    ${q("how much does it cost?", "free for your first 20 stories every month. after that, 50 more for $50 or 200 for $150. no subscription, no contract, no sales call.")}
+    ${q("do my guests need to download an app?", "nope. scan, type their instagram, done. faster than splitting the bill.")}
+    ${q("what does my staff actually do?", "glance at the story, tap give. if they can run the card machine, they can run this.")}
+    ${q("what if someone posts and deletes it right after?", "they post first, perk second, and you keep every handle. most people leave it up. it's their night out too.")}
+    ${q("can the same person keep coming back?", "once a day each. someone posting you every week is a brand ambassador for the price of a latte.")}
+    ${q("what happens when we run out?", "guests see it's all claimed for now and we ping you. top up in two taps.")}
   </div>
 </section>
 
 <section class="card" style="text-align:center;padding:44px 22px;margin-top:8px">
-  <h2>put the first one on the counter <em>tonight</em></h2>
-  <p class="soft">venue name, instagram, perk. your qr is ready before the next order.</p>
+  <h2>get posted <em>tonight</em></h2>
+  <p class="soft">venue name, instagram, perk. thirty seconds, then go pour something.</p>
   <div style="margin-top:10px">${cta}</div>
 </section>
 <p class="faint" style="text-align:center;font-size:12px;margin-top:28px">getty by irlpass · <a href="https://irlpass.xyz" class="faint">meet people where you are</a></p>
