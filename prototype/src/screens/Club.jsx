@@ -2381,7 +2381,7 @@ export default function Club({ token }) {
     // the old "before the night" board is retired: every "make a plan" opens
     // the tinder-simple deck, which ends in a dm
     setPersonNo(null)
-    return setDeckWith({ person: { memberNo: p.memberNo, first: p.first || String(p.name || "").split(/\s+/)[0], photo: p.photo || null }, city: city || p.trips?.[0]?.city || me?.city })
+    return setDeckWith({ person: { memberNo: p.memberNo, first: p.first || String(p.name || "").split(/\s+/)[0], photo: p.photo || null }, city: city || viewing || me?.city })
 
     // every city has a guide now (josh v5): the plan opens that city's board
     if (city) { setViewCity(city); setPlanCity(city) }
@@ -2882,8 +2882,9 @@ export default function Club({ token }) {
             memberNo={personNo}
             onClose={() => setPersonNo(null)}
             onMessage={(p, how) => {
-              if (how === "plan") { setPersonNo(null); return setDeckWith({ person: { memberNo: p.memberNo, first: p.first || String(p.name || "").split(/\s+/)[0], photo: p.photo || null }, city: p.trips?.[0]?.city || viewing || me.city }) }
-              setPersonNo(null); setDmWith({ memberNo: p.memberNo, name: p.name || p.first, ig: p.ig, photo: p.photo }); setDmReturn(tab); setTab("dms")
+              if (how === "plan") { setPersonNo(null); return setDeckWith({ person: { memberNo: p.memberNo, first: p.first || String(p.name || "").split(/\s+/)[0], photo: p.photo || null }, city: viewing || me.city }) }
+              // leave whatever room is open, or the room keeps covering the dm
+              setPersonNo(null); setCityRoom(null); setSpotRoom(null); setActiveChat(null); setDmWith({ memberNo: p.memberNo, name: p.name || p.first, ig: p.ig, photo: p.photo }); setDmReturn(tab); setTab("dms")
             }}
             onUnlock={() => { setPersonNo(null); setPaywall("dm") }}
           />

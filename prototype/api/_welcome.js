@@ -6,7 +6,7 @@ import { cityLabel } from "./_cities.js"
 // so he edits it from ops. no email with it: it's waiting when they open the app.
 export const WELCOME_FROM = "002"
 export const DEFAULT_WELCOME =
-  "hey {first name}, i'm joshua, i started irlpass. welcome to {city}. i'm out a few nights a week and i'd love to meet you. check the mood tab to see where people are going tonight. reply here anytime, it's actually me reading these."
+  "hey {first name}, i'm joshua, one of the co-founders. welcome to irlpass! you're in {city}: open events to see what's on, tap going and you're in the group chat with everyone else going. anything you need, reply here, it's really me reading these."
 
 export async function welcomeText() {
   const { data } = await db.from("app_settings").select("value").eq("key", "welcome_dm").maybeSingle()
@@ -22,7 +22,8 @@ export async function sendWelcome(member, template) {
   const { data: existing } = await db.from("dm_threads").select("id").eq("a_no", a).eq("b_no", b).maybeSingle()
   if (existing) return false
   const first = String(member.name || "").trim().split(/\s+/)[0] || "there"
-  const city = cityLabel(member.home_city || member.city || "medellin")
+  // where they are right now, not where they're from
+  const city = cityLabel(member.city || member.home_city || "medellin")
   const body = String(template || (await welcomeText()))
     .replace(/\{first name\}/gi, first.toLowerCase())
     .replace(/\{city\}/gi, city.toLowerCase())
