@@ -2,6 +2,8 @@
 // swaps whole phrases in the finished html (longest first, so a short phrase
 // never breaks a longer one). place names, handles and prices stay as they are.
 const ES = {
+  "your guests are</span>": "tus clientes son</span>",
+  ">your <em>influencers": ">tus <em>influencers",
   "each story hits a few hundred people who trust whoever posted it. by friday, everyone's heard of you.": "cada historia le llega a cientos de personas que confían en quien la subió. para el viernes, todos ya saben de ti.",
   "works anywhere people take photos": "funciona donde la gente toma fotos",
   "pick your vibe. live by <em>tonight</em>.": "elige tu plan. en vivo <em>esta noche</em>.",

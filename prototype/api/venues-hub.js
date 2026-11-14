@@ -88,7 +88,7 @@ async function demo() {
   return `<section id="demo" class="demo" style="padding:40px 0 56px">
   <div>
     <span class="tag" style="--dot:var(--lilac)">watch it work</span>
-    <h2 style="margin-top:14px">from qr to <em>viral</em> in one night</h2>
+    <h2 style="margin-top:14px"><span class="ln">from qr to <em>viral</em></span> <span class="ln">in one night</span></h2>
     <div class="beats">${beats.map(([t, d], i) => `<button class="beat${i ? "" : " on"}" data-i="${i}"><span class="bar"><i></i></span><span class="bt">0${i + 1} · ${t}</span><span class="bd">${d}</span></button>`).join("")}</div>
   </div>
   <div class="phone">
@@ -150,7 +150,7 @@ async function landing() {
 <section class="hero" style="display:grid;gap:28px;align-items:center;padding:28px 0 40px">
   <div class="rise">
     <span class="tag">for bars, cafés, studios and clubs</span>
-    <h1>your guests are your <em>influencers</em></h1>
+    <h1><span class="ln">your guests are</span> <span class="ln">your <em>influencers</em></span></h1>
     <p class="soft" style="font-size:19px;line-height:1.4;max-width:500px;text-wrap:balance">guests post you on their story.<br>you give them a perk you pick.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
       ${cta}
@@ -209,6 +209,7 @@ ${await demo()}
 .usegrid::-webkit-scrollbar{display:none}.usegrid>*{scroll-snap-align:start}
 @media(min-width:700px){.usegrid{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(3,1fr);overflow:visible;margin:20px 0 0;padding:0}}
 .use:hover img{transform:scale(1.04)}
+.ln{display:block;white-space:nowrap}
 @media(min-width:860px){.hero{grid-template-columns:1fr 1.05fr}.duo{grid-template-columns:1fr 1fr}.demo{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}}
 
 /* the scatter */
@@ -276,7 +277,7 @@ ${await demo()}
 .tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
 .hero>*{min-width:0}
 .nav .btn{white-space:nowrap}
-@media(max-width:520px){h1{font-size:min(40px,9.2vw)!important}.nav .btn{padding:9px 12px!important;font-size:13px!important}.nav{gap:8px}.logo>span:last-child{display:none}}
+@media(max-width:520px){h1{font-size:min(48px,11.4vw)!important}.nav .btn{padding:9px 12px!important;font-size:13px!important}.nav{gap:8px}.logo>span:last-child{display:none}}
 @media(max-width:340px){.nav .btn.ghost{display:none}}
 .tiles span{aspect-ratio:9/16;border-radius:6px;background-size:cover;background-position:center;animation:pin .35s ease-out both}
 </style>`
