@@ -635,10 +635,11 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
             </li>
           ))}
         </ul>
-        <motion.button whileTap={{ scale: 0.98 }} onClick={() => go("monthly")} disabled={busy} className="mt-5 w-full rounded-full bg-ink py-4 text-center text-cream shadow-[0_12px_28px_-12px_rgba(58,50,44,0.7)] disabled:opacity-60">
-          <span className="block text-[15.5px] font-bold">{busy ? t("one sec…") : t("start your free month")}</span>
-          <span className="block tabular-nums text-[10px] text-cream/60">{t("then $19.99/mo · cancel anytime")}</span>
+        {/* the price sits outside the button in readable type: no squinting at a 10px line on cobalt */}
+        <motion.button whileTap={{ scale: 0.98 }} onClick={() => go("monthly")} disabled={busy} className="mt-5 w-full rounded-full bg-lime py-4 text-center text-[16px] font-bold text-white shadow-[0_14px_30px_-12px_rgba(74,102,255,0.8)] disabled:opacity-60">
+          {busy ? t("one sec…") : t("start your free month")}
         </motion.button>
+        <p className="mt-2 text-center tabular-nums text-[13px] font-semibold text-ink-soft">{t("then $19.99/mo · cancel anytime")}</p>
         <button onClick={() => go("yearly")} disabled={busy} className="mt-2 w-full py-1.5 text-[12.5px] font-semibold text-ink-soft">
           {t("or $89 for the year")}
         </button>
@@ -655,9 +656,9 @@ function PaywallSheet({ token, me, city, reason = "city", next = "", draft = "",
               data-lpignore="true"
               autoFocus
               placeholder="RIDE-XXXXXX"
-              className="w-full rounded-full border border-line bg-white px-4 py-2.5 text-[14px] font-bold outline-none focus:border-ink"
+              className="w-full rounded-full border border-line bg-transparent px-4 py-2.5 text-[14px] font-bold outline-none focus:border-ink"
             />
-            <button onClick={redeem} disabled={busy || !code.trim()} className="shrink-0 rounded-full bg-lime px-4 text-[13px] font-bold disabled:opacity-50">{t("use")}</button>
+            <button onClick={redeem} disabled={busy || !code.trim()} className="shrink-0 rounded-full bg-lime px-4 text-[13px] font-bold text-white disabled:opacity-50">{t("use")}</button>
           </div>
         ) : (
           <button onClick={() => setCodeOpen(true)} className="mt-3 w-full py-1.5 text-[13px] font-bold text-ink-soft underline underline-offset-2">{t("have a code?")}</button>
