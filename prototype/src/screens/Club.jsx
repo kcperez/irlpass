@@ -2736,6 +2736,14 @@ export default function Club({ token }) {
           })}
         </nav>
         <span className="flex-1" />
+        {/* the venue side of irlpass, one tap away */}
+        <a href="https://getty.irlpass.xyz" target="_blank" rel="noreferrer" className={`mb-3 flex items-center gap-2.5 rounded-[1rem] border px-3 py-2.5 ${tab === "events" ? "border-white/10 hover:bg-white/5" : "border-line hover:bg-ink/5"}`}>
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.6rem] bg-lime"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><circle cx="16" cy="16" r="8.2" fill="none" stroke="#fff" strokeWidth="2.6" strokeDasharray="44 8" strokeLinecap="round" transform="rotate(-60 16 16)" /><circle cx="16" cy="16" r="3.4" fill="#fff" /></svg></span>
+          <span className="min-w-0">
+            <span className="block text-[13px] font-bold leading-tight">getty <span className="font-semibold opacity-50">↗</span></span>
+            <span className={`block text-[11px] leading-tight ${tab === "events" ? "text-white/50" : "text-ink-soft"}`}>{t("for venues: stories for perks")}</span>
+          </span>
+        </a>
         <button onClick={() => { setCloseSheets((x) => x + 1); setProfileOpen(true) }} className={`flex items-center gap-2.5 rounded-full p-1.5 pr-3 text-left ${tab === "events" ? "hover:bg-white/10" : "hover:bg-ink/5"}`}>
           <span className="relative"><Avatar member={me} photo={me.photo} size="h-9 w-9 text-[14px]" />{profileNew && <NewDot className="-right-0.5 -top-0.5" />}</span>
           <span className="min-w-0">

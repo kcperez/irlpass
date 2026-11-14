@@ -96,11 +96,14 @@ export default function Welcome({ onStart, invitedBy, invite }) {
       <div aria-hidden className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(45% 35% at 15% 5%, rgba(74,102,255,.28), transparent 70%), radial-gradient(40% 35% at 90% 30%, rgba(143,160,255,.12), transparent 70%), #15110f" }} />
       <header className="relative z-10 mx-auto flex max-w-[1160px] items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] lg:px-10 lg:pt-7">
         <Logo h="h-10" />
+        <span className="flex items-center gap-2">
+        <a href="https://getty.irlpass.xyz" className="hidden rounded-full px-3 py-2 text-[13px] font-bold text-ink-soft hover:text-ink sm:inline-block">{t("for venues")}</a>
         {memberToken ? (
           <a href={`/?screen=app&t=${memberToken}`} className="rounded-full bg-lime px-4 py-2 text-[13px] font-bold">{t("open")}</a>
         ) : (
           <button onClick={() => setLoginOpen(true)} className="rounded-full border border-line px-4 py-2 text-[13px] font-bold">{t("log in")}</button>
         )}
+        </span>
       </header>
 
       <main className="relative z-10 mx-auto grid max-w-[1160px] items-center gap-10 px-5 pb-14 pt-8 lg:grid-cols-[1.05fr_1fr] lg:px-10 lg:pt-14">
