@@ -1,6 +1,7 @@
 import crypto from "crypto"
 import { db } from "./_db.js"
 import { glass, esc, send } from "./_page.js"
+import { giveFromMention, mentionedRecently } from "./ig-webhook.js"
 import { ASK, cleanHandle, okHandle, perksLeft, slots, standing, tellHostOut, useSlot } from "./_perks.js"
 
 // the story perk, for anyone. no irlpass account needed.
@@ -102,7 +103,7 @@ ${given ? "background:#f4eee7;color:#15110f" : "color:#fff;background:linear-gra
   <p style="margin:0;font-size:22px;font-weight:700">@${esc(c.handle)}</p>
   <p id="clock" style="clear:both;margin:8px 0 0;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">${given ? new Date(c.given_at).toLocaleTimeString("en-US", { timeZone: TZ[e.city] || "UTC", hour: "numeric", minute: "2-digit" }).toLowerCase() : ""}</p>
 </div>
-<p id="msg" style="text-align:center;font-weight:600;margin:14px 0 0">${given ? "enjoy it ✨" : `show staff this pass and your story tagging ${tags.map(esc).join(" ")}. they give it from their list.`}</p>
+<p id="msg" style="text-align:center;font-weight:600;margin:14px 0 0">${given ? "enjoy it ✨" : (process.env.IG_TOKEN ? `post your story tagging ${tags.map(esc).join(" ")}. this unlocks on its own a few seconds after it goes up.` : `show staff this pass and your story tagging ${tags.map(esc).join(" ")}. they give it from their list.`)}</p>
 ${upsell(e, await goingCount(e.id))}
 <style>@keyframes mv{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}</style>`
   const script = given ? "" : `
@@ -145,6 +146,8 @@ export default async function handler(req, res) {
         if (again) return res.status(200).json({ code: again.code })
         throw error
       }
+      // story already up? instagram told us before they claimed: give it now
+      if (await mentionedRecently(handle).catch(() => false)) await giveFromMention(handle).catch(() => 0)
       return res.status(200).json({ code })
     }
 
