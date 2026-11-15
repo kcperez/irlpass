@@ -41,8 +41,12 @@ export async function mentionedRecently(handle) {
 
 async function usernameOf(igsid) {
   if (!process.env.IG_TOKEN) return null
-  const r = await fetch(`${G}/${encodeURIComponent(igsid)}?fields=username&access_token=${process.env.IG_TOKEN}`).then((x) => x.json()).catch(() => null)
-  return r?.username || null
+  // instagram-login tokens live on graph.instagram.com, unified/facebook-login ones on graph.facebook.com
+  for (const host of [G, "https://graph.facebook.com/v23.0"]) {
+    const r = await fetch(`${host}/${encodeURIComponent(igsid)}?fields=username&access_token=${process.env.IG_TOKEN}`).then((x) => x.json()).catch(() => null)
+    if (r?.username) return r.username
+  }
+  return null
 }
 
 export default async function handler(req, res) {
