@@ -2,6 +2,15 @@
 // swaps whole phrases in the finished html (longest first, so a short phrase
 // never breaks a longer one). place names, handles and prices stay as they are.
 const ES = {
+  "how many guests": "cuántos clientes",
+  "\"your phone\"": "\"tu celular\"",
+  "01 · you set the perk": "01 · tú eliges el beneficio",
+  "02 · your guest posts, their pass unlocks": "02 · tu cliente publica y su pase se desbloquea",
+  "03 · you watch it spread": "03 · tú ves cómo se riega",
+  "your guest’s phone": "el celular de tu cliente",
+  "dani, at your place": "dani, en tu local",
+  "you, the host": "tú, el anfitrión",
+  ">your phone<": ">tu celular<",
   "what is it": "qué es",
   "always on · a place": "siempre activo · un local",
   "one event or class": "un evento o clase",

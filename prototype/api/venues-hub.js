@@ -100,9 +100,9 @@ const DCARD_CSS = `.dcw{position:absolute;left:14px;right:14px;bottom:20px;z-ind
 async function demo() {
   const qr = await QRCode.toDataURL(`${GETTY}/`, { width: 300, margin: 1, color: { dark: "#15110f", light: "#ffffff" } })
   const beats = [
-    ["set the perk", "pick what a story is worth: a smoothie, a free class, your ebook. print the qr or share the link."],
-    ["they post, it unlocks", "a guest posts a story tagging you. we verify it on our own and the pass on their phone unlocks. nobody checks phones."],
-    ["watch it spread", "each story hits a few hundred people who trust whoever posted it. by friday, everyone's heard of you."],
+    ["you set the perk", "pick what a story is worth: a smoothie, a free class, your ebook. print the qr or share the link."],
+    ["your guest posts, their pass unlocks", "a guest posts a story tagging you. we verify it on our own and the pass on their phone unlocks. nobody checks phones."],
+    ["you watch it spread", "each story hits a few hundred people who trust whoever posted it. by friday, everyone's heard of you."],
   ]
   return `<section id="demo" class="demo" style="padding:40px 0 56px">
   <div>
@@ -110,11 +110,13 @@ async function demo() {
     <h2 style="margin-top:14px"><span class="ln">from qr to <em>viral</em></span> <span class="ln">in one night</span></h2>
     <div class="beats">${beats.map(([t, d], i) => `<button class="beat${i ? "" : " on"}" data-i="${i}"><span class="bar"><i></i></span><span class="bt">0${i + 1} · ${t}</span><span class="bd">${d}</span></button>`).join("")}</div>
   </div>
+  <div class="pcol">
+  <div class="whose" id="whose"><span class="wav" id="wav"></span><span><b id="wname">your phone</b><small id="wsub">you, the host</small></span></div>
   <div class="phone">
     <div class="scr s0 on">
       <p class="faint" style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">your perk</p>
       <div class="fake-in"><span id="typed"></span><i class="caret"></i></div>
-      <p class="faint" style="margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">how many a month</p>
+      <p class="faint" style="margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">how many guests</p>
       <div class="chips"><span class="chip">20</span><span class="chip" id="c50">50</span><span class="chip">100</span></div>
       <div class="qrpop" id="qrpop"><img src="${qr}" alt=""><p>your counter qr is ready</p></div>
     </div>
@@ -145,6 +147,7 @@ async function demo() {
       <p class="soft" style="margin:4px 0 14px;font-size:13px">views from <b id="wkn" style="color:var(--ink)">46</b> guest stories</p>
       <div class="tiles" id="tiles"></div>
     </div>
+  </div>
   </div>
 </section>`
 }
@@ -284,6 +287,10 @@ ${await demo()}
 .beat .bt{display:block;font:600 17px Chillax,Geist,sans-serif;letter-spacing:-.01em}
 .beat .bd{display:none;color:var(--soft);font-size:14px;margin-top:4px}
 .beat.on{background:var(--glass)}.beat.on .bd{display:block}
+.whose{display:flex;align-items:center;gap:10px;width:max-content;margin:28px auto -14px;padding:7px 14px 7px 7px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line);transition:all .35s}
+.whose small{display:block;font-size:11.5px;color:var(--soft);line-height:1.1}.whose b{display:block;font-size:14px;line-height:1.2}
+.wav{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--lime) center/cover;color:#fff;font-size:15px;box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+.whose.guest{background:rgba(244,238,231,.92);color:#15110f}.whose.guest small{color:rgba(21,17,15,.6)}
 .phone{position:relative;width:300px;max-width:100%;aspect-ratio:9/18.5;margin:28px auto 0;border-radius:40px;border:1px solid rgba(255,255,255,.18);background:#1d1815;overflow:hidden;box-shadow:0 50px 120px -30px rgba(0,0,0,.85)}
 .scr{position:absolute;inset:0;padding:54px 20px 20px;opacity:0;transition:opacity .4s;pointer-events:none}
 .scr.on{opacity:1}
@@ -346,7 +353,7 @@ run[1]=function(){var ls=document.getElementById("lstory"),lp=document.getElemen
  setTimeout(function(){p.classList.add("given");g.innerHTML="✓ redeemed";pvs.textContent="you're all set ✨"},3600)};
 run[2]=function(){var imgs=["hero","bar","yoga2","party","cafe2","run","cafe","yoga"],t=document.getElementById("tiles");t.innerHTML="";count(document.getElementById("wk"),18240,3600);count(document.getElementById("wkn"),46,3600);
  for(var i=0;i<20;i++)(function(i){setTimeout(function(){var s=document.createElement("span");s.style.backgroundImage="url(/getty/"+imgs[i%imgs.length]+".jpg)";t.appendChild(s)},i*160)})(i)};
-function go(i){cur=i;beats.forEach(function(b,j){b.classList.toggle("on",j===i);b.classList.toggle("done",j<i);var bar=b.querySelector(".bar i");bar.style.animation="none";void bar.offsetWidth;bar.style.animation=""});scrs.forEach(function(s,j){s.classList.toggle("on",j===i)});run[i]();clearTimeout(timer);timer=setTimeout(function(){go((cur+1)%3)},DUR)}
+function go(i){var W=[["your phone","you, the host",""],["your guest’s phone","dani, at your place","/getty/pfp/3.jpg"],["your phone","you, the host",""]][i],wh=document.getElementById("whose"),wa=document.getElementById("wav");document.getElementById("wname").textContent=W[0];document.getElementById("wsub").textContent=W[1];wh.classList.toggle("guest",i===1);wa.style.backgroundImage=W[2]?"url("+W[2]+")":"";wa.textContent=W[2]?"":"★";cur=i;beats.forEach(function(b,j){b.classList.toggle("on",j===i);b.classList.toggle("done",j<i);var bar=b.querySelector(".bar i");bar.style.animation="none";void bar.offsetWidth;bar.style.animation=""});scrs.forEach(function(s,j){s.classList.toggle("on",j===i)});run[i]();clearTimeout(timer);timer=setTimeout(function(){go((cur+1)%3)},DUR)}
 beats.forEach(function(b,i){b.addEventListener("click",function(){go(i)})});
 document.documentElement.style.setProperty("--dur",DUR+"ms");
 var started=false,io=new IntersectionObserver(function(es){if(es[0].isIntersecting&&!started){started=true;go(0)}},{threshold:.3});io.observe(document.getElementById("demo"));`
