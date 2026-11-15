@@ -19,7 +19,7 @@ it's all about interests: never come back empty handed.
 1. pick the listed events that genuinely fit the request, best first. read intent generously: "football" in europe means soccer matches, watch parties and five-a-side; "party" includes club nights, raves and live music; "food" includes wine and food festivals; "running" includes run clubs and races.
 2. if fewer than 3 listed events fit, use web search to find real, specific upcoming events in this city in the next ${DAYS} days that fit (official club fixtures, venue calendars, ticket sites, run club instagram pages). only include events with a confirmed date. never invent anything.
 3. if there still aren't 3 good fits, add the closest listed events by interest as "near": the same energy or the same kind of person. running -> other workouts, yoga, hikes, dancing, active social things; techno -> other club nights and live music; wine -> food, aperitivo, tastings. 3 to 6 near picks, best first. a listed event can be in picks or near, never both.
-4. places: when the request is about somewhere to eat, drink, have coffee, brunch or go out (a restaurant tonight, aperitivo, best pizza, a cocktail bar, a specific place by name), also give the best real places in this city. use web search. rank by trusted guides first: michelin guide (stars, bib gourmand, then michelin-selected), then gambero rosso, 50 best, eater, time out and serious local press. if they name a place, find that exact place. 4 to 6 places, best first, each one real and currently open for business. never invent a place, a rating or a michelin listing: only tag michelin when the michelin guide site lists it.
+4. places: when the request is about somewhere to eat, drink, have coffee, brunch or go out (a restaurant tonight, aperitivo, best pizza, a cocktail bar, a specific place by name), also give the best real places in this city. use web search. rank by trusted guides first: michelin guide (stars, bib gourmand, then michelin-selected), then gambero rosso, 50 best, eater, time out and serious local press. if they name a place, find that exact place. 4 to 6 places, best first, each one real and currently open for business. never invent a place, a rating or a michelin listing: only tag michelin when the michelin guide site lists it. curate with taste: places with a point of view that people who care about food and drink actually go to. no tourist traps, no chains, nothing famous mainly for being famous. michelin is the anchor, never the whole list: mix in the best non-michelin spots from 50 best discovery, eater, time out, the city's own food critics and what local chefs rate. for michelin entries the url must be that restaurant's own guide.michelin.com page (the path has /restaurant/<name>), never the city list.
 5. practical: when the request is a practical question about the city (getting around, the airport, money, tipping, safety, apps, sim cards, what's open when, neighborhoods to stay in), answer it in "tip": two or three short lowercase sentences, specific and current, checked with web search. no em dashes. otherwise "tip" is null.
 6. answer with only this json, no prose around it:
 {"reply": "one short lowercase line for the person, no em dashes. when there's no exact match say so plainly and point at the near ones, like: no runs this week, but these get you moving", "picks": [listed event ids that fit, best first], "near": [listed event ids that are close, best first], "found": [{"title": "", "starts_at": "iso 8601 with timezone offset", "ends_at": "iso 8601 or null", "venue": "", "address": "", "url": "page you found it on"}], "places": [{"name": "", "area": "neighborhood", "kind": "trattoria, cocktail bar, ...", "why": "one short lowercase line in our voice: what to order or why locals go", "price": "$ to $$$$", "michelin": "star | bib | guide | null", "url": "for anything in the michelin guide, its guide.michelin.com restaurant page; otherwise the guide or official page you found it on"}], "tip": "practical answer or null"}`
@@ -40,13 +40,37 @@ async function pagePhoto(url) {
     const html = (await r.text()).slice(0, 300000)
     const m = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*content=["']([^"']+)["']/i) || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image|twitter:image)["']/i)
     const src = m?.[1]?.replace(/&amp;/g, "&")
-    return src && /^https:\/\//.test(src) ? src : null
+    // a logo isn't a photo of the place: the poster card reads better
+    return src && /^https:\/\//.test(src) && !/logo|favicon|icon/i.test(src) ? src : null
   } catch {
     return null
   }
 }
 
-async function enrich(p, place) {
+// the michelin link has to be the restaurant's own page (that's where its photo
+// is). when the search handed back the city list instead, find the page from
+// the name: .../barcelona/restaurants -> .../barcelona/restaurant/compartir-barcelona
+const UA_FULL = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+const slugOf = (x) => String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+async function michelinPage(p, place) {
+  if (!p.michelin || /guide\.michelin\.com\/.*\/restaurant\//.test(p.url)) return p.url
+  const m = String(p.url).match(/^(https:\/\/guide\.michelin\.com\/(?:[a-z]{2}\/)?[a-z]{2}\/[^/]+\/[^/]+)\/restaurants/)
+  if (!m) return p.url
+  const city = slugOf(place.split(",")[0] || "")
+  const bare = slugOf(p.name).replace(new RegExp(`-${city}$`), "")
+  const names = [...new Set([`${bare}-${city}`, bare])].filter(Boolean)
+  for (const n of names) {
+    const u = `${m[1]}/restaurant/${n}`
+    // a bare name can redirect to a same-named place in another town: only
+    // keep a page that's still in this city
+    const r = await fetch(u, { headers: { "user-agent": UA_FULL, accept: "text/html" }, signal: AbortSignal.timeout(4000) }).catch(() => null)
+    if (r?.status === 200 && r.url.startsWith(`${m[1]}/restaurant/`)) return r.url
+  }
+  return p.url
+}
+
+async function enrich(p0, place) {
+  const p = { ...p0, url: await michelinPage(p0, place) }
   const key = process.env.GOOGLE_MAPS_KEY
   if (!key) return { ...p, photo: await pagePhoto(p.url) }
   try {
