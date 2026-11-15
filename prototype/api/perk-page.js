@@ -13,6 +13,8 @@ const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-ang
 const over = (e) => !standing(e) && Date.now() > Date.parse(e.ends_at || e.starts_at) + 12 * 3600e3
 // the irlpass ticket tile, for passes without a venue picture
 const MARK_TILE = `<svg viewBox="0 0 64 64" width="46" height="46" aria-hidden="true"><defs><linearGradient id="pt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a8dff"/><stop offset="1" stop-color="#2c45e6"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#pt)"/><path d="M17 22h30a3 3 0 0 1 3 3v4a4 4 0 0 0 0 8v4a3 3 0 0 1-3 3H17a3 3 0 0 1-3-3v-4a4 4 0 0 0 0-8v-4a3 3 0 0 1 3-3z" fill="#fff"/><path d="M38 24v18" stroke="#4a66ff" stroke-width="2" stroke-dasharray="2.5 3"/></svg>`
+const CITY = { miami: "Miami", "new-york": "New York", "los-angeles": "Los Angeles", medellin: "Medellín", palermo: "Palermo" }
+const cityName = (c) => CITY[c] || String(c || "").replace(/-/g, " ")
 const tagsOf = (e) => [...new Set([...(e.perk?.tags || []), "@irlpass.xyz"])]
 
 async function getEvent(id) {
@@ -34,47 +36,68 @@ const mine = (e, handle) => {
   return (standing(e) ? q.eq("claim_day", today()) : q.order("created_at").limit(1)).maybeSingle()
 }
 
-function upsell(e, n) {
-  if (standing(e)) return `<div class="card" style="text-align:center">
-  <p style="margin:0 0 10px;font-weight:600">see what's on tonight near ${esc(e.venue || "you")}</p>
-  <a class="btn" href="/">open irlpass</a>
-  <p class="soft" style="font-size:13px;margin:10px 0 0">events, people and group chats in your city.</p>
-</div>`
-  return `<div class="card" style="text-align:center">
-  <p style="margin:0 0 10px;font-weight:600">${n ? `${n} ${n === 1 ? "person" : "people"} from irlpass ${n === 1 ? "is" : "are"} going` : "meet the people here tonight"}</p>
-  <a class="btn" href="/e/${e.id}">join the group chat</a>
-  <p class="soft" style="font-size:13px;margin:10px 0 0">free, takes 30 seconds.</p>
-</div>`
-}
+// the guest perk pages: their own light, quiet design (think airbnb listing +
+// apple wallet pass). one type family, one primary button, no decoration.
+// guests skim this in a loud room, so each screen says exactly one thing.
+const AV = (e, px) => e.cover
+  ? `<img src="${esc(e.cover)}" alt="" width="${px}" height="${px}" style="display:block;width:${px}px;height:${px}px;border-radius:50%;object-fit:cover">`
+  : `<span style="display:grid;place-items:center;width:${px}px;height:${px}px;border-radius:50%;background:#4a66ff;color:#fff;font-weight:600;font-size:${Math.round(px * 0.42)}px">${esc(String(e.venue || e.title || "?")[0]).toLowerCase()}</span>`
+const CHECK = (px, sw = 2.6) => `<svg viewBox="0 0 24 24" width="${px}" height="${px}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`
 
-// the perk pages are picture-first: big perk, three icon steps, one button.
-// guests skim on a phone in a loud room, so every screen says one thing.
-const AVATAR = (e, px) => e.cover
-  ? `<img src="${esc(e.cover)}" alt="" style="display:block;width:${px}px;height:${px}px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px rgba(255,255,255,.9)">`
-  : MARK_TILE.replace(/width="46" height="46"/, `width="${px}" height="${px}"`)
-const STEP = (icon, word, sub) => `<div class="st"><div class="si">${icon}</div><b>${word}</b>${sub ? `<span>${sub}</span>` : ""}</div>`
-const IC = {
-  cam: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="4"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>`,
-  at: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg>`,
-  gift: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12M12 9c-2-4-6-4-6-1.5S9 9 12 9zm0 0c2-4 6-4 6-1.5S15 9 12 9z"/></svg>`,
-  check: `<svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+function shell(title, body, { script = "", head = "" } = {}) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>${esc(title)}</title>${head}
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#111113;--soft:#6b6b73;--faint:#a1a1aa;--line:#ececef;--fill:#f4f4f6;--blue:#4a66ff;--green:#16a34a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:#fff}
+body{margin:0;color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11"}
+main{max-width:440px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom));min-height:100dvh;display:flex;flex-direction:column}
+p{margin:0}
+.venue{display:flex;align-items:center;gap:12px}
+.venue b{font-weight:600;font-size:15px}.venue span{display:block;color:var(--soft);font-size:13px}
+.title{font-size:34px;line-height:1.08;font-weight:700;letter-spacing:-.025em;margin:28px 0 6px;text-wrap:balance}
+.sub{color:var(--soft);font-size:17px}
+.how{margin:30px 0 0;border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid var(--line);font-size:16px}
+.n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--fill);display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--soft)}
+.row b{font-weight:600}
+.dock{margin-top:auto;padding-top:28px}
+.field{display:flex;align-items:center;height:56px;border-radius:14px;background:var(--fill);padding:0 16px;gap:4px;border:1.5px solid transparent;transition:border-color .15s}
+.field:focus-within{border-color:var(--ink);background:#fff}
+.field i{font-style:normal;color:var(--faint);font-size:17px}
+.field input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:17px;color:var(--ink)}
+.cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:56px;margin-top:10px;border:0;border-radius:14px;background:var(--ink);color:#fff;font:inherit;font-size:17px;font-weight:600;text-decoration:none;cursor:pointer;transition:transform .1s,opacity .15s}
+.cta:active{transform:scale(.985)}.cta:disabled{opacity:.4}
+.ghost{background:var(--fill);color:var(--ink)}
+.err{color:#dc2626;font-size:14px;margin-top:10px;min-height:1px}
+.fine{color:var(--faint);font-size:13px;text-align:center;margin-top:14px}
+.pass{margin-top:8px;border-radius:22px;background:#111113;color:#fff;padding:20px 20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 24px 48px -24px rgba(0,0,0,.45);transition:background .5s}
+.pass .top{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.pass .top small{margin-left:auto;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.55;font-weight:600}
+.pass .perk{font-size:30px;line-height:1.08;font-weight:700;letter-spacing:-.02em;margin:34px 0 26px;text-wrap:balance}
+.fields{display:flex;gap:24px}.fields div{min-width:0}
+.fields small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.55;font-weight:600;margin-bottom:2px}
+.fields b{font-weight:600;font-size:16px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pass.done{background:var(--green)}
+.state{text-align:center;margin:30px 0 0}
+.state h2{font-size:22px;font-weight:700;letter-spacing:-.015em;margin:14px 0 4px}
+.state p{color:var(--soft)}
+.spin{width:36px;height:36px;margin:0 auto;border-radius:50%;border:3px solid var(--line);border-top-color:var(--blue);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.seal{width:56px;height:56px;margin:0 auto;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;animation:pop .45s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.tags button{height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+.more{display:block;text-align:center;margin-top:18px;color:var(--soft);font-size:14px;text-decoration:none}
+.more b{color:var(--ink);font-weight:600}
+</style></head><body><main>${body}</main>${script ? `<script>${script}</script>` : ""}</body></html>`
 }
-const CSS = `<style>
-.hero{text-align:center;margin-top:8px}.hero .av{display:inline-block;margin-bottom:10px}
-.big{font-family:Chillax,Geist,sans-serif;font-weight:700;font-size:44px;line-height:.98;letter-spacing:-.035em;margin:6px 0 4px;text-wrap:balance}
-.steps{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:start;gap:4px;margin:22px 0 4px;text-align:center}
-.st{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;min-width:0}.st b{font-size:14px}.st span{font-size:11.5px;color:var(--faint);line-height:1.35}
-.si{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(74,102,255,.16);color:#8fa0ff;border:1px solid rgba(122,141,255,.35)}
-.ar{color:var(--faint);font-size:18px;margin-top:18px}
-.hin{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:0 16px;background:rgba(255,255,255,.04)}
-.hin b{font-size:20px;color:var(--faint)}.hin input{border:0!important;background:transparent!important;padding:16px 0!important;font-size:18px!important;box-shadow:none!important;margin:0!important}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);font-weight:600;font-size:14px;background:rgba(255,255,255,.05);cursor:pointer}
-.dot{width:10px;height:10px;border-radius:50%;background:#7a8dff;box-shadow:0 0 0 0 rgba(122,141,255,.7);animation:pl 1.6s infinite}
-@keyframes pl{0%{box-shadow:0 0 0 0 rgba(122,141,255,.7)}100%{box-shadow:0 0 0 14px rgba(122,141,255,0)}}
-@keyframes mv{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
-.ok{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;margin:0 auto;background:#2fd27a;color:#fff;animation:pop .5s ease-out both;box-shadow:0 18px 40px -12px rgba(47,210,122,.7)}
-</style>`
 
 async function claimPage(e) {
   const title = e.titles?.en || e.title
@@ -83,25 +106,22 @@ async function claimPage(e) {
   const tags = tagsOf(e)
   const open = left > 0 && s.left > 0
   if (left > 0 && s.left <= 0) await tellHostOut(e)
-  const body = `${CSS}
-<div class="hero">
-  <div class="av">${AVATAR(e, 64)}</div>
-  <p class="k" style="margin:0">${esc(e.venue || title)}</p>
-  <p class="big">${esc(e.perk.item)}</p>
-  <p class="soft" style="margin:0;font-weight:600">free, for 1 story</p>
+  const auto = !!process.env.IG_TOKEN
+  const body = `
+<div class="venue">${AV(e, 44)}<div><b>${esc(e.venue || title)}</b><span>${esc(cityName(e.city))}</span></div></div>
+<p class="title">${esc(e.perk.item)}</p>
+<p class="sub">free for one instagram story</p>
+<div class="how">
+  <div class="row"><span class="n">1</span><span>post a story here</span></div>
+  <div class="row"><span class="n">2</span><span>tag <b>${tags.map(esc).join("</b> and <b>")}</b></span></div>
+  <div class="row"><span class="n">3</span><span>${auto ? "your pass unlocks on its own" : "show your pass at the counter"}</span></div>
 </div>
-<div class="steps">
-  ${STEP(IC.cam, "post", "a story")}<span class="ar">→</span>
-  ${STEP(IC.at, "tag", tags.map(esc).join("<br>"))}<span class="ar">→</span>
-  ${STEP(IC.gift, "it's yours", process.env.IG_TOKEN ? "unlocks itself" : "show the counter")}
-</div>
-${open ? `
-<div class="card" style="margin-top:20px">
-  <div class="hin"><b>@</b><input id="h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="your instagram"></div>
-  <button id="go" class="block" style="margin-top:12px;font-size:17px;padding:16px">get my pass</button>
+<div class="dock">${open ? `
+  <label class="field"><i>@</i><input id="h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="instagram username" enterkeyhint="go"></label>
+  <button id="go" class="cta">get my pass</button>
   <p id="err" class="err"></p>
-  ${left < 20 ? `<p class="soft" style="font-size:13px;margin:10px 0 0;text-align:center">only ${left} left</p>` : ""}
-</div>` : `<div class="card" style="text-align:center;margin-top:20px"><p style="margin:0;font-weight:700;font-size:18px">all claimed for now</p></div>`}`
+  <p class="fine">${left < 20 ? `${left} left · ` : ""}no app needed</p>` : `<p class="sub" style="text-align:center">all claimed for now. check back soon.</p>`}
+</div>`
   const script = `
 const h=document.getElementById("h"),b=document.getElementById("go"),err=document.getElementById("err");
 try{const q=new URLSearchParams(location.search).get("h");if(q&&h)h.value=q;const k=localStorage.getItem("perk-${e.id}${standing(e) ? `-${today()}` : ""}");if(k)location.replace("/pass/"+k)}catch(e){}
@@ -109,12 +129,10 @@ h&&h.addEventListener("keydown",x=>{if(x.key==="Enter")b.click()});
 b&&b.addEventListener("click",async()=>{err.textContent="";b.disabled=true;
 const r=await fetch("/api/perk-page",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"claim",id:${e.id},handle:h.value})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.code){try{localStorage.setItem("perk-${e.id}${standing(e) ? `-${today()}` : ""}",r.code)}catch(e){}location.href="/pass/"+r.code}else{err.textContent=r.error||"try again";b.disabled=false}});`
-  let html = glass(`${e.perk.item} at ${e.venue || title}`, body, { script })
-  html = html.replace("</title>", `</title>
+  return shell(`${e.perk.item} at ${e.venue || title}`, body, { script, head: `
 <meta property="og:title" content="${esc(`${e.perk.item} for a story`)}">
 <meta property="og:description" content="${esc(`${title}${e.venue ? ` at ${e.venue}` : ""}. post a story, get ${e.perk.item}.`)}">
-${e.cover ? `<meta property="og:image" content="${esc(e.cover)}">` : ""}`)
-  return html
+${e.cover ? `<meta property="og:image" content="${esc(e.cover)}">` : ""}` })
 }
 
 async function passPage(code) {
@@ -125,32 +143,37 @@ async function passPage(code) {
   const auto = !!process.env.IG_TOKEN
   const tags = tagsOf(e)
   const at = given ? new Date(c.given_at).toLocaleTimeString("en-US", { timeZone: TZ[e.city] || "UTC", hour: "numeric", minute: "2-digit" }).toLowerCase() : ""
-  const body = `${CSS}
-<div id="pass" style="margin-top:6px;border-radius:28px;padding:26px 22px;text-align:center;box-shadow:0 30px 70px -20px rgba(74,102,255,.6);user-select:none;-webkit-user-select:none;
-${given ? "background:#f4eee7;color:#15110f" : "color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 4s linear infinite"}">
-  <div style="display:inline-block">${AVATAR(e, 58)}</div>
-  <p class="big" style="font-size:40px;margin:12px 0 6px">${esc(e.perk.item)}</p>
-  <p style="margin:0;font-size:18px;font-weight:700;opacity:.85">@${esc(c.handle)}</p>
+  const n = await goingCount(e.id)
+  const body = `
+<div id="pass" class="pass${given ? " done" : ""}">
+  <div class="top">${AV(e, 32)}<span>${esc(e.venue || e.title)}</span><small>perk</small></div>
+  <p class="perk">${esc(e.perk.item)}</p>
+  <div class="fields">
+    <div><small>guest</small><b>@${esc(c.handle)}</b></div>
+    <div><small>status</small><b id="st">${given ? `${CHECK(16, 3)} redeemed` : "waiting"}</b></div>
+  </div>
 </div>
-<div id="wait" style="${given ? "display:none" : ""}">
-  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:22px 0 6px;font-weight:700;font-size:19px"><span class="dot"></span>${auto ? "waiting for your story" : "show this at the counter"}</div>
-  <p class="soft" style="text-align:center;margin:0 0 16px">tag both, tap to copy</p>
-  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">${tags.map((t) => `<span class="chip" data-t="${esc(t)}">${esc(t)}</span>`).join("")}</div>
-  <a class="btn block" href="instagram://story-camera" style="margin-top:18px;font-size:17px;padding:16px;display:flex;justify-content:center;gap:10px;align-items:center">${IC.cam.replace(/width="26" height="26"/, 'width="22" height="22"')} open instagram</a>
+<div id="wait" class="state" style="${given ? "display:none" : ""}">
+  <div class="spin"></div>
+  <h2>${auto ? "waiting for your story" : "show this at the counter"}</h2>
+  <p>${auto ? "this unlocks a few seconds after you post" : "staff will check your story"}</p>
+  <div class="tags">${tags.map((t) => `<button data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>
 </div>
-<div id="done" style="${given ? "" : "display:none"};text-align:center;margin-top:24px">
-  <div class="ok">${IC.check}</div>
-  <p class="big" style="font-size:34px;margin:14px 0 2px">enjoy it</p>
-  <p class="soft" style="margin:0" id="at">${at ? `given at ${at}` : ""}</p>
+<div id="done" class="state" style="${given ? "" : "display:none"}">
+  <div class="seal">${CHECK(28, 3)}</div>
+  <h2>you're all set</h2>
+  <p id="at">${given ? `show this to staff · ${at}` : ""}</p>
 </div>
-<div id="up" style="margin-top:22px;${given ? "" : "display:none"}">${upsell(e, await goingCount(e.id))}</div>`
+<div class="dock">
+  <a id="ig" class="cta" href="instagram://story-camera" style="${given ? "display:none" : ""}">open instagram</a>
+  <a id="more" class="more" href="${standing(e) ? "/" : `/e/${e.id}`}" style="${given ? "" : "display:none"}">${n > 1 ? `<b>${n} people</b> from irlpass are here · ` : ""}<b>see what's on tonight →</b></a>
+</div>`
   const script = `
-document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(c.dataset.t)}catch(e){}const t=c.textContent;c.textContent="copied ✓";setTimeout(()=>c.textContent=t,1200)}));
+document.querySelectorAll(".tags button").forEach(c=>c.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(c.dataset.t)}catch(e){}const t=c.textContent;c.textContent="copied";setTimeout(()=>c.textContent=t,1200)}));
 ${given ? "" : `
-const pass=document.getElementById("pass");
-const done=()=>{clearInterval(poll);pass.style.animation="none";pass.style.background="#f4eee7";pass.style.color="#15110f";document.getElementById("wait").style.display="none";document.getElementById("done").style.display="";document.getElementById("up").style.display="";document.getElementById("at").textContent="given at "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).toLowerCase();try{navigator.vibrate&&navigator.vibrate([12,40,18])}catch(e){}};
+const done=()=>{clearInterval(poll);document.getElementById("pass").classList.add("done");document.getElementById("st").innerHTML='${CHECK(16, 3)} redeemed';document.getElementById("wait").style.display="none";document.getElementById("done").style.display="";document.getElementById("ig").style.display="none";document.getElementById("more").style.display="";document.getElementById("at").textContent="show this to staff · "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).toLowerCase();try{navigator.vibrate&&navigator.vibrate([12,40,18])}catch(e){}};
 const poll=setInterval(async()=>{if(document.hidden)return;const r=await fetch("/api/perk-page?code=${code}&json=1").then(x=>x.json()).catch(()=>null);if(r&&r.given)done()},3000);`}`
-  return glass(`${e.perk.item} · your pass`, body, { script })
+  return shell(`${e.perk.item} · your pass`, body, { script })
 }
 
 export default async function handler(req, res) {
