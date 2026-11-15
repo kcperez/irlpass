@@ -47,35 +47,65 @@ function upsell(e, n) {
 </div>`
 }
 
+// the perk pages are picture-first: big perk, three icon steps, one button.
+// guests skim on a phone in a loud room, so every screen says one thing.
+const AVATAR = (e, px) => e.cover
+  ? `<img src="${esc(e.cover)}" alt="" style="display:block;width:${px}px;height:${px}px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px rgba(255,255,255,.9)">`
+  : MARK_TILE.replace(/width="46" height="46"/, `width="${px}" height="${px}"`)
+const STEP = (icon, word, sub) => `<div class="st"><div class="si">${icon}</div><b>${word}</b>${sub ? `<span>${sub}</span>` : ""}</div>`
+const IC = {
+  cam: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="4"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>`,
+  at: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg>`,
+  gift: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12M12 9c-2-4-6-4-6-1.5S9 9 12 9zm0 0c2-4 6-4 6-1.5S15 9 12 9z"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+}
+const CSS = `<style>
+.hero{text-align:center;margin-top:8px}.hero .av{display:inline-block;margin-bottom:10px}
+.big{font-family:Chillax,Geist,sans-serif;font-weight:700;font-size:44px;line-height:.98;letter-spacing:-.035em;margin:6px 0 4px;text-wrap:balance}
+.steps{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:start;gap:4px;margin:22px 0 4px;text-align:center}
+.st{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;min-width:0}.st b{font-size:14px}.st span{font-size:11.5px;color:var(--faint);line-height:1.35}
+.si{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(74,102,255,.16);color:#8fa0ff;border:1px solid rgba(122,141,255,.35)}
+.ar{color:var(--faint);font-size:18px;margin-top:18px}
+.hin{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:0 16px;background:rgba(255,255,255,.04)}
+.hin b{font-size:20px;color:var(--faint)}.hin input{border:0!important;background:transparent!important;padding:16px 0!important;font-size:18px!important;box-shadow:none!important;margin:0!important}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);font-weight:600;font-size:14px;background:rgba(255,255,255,.05);cursor:pointer}
+.dot{width:10px;height:10px;border-radius:50%;background:#7a8dff;box-shadow:0 0 0 0 rgba(122,141,255,.7);animation:pl 1.6s infinite}
+@keyframes pl{0%{box-shadow:0 0 0 0 rgba(122,141,255,.7)}100%{box-shadow:0 0 0 14px rgba(122,141,255,0)}}
+@keyframes mv{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.ok{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;margin:0 auto;background:#2fd27a;color:#fff;animation:pop .5s ease-out both;box-shadow:0 18px 40px -12px rgba(47,210,122,.7)}
+</style>`
+
 async function claimPage(e) {
   const title = e.titles?.en || e.title
-  const when = new Date(e.starts_at).toLocaleString("en-US", { timeZone: TZ[e.city] || "UTC", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).toLowerCase()
   if (over(e)) return gone("this one's over")
   const [left, s] = await Promise.all([perksLeft(e), slots(e.host_no)])
   const tags = tagsOf(e)
   const open = left > 0 && s.left > 0
   if (left > 0 && s.left <= 0) await tellHostOut(e)
-  const body = `
-${e.cover ? `<img src="${esc(e.cover)}" alt="" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:22px;display:block">` : ""}
-<p class="k" style="margin-top:18px">${standing(e) ? "every day" : esc(when)}${e.venue ? ` · ${esc(e.venue)}` : ""}</p>
-<h1>${esc(title)}</h1>
-<div class="card">
-  <p class="k" style="margin:0">free for you</p>
-  <p class="perk" style="margin:4px 0 14px">${esc(e.perk.item)}</p>
-  ${open ? `
-  <p style="margin:0 0 6px"><b>1.</b> post ${esc(ASK[e.perk.ask] || ASK.story)} tagging <b>${tags.map(esc).join(" ")}</b></p>
-  <p style="margin:0 0 6px"><b>2.</b> type your instagram below</p>
-  <p style="margin:0 0 14px"><b>3.</b> ${process.env.IG_TOKEN ? "your pass unlocks on its own once the story is up" : "show your story at the counter"}</p>
-  <label for="h">your instagram</label>
-  <input id="h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="@yourhandle">
-  <button id="go" class="block" style="margin-top:12px">get my pass</button>
-  <p id="err" class="err"></p>
-  <p class="soft" style="font-size:13px;margin:10px 0 0;text-align:center">${left} left</p>` : `<p style="margin:0;font-weight:600">all claimed for now. ask at the counter.</p>`}
+  const body = `${CSS}
+<div class="hero">
+  <div class="av">${AVATAR(e, 64)}</div>
+  <p class="k" style="margin:0">${esc(e.venue || title)}</p>
+  <p class="big">${esc(e.perk.item)}</p>
+  <p class="soft" style="margin:0;font-weight:600">free, for 1 story</p>
 </div>
-${upsell(e, await goingCount(e.id))}`
+<div class="steps">
+  ${STEP(IC.cam, "post", "a story")}<span class="ar">→</span>
+  ${STEP(IC.at, "tag", tags.map(esc).join("<br>"))}<span class="ar">→</span>
+  ${STEP(IC.gift, "it's yours", process.env.IG_TOKEN ? "unlocks itself" : "show the counter")}
+</div>
+${open ? `
+<div class="card" style="margin-top:20px">
+  <div class="hin"><b>@</b><input id="h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="your instagram"></div>
+  <button id="go" class="block" style="margin-top:12px;font-size:17px;padding:16px">get my pass</button>
+  <p id="err" class="err"></p>
+  ${left < 20 ? `<p class="soft" style="font-size:13px;margin:10px 0 0;text-align:center">only ${left} left</p>` : ""}
+</div>` : `<div class="card" style="text-align:center;margin-top:20px"><p style="margin:0;font-weight:700;font-size:18px">all claimed for now</p></div>`}`
   const script = `
 const h=document.getElementById("h"),b=document.getElementById("go"),err=document.getElementById("err");
 try{const q=new URLSearchParams(location.search).get("h");if(q&&h)h.value=q;const k=localStorage.getItem("perk-${e.id}${standing(e) ? `-${today()}` : ""}");if(k)location.replace("/pass/"+k)}catch(e){}
+h&&h.addEventListener("keydown",x=>{if(x.key==="Enter")b.click()});
 b&&b.addEventListener("click",async()=>{err.textContent="";b.disabled=true;
 const r=await fetch("/api/perk-page",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"claim",id:${e.id},handle:h.value})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.code){try{localStorage.setItem("perk-${e.id}${standing(e) ? `-${today()}` : ""}",r.code)}catch(e){}location.href="/pass/"+r.code}else{err.textContent=r.error||"try again";b.disabled=false}});`
@@ -92,26 +122,34 @@ async function passPage(code) {
   const e = c && (await getEvent(c.event_id))
   if (!e) return gone("that pass is gone")
   const given = c.status === "given"
+  const auto = !!process.env.IG_TOKEN
   const tags = tagsOf(e)
-  const body = `
-<p class="k">${esc(e.venue || e.titles?.en || e.title)}</p>
-<div id="pass" style="margin-top:10px;border-radius:24px;padding:22px;box-shadow:0 30px 70px -20px rgba(74,102,255,.6);user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer;
+  const at = given ? new Date(c.given_at).toLocaleTimeString("en-US", { timeZone: TZ[e.city] || "UTC", hour: "numeric", minute: "2-digit" }).toLowerCase() : ""
+  const body = `${CSS}
+<div id="pass" style="margin-top:6px;border-radius:28px;padding:26px 22px;text-align:center;box-shadow:0 30px 70px -20px rgba(74,102,255,.6);user-select:none;-webkit-user-select:none;
 ${given ? "background:#f4eee7;color:#15110f" : "color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 4s linear infinite"}">
-  <div style="float:right;margin:0 0 8px 12px">${e.cover ? `<img src="${esc(e.cover)}" alt="" style="display:block;width:76px;height:76px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px rgba(255,255,255,.95)">` : MARK_TILE.replace(/width="46" height="46"/, 'width="76" height="76"')}</div>
-  <p class="k" style="margin:0;color:inherit;opacity:.75">${given ? "given" : "unlocked · show this + your story"}</p>
-  <p class="perk" style="margin:6px 0 2px">${esc(e.perk.item)}</p>
-  <p style="margin:0;font-size:22px;font-weight:700">@${esc(c.handle)}</p>
-  <p id="clock" style="clear:both;margin:8px 0 0;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">${given ? new Date(c.given_at).toLocaleTimeString("en-US", { timeZone: TZ[e.city] || "UTC", hour: "numeric", minute: "2-digit" }).toLowerCase() : ""}</p>
+  <div style="display:inline-block">${AVATAR(e, 58)}</div>
+  <p class="big" style="font-size:40px;margin:12px 0 6px">${esc(e.perk.item)}</p>
+  <p style="margin:0;font-size:18px;font-weight:700;opacity:.85">@${esc(c.handle)}</p>
 </div>
-<p id="msg" style="text-align:center;font-weight:600;margin:14px 0 0">${given ? "enjoy it ✨" : (process.env.IG_TOKEN ? `post your story tagging ${tags.map(esc).join(" ")}. this unlocks on its own a few seconds after it goes up.` : `show staff this pass and your story tagging ${tags.map(esc).join(" ")}. they give it from their list.`)}</p>
-${upsell(e, await goingCount(e.id))}
-<style>@keyframes mv{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}</style>`
-  const script = given ? "" : `
-const clock=document.getElementById("clock"),pass=document.getElementById("pass"),msg=document.getElementById("msg");
-const tick=()=>clock.textContent=new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit",second:"2-digit"}).toLowerCase();tick();const iv=setInterval(tick,1000);
-// staff give it from their list: watch for it and flip the pass
-const done=()=>{clearInterval(iv);clearInterval(poll);pass.style.animation="none";pass.style.background="#f4eee7";pass.style.color="#15110f";pass.querySelector(".k").textContent="given";clock.textContent=new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).toLowerCase();msg.textContent="enjoy it ✨";try{navigator.vibrate&&navigator.vibrate([12,40,18])}catch(e){}};
-const poll=setInterval(async()=>{if(document.hidden)return;const r=await fetch("/api/perk-page?code=${code}&json=1").then(x=>x.json()).catch(()=>null);if(r&&r.given)done()},3000);`
+<div id="wait" style="${given ? "display:none" : ""}">
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:22px 0 6px;font-weight:700;font-size:19px"><span class="dot"></span>${auto ? "waiting for your story" : "show this at the counter"}</div>
+  <p class="soft" style="text-align:center;margin:0 0 16px">tag both, tap to copy</p>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">${tags.map((t) => `<span class="chip" data-t="${esc(t)}">${esc(t)}</span>`).join("")}</div>
+  <a class="btn block" href="instagram://story-camera" style="margin-top:18px;font-size:17px;padding:16px;display:flex;justify-content:center;gap:10px;align-items:center">${IC.cam.replace(/width="26" height="26"/, 'width="22" height="22"')} open instagram</a>
+</div>
+<div id="done" style="${given ? "" : "display:none"};text-align:center;margin-top:24px">
+  <div class="ok">${IC.check}</div>
+  <p class="big" style="font-size:34px;margin:14px 0 2px">enjoy it</p>
+  <p class="soft" style="margin:0" id="at">${at ? `given at ${at}` : ""}</p>
+</div>
+<div id="up" style="margin-top:22px;${given ? "" : "display:none"}">${upsell(e, await goingCount(e.id))}</div>`
+  const script = `
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(c.dataset.t)}catch(e){}const t=c.textContent;c.textContent="copied ✓";setTimeout(()=>c.textContent=t,1200)}));
+${given ? "" : `
+const pass=document.getElementById("pass");
+const done=()=>{clearInterval(poll);pass.style.animation="none";pass.style.background="#f4eee7";pass.style.color="#15110f";document.getElementById("wait").style.display="none";document.getElementById("done").style.display="";document.getElementById("up").style.display="";document.getElementById("at").textContent="given at "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).toLowerCase();try{navigator.vibrate&&navigator.vibrate([12,40,18])}catch(e){}};
+const poll=setInterval(async()=>{if(document.hidden)return;const r=await fetch("/api/perk-page?code=${code}&json=1").then(x=>x.json()).catch(()=>null);if(r&&r.given)done()},3000);`}`
   return glass(`${e.perk.item} · your pass`, body, { script })
 }
 
