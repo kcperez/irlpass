@@ -77,12 +77,31 @@ function scatter() {
 </div>`
 }
 
+const DCARD_CSS = `.dcw{position:absolute;left:14px;right:14px;bottom:20px;z-index:4;perspective:900px;transform:translateY(130%);transition:transform .7s cubic-bezier(.2,.9,.25,1.05)}
+.dcw.up{transform:none}
+.dcard{position:relative;aspect-ratio:1.586;border-radius:16px;overflow:hidden;color:#fff;padding:13px 15px 12px;display:flex;flex-direction:column;background:radial-gradient(130% 150% at 0% 0%,#8c9cff 0%,#4a66ff 34%,#2a3fd6 66%,#141d6e 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 24px 44px -18px rgba(28,44,190,.95),0 10px 20px -10px rgba(0,0,0,.7);transform:rotateX(6deg) rotateY(-8deg);animation:dfl 6s ease-in-out infinite;transition:background .6s,color .6s}
+.dcard:before{content:"";position:absolute;inset:0;opacity:.16;mix-blend-mode:overlay;background:repeating-radial-gradient(circle at 115% 120%,rgba(255,255,255,.7) 0 .6px,transparent .6px 5px)}
+.dcard:after{content:"";position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.38) 48%,transparent 60%);mix-blend-mode:soft-light;animation:dsh 5s ease-in-out infinite}
+.dcard>*{position:relative;z-index:1}
+@keyframes dfl{0%,100%{transform:rotateX(6deg) rotateY(-8deg)}50%{transform:rotateX(3deg) rotateY(7deg)}}
+@keyframes dsh{0%,100%{transform:translateX(-55%)}50%{transform:translateX(35%)}}
+.dtop{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600}.dtop img{width:20px;height:20px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}.dtop b{margin-left:auto;font:700 12px Chillax,Geist,sans-serif;opacity:.9}
+.dchip{width:30px;height:22px;border-radius:5px;margin-top:9px;background:linear-gradient(135deg,#f6f1e7,#c9c0b1 38%,#fbf8f1 55%,#b7ad9c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.dperk{margin:auto 0 8px!important;font:700 22px/1 Chillax,Geist,sans-serif;letter-spacing:-.03em;text-shadow:0 -1px 0 rgba(0,0,0,.3)}
+.dfields{display:flex;gap:18px}.dfields small{display:block;font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.6;font-weight:600}.dfields span{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600}
+.dspin{width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:dsp .8s linear infinite}@keyframes dsp{to{transform:rotate(360deg)}}
+.dcard.given{color:#15110f;background:radial-gradient(130% 150% at 0% 0%,#fff 0%,#f4eee7 40%,#e3d9ca 75%,#cfc3b0 100%);box-shadow:inset 0 1px 0 #fff,0 24px 44px -18px rgba(0,0,0,.85)}
+.dcard.given:before{mix-blend-mode:multiply;opacity:.1}.dcard.given .dperk{text-shadow:0 1px 0 #fff}
+.dtoast{position:absolute;left:50%;top:18%;z-index:5;transform:translate(-50%,-10px);opacity:0;transition:all .45s cubic-bezier(.2,.9,.25,1.1);display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:14px;background:rgba(21,17,15,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font-size:11.5px;white-space:nowrap}
+.dtoast.on{opacity:1;transform:translate(-50%,0)}.dtoast i{width:16px;height:16px;border-radius:50%;background:#4a66ff;display:grid;place-items:center;font-style:normal;font-size:10px}
+`
+
 // the demo: three beats that play like stories (progress bars and all)
 async function demo() {
   const qr = await QRCode.toDataURL(`${GETTY}/`, { width: 300, margin: 1, color: { dark: "#15110f", light: "#ffffff" } })
   const beats = [
-    ["set the perk", "pick what a story is worth: a smoothie, a shot, a free class. print the qr for the counter."],
-    ["they post, you tap", "a guest posts a story tagging you and shows it at the counter. staff tap give next to their name. done."],
+    ["set the perk", "pick what a story is worth: a smoothie, a free class, your ebook. print the qr or share the link."],
+    ["they post, it unlocks", "a guest posts a story tagging you. we verify it on our own and their pass unlocks. nobody checks phones."],
     ["watch it spread", "each story hits a few hundred people who trust whoever posted it. by friday, everyone's heard of you."],
   ]
   return `<section id="demo" class="demo" style="padding:40px 0 56px">
@@ -103,14 +122,14 @@ async function demo() {
       <img src="/getty/cafe2.jpg" alt="" class="bg">
       <span class="st-bars" style="top:12px"><i style="--w:100%"></i><i style="--w:60%"></i></span>
       <span class="st-who" style="top:24px"><b style="background-image:url(/getty/pfp/3.jpg)"></b>dani_vlz</span>
-      <span class="st-tag" style="top:46%;font-size:17px">@yourplace</span>
-      <div class="pass" id="pass">
-        <p class="pk">unlocked</p>
-        <p class="pi">free smoothie</p>
-        <p class="ph">for @dani_vlz's story</p>
-        <p class="pg" id="pg">staff: tap give</p>
-      </div>
-      <span class="tap" id="tap"></span>
+      <span class="st-tag" style="top:40%;font-size:17px">@yourplace</span>
+      <div class="dtoast" id="dtoast"><i>✓</i><span><b>story verified</b> · @dani_vlz</span></div>
+      <div class="dcw"><div class="dcard" id="pass">
+        <div class="dtop"><img src="/getty/pfp/3.jpg" alt=""><span>your place</span><b>irlpass</b></div>
+        <div class="dchip"></div>
+        <p class="dperk">a free smoothie</p>
+        <div class="dfields"><div><small>guest</small><span>@dani_vlz</span></div><div><small>status</small><span id="pg"><i class="dspin"></i>waiting</span></div></div>
+      </div></div>
     </div>
     <div class="scr s2">
       <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">this week at your business</p>
@@ -128,12 +147,18 @@ const USES = [
   ["cafe2", "café", "a free oat latte", "your regulars already photograph the latte art"],
   ["bar", "cocktail bar", "a round of shots", "the table posts before the first round lands"],
   ["run", "run club", "a smoothie after", "nobody runs a 5k without posting it"],
-  ["party", "club night", "skip the line", "the line was going to film anyway"],
-  ["cafe", "brunch spot", "a free pastry", "brunch didn't happen if it's not on the story"],
+  ["@ebook", "ugc coaching class", "the ebook", "every student posts the class they're in"],
+  ["@replay", "live workshop", "the replay + templates", "the waitlist for next month fills itself"],
 ]
+// online perks get a drawn cover: an ebook or a replay, floating on cobalt
+function onlineArt(kind) {
+  const book = `<div style="position:absolute;left:50%;top:40%;width:44%;aspect-ratio:3/4;transform:translate(-50%,-50%) rotate(-6deg);border-radius:6px 12px 12px 6px;background:linear-gradient(135deg,#f4eee7,#d9cfc0);box-shadow:-6px 0 0 #b7ad9c inset,0 30px 50px -15px rgba(0,0,0,.7);padding:14% 12%;color:#15110f"><p style="margin:0;font:700 clamp(14px,2.2vw,22px)/1 Chillax,Geist,sans-serif;letter-spacing:-.03em">the ugc playbook</p><p style="margin:8px 0 0;font-size:10px;font-weight:600;opacity:.6">pdf · 42 pages</p></div>`
+  const replay = `<div style="position:absolute;left:50%;top:40%;width:70%;aspect-ratio:16/10;transform:translate(-50%,-50%) rotate(-4deg);border-radius:12px;background:#0d0f1f;border:1px solid rgba(255,255,255,.18);box-shadow:0 30px 50px -15px rgba(0,0,0,.7);display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:6px">${["0", "3", "6", "8", "1", "10"].map((f) => `<span style="border-radius:6px;background:url(/getty/pfp/${f}.jpg) center/cover"></span>`).join("")}<span style="position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px;border-radius:50%;background:rgba(244,238,231,.92);display:grid;place-items:center;color:#15110f;font-size:15px">▶</span></div>`
+  return `<div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 30% 20%,#5b74ff,#1a2490 70%,#0c1140)">${kind === "ebook" ? book : replay}</div>`
+}
 function uses() {
   return USES.map(([img, kind, perk, line]) => `<figure class="use" style="margin:0;position:relative;aspect-ratio:4/5;border-radius:26px;overflow:hidden;border:1px solid var(--line)">
-  <img src="/getty/${img}.jpg" alt="${esc(kind)}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.85) contrast(1.05);transition:transform .6s">
+  ${img.startsWith("@") ? onlineArt(img.slice(1)) : `<img src="/getty/${img}.jpg" alt="${esc(kind)}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.85) contrast(1.05);transition:transform .6s">`}
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,17,15,.1) 30%,rgba(21,17,15,.88))"></div>
   <figcaption style="position:absolute;left:16px;right:16px;bottom:16px">
     <span class="tag" style="background:rgba(21,17,15,.45);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--ink)">${esc(kind)}</span>
@@ -149,14 +174,14 @@ async function landing() {
   const body = `${NAV(`<span style="display:flex;gap:8px"><a class="btn ghost" href="${GETTY}/in" style="padding:10px 16px;font-size:14px">sign in</a><a class="btn" href="${GETTY}/start" style="padding:10px 16px;font-size:14px">get your free qr</a></span>`)}
 <section class="hero" style="display:grid;gap:28px;align-items:center;padding:28px 0 40px">
   <div class="rise">
-    <span class="tag">for bars, cafés, studios and clubs</span>
+    <span class="tag">for venues, events and online classes</span>
     <h1><span class="ln">your guests are</span> <span class="ln">your <em>influencers</em></span></h1>
     <p class="soft" style="font-size:19px;line-height:1.4;max-width:500px;text-wrap:balance">guests post you on their story.<br>you give them a perk you pick.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
       ${cta}
       <a class="btn ghost" href="#demo">watch it work</a>
     </div>
-    <p class="faint" style="font-size:13px;margin-top:14px">20 stories free every month · no app for guests · works with any instagram</p>
+    <p class="faint" style="font-size:13px;margin-top:14px">20 stories free every month · no app for guests · in person or online</p>
   </div>
   ${scatter()}
 </section>
@@ -164,7 +189,7 @@ async function landing() {
 ${await demo()}
 
 <section style="padding:30px 0 48px">
-  <span class="tag" style="--dot:var(--peach)">works anywhere people take photos</span>
+  <span class="tag" style="--dot:var(--peach)">in the room or on zoom</span>
   <h2 style="margin-top:14px">pick your vibe. live by <em>tonight</em>.</h2>
   <div class="usegrid" style="display:grid;gap:12px">${uses()}</div>
 </section>
@@ -191,7 +216,8 @@ ${await demo()}
   <div style="margin-top:12px">
     ${q("how much does it cost?", "free for your first 20 stories every month. after that, 50 more for $50 or 200 for $150. no subscription, no contract, no sales call.")}
     ${q("do my guests need to download an app?", "nope. scan, type their instagram, done. faster than splitting the bill.")}
-    ${q("what does my staff actually do?", "glance at the story, tap give. if they can run the card machine, they can run this.")}
+    ${q("what does my staff actually do?", "nothing, mostly. stories verify on their own and the pass flips to redeemed. they just hand over the perk.")}
+    ${q("does it work for online events?", "yes. add a link to your ebook, pdf, template or replay. it unlocks on their pass the second their story is verified. share your perk link in the class chat instead of a qr.")}
     ${q("what if someone posts and deletes it right after?", "they post first, perk second, and you keep every handle. most people leave it up. it's their night out too.")}
     ${q("can the same person keep coming back?", "once a day each. someone posting you every week is a brand ambassador for the price of a latte.")}
     ${q("what happens when we run out?", "guests see it's all claimed for now and we ping you. top up in two taps.")}
@@ -264,13 +290,7 @@ ${await demo()}
 .qrpop.on{opacity:1;transform:none}
 .qrpop img{width:150px;border-radius:16px;background:#fff;padding:8px}
 .qrpop p{font-size:13px;color:var(--soft);margin:8px 0 0}
-.pass{position:absolute;left:16px;right:16px;bottom:18px;z-index:4;border-radius:22px;padding:16px 18px;color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 5s linear infinite;transform:translateY(130%);transition:transform .6s cubic-bezier(.2,.8,.2,1.1)}
-.pass.up{transform:none}
-.pass.given{background:#fff;color:#15110f;animation:none}
-.pass p{margin:0}.pass .pk{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.65}
-.pass .pi{font:600 28px/1 Chillax,Geist,sans-serif;letter-spacing:-.02em;margin-top:6px}
-.pass .ph{font-size:13px;font-weight:600;opacity:.75;margin-top:4px}
-.pass .pg{font-size:12.5px;font-weight:700;margin-top:10px}
+${DCARD_CSS}
 .tap{position:absolute;z-index:5;left:50%;bottom:80px;width:56px;height:56px;margin-left:-28px;border-radius:50%;border:2px solid #fff;opacity:0}
 .tap.go{animation:tap .9s ease-out 2}
 @keyframes tap{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(1.4)}}
@@ -301,9 +321,9 @@ var sc=document.querySelector(".scatter");setInterval(function(){var s=document.
 var beats=[].slice.call(document.querySelectorAll(".beat")),scrs=[].slice.call(document.querySelectorAll(".scr")),cur=0,timer=null,DUR=5200,run=[];
 run[0]=function(){var el=document.getElementById("typed"),txt="a free smoothie",i=0;el.textContent="";document.getElementById("c50").classList.remove("hot");document.getElementById("qrpop").classList.remove("on");
  var iv=setInterval(function(){el.textContent=txt.slice(0,++i);if(i>=txt.length){clearInterval(iv);setTimeout(function(){document.getElementById("c50").classList.add("hot")},350);setTimeout(function(){document.getElementById("qrpop").classList.add("on")},1000)}},75)};
-run[1]=function(){var p=document.getElementById("pass"),g=document.getElementById("pg"),tap=document.getElementById("tap");p.classList.remove("up","given");g.textContent="staff: tap give";tap.classList.remove("go");
- setTimeout(function(){p.classList.add("up")},700);setTimeout(function(){void tap.offsetWidth;tap.classList.add("go")},2100);setTimeout(function(){p.classList.add("given");p.querySelector(".pk").textContent="given";g.textContent="✓ enjoy it · 9:41 pm"},3000)};
-run[2]=function(){var imgs=["hero","bar","yoga2","party","cafe2","run","cafe","yoga"],t=document.getElementById("tiles");t.innerHTML="";document.getElementById("pass").querySelector(".pk").textContent="unlocked";count(document.getElementById("wk"),18240,3600);count(document.getElementById("wkn"),46,3600);
+run[1]=function(){var w=document.querySelector(".dcw"),p=document.getElementById("pass"),g=document.getElementById("pg"),t=document.getElementById("dtoast");w.classList.remove("up");p.classList.remove("given");t.classList.remove("on");g.innerHTML='<i class="dspin"></i>waiting';
+ setTimeout(function(){w.classList.add("up")},500);setTimeout(function(){t.classList.add("on")},2300);setTimeout(function(){p.classList.add("given");g.innerHTML="✓ redeemed"},2900)};
+run[2]=function(){var imgs=["hero","bar","yoga2","party","cafe2","run","cafe","yoga"],t=document.getElementById("tiles");t.innerHTML="";count(document.getElementById("wk"),18240,3600);count(document.getElementById("wkn"),46,3600);
  for(var i=0;i<20;i++)(function(i){setTimeout(function(){var s=document.createElement("span");s.style.backgroundImage="url(/getty/"+imgs[i%imgs.length]+".jpg)";t.appendChild(s)},i*160)})(i)};
 function go(i){cur=i;beats.forEach(function(b,j){b.classList.toggle("on",j===i);b.classList.toggle("done",j<i);var bar=b.querySelector(".bar i");bar.style.animation="none";void bar.offsetWidth;bar.style.animation=""});scrs.forEach(function(s,j){s.classList.toggle("on",j===i)});run[i]();clearTimeout(timer);timer=setTimeout(function(){go((cur+1)%3)},DUR)}
 beats.forEach(function(b,i){b.addEventListener("click",function(){go(i)})});
@@ -312,9 +332,9 @@ var started=false,io=new IntersectionObserver(function(es){if(es[0].isIntersecti
   return glass("getty by irlpass", body, { getty: true,
     wide: true,
     script,
-    head: `<meta name="description" content="guests post a story tagging you, staff check it at the counter, they get the perk you pick. 20 stories a month free.">
+    head: `<meta name="description" content="guests post a story tagging you, it is verified automatically, they get the perk you pick: a latte or your ebook. 20 stories a month free.">
 <meta property="og:title" content="your guests are your influencers">
-<meta property="og:description" content="story perks for bars, cafés, studios and clubs. 20 stories a month free.">
+<meta property="og:description" content="story perks for venues, events and online classes. 20 stories a month free.">
 <meta property="og:image" content="${GETTY}/getty/hero.jpg">`,
   })
 }
@@ -326,10 +346,10 @@ function startPage() {
 <div class="rise" style="padding-top:18px">
   <span class="tag">about a minute</span>
   <h1 style="font-size:48px">set up your story perk</h1>
-  <p class="soft">you'll get a qr for the counter and the guestlist link by email.</p>
+  <p class="soft">you'll get a qr, a link to share and your guestlist by email.</p>
 </div>
 <form id="f" class="card rise" style="margin-top:18px;animation-delay:.1s" autocomplete="on">
-  <label for="name">venue name</label><input id="name" required maxlength="80" placeholder="paraiso market">
+  <label for="name">venue, event or class name</label><input id="name" required maxlength="80" placeholder="paraiso market">
   <label for="ig">your instagram</label><input id="ig" required autocapitalize="none" spellcheck="false" placeholder="@paraisomarket">
   <label for="city">city</label><select id="city">${opts}</select>
   <label for="item">the perk</label><input id="item" required maxlength="60" placeholder="a free smoothie, or your ebook">
@@ -345,12 +365,14 @@ function startPage() {
 </div><div class="side desk" style="padding-top:96px">
   <p class="faint" style="font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;text-align:center">what your guests see</p>
   <div class="card" style="padding:14px;border-radius:30px;max-width:360px;margin:0 auto">
-    <div style="border-radius:22px;padding:22px;color:#fff;background:linear-gradient(110deg,#3d5cff,#7a8dff,#2c45e6,#3d5cff);background-size:300% 100%;animation:mv 5s linear infinite">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.7" id="pv-venue">your venue</p>
-      <p class="serif" style="margin:8px 0 4px;font-size:34px;line-height:1" id="pv-item">a free smoothie</p>
-      <p style="margin:0;font-size:15px;font-weight:600;opacity:.8">for a story tagging <span id="pv-ig">@you</span></p>
-    </div>
-    <p class="faint" style="text-align:center;font-size:12.5px;margin:12px 0 2px">they scan your qr or open your link, type their instagram, post</p>
+    <div style="position:relative;height:250px"><div class="dcw up" style="bottom:auto;top:10px;left:4px;right:4px"><div class="dcard">
+      <div class="dtop"><span style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.25)"></span><span id="pv-venue">your venue</span><b>irlpass</b></div>
+      <div class="dchip"></div>
+      <p class="dperk" id="pv-item">a free smoothie</p>
+      <div class="dfields"><div><small>guest</small><span>@guest</span></div><div><small>tags</small><span id="pv-ig">@you</span></div></div>
+    </div></div></div>
+    <style>${DCARD_CSS}</style>
+    <p class="faint" style="text-align:center;font-size:12.5px;margin:12px 0 2px">they scan your qr or open your link, post, and it unlocks</p>
   </div>
 </div></div>`
   const script = `
