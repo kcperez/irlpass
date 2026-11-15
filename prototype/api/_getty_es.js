@@ -2,6 +2,12 @@
 // swaps whole phrases in the finished html (longest first, so a short phrase
 // never breaks a longer one). place names, handles and prices stay as they are.
 const ES = {
+  "1 · they post on instagram": "1 · publican en instagram",
+  "✓ shared to your story": "✓ compartido en tu historia",
+  "2 · their pass unlocks": "2 · su pase se desbloquea",
+  "waiting for the story…": "esperando la historia…",
+  "you're all set ✨": "listo ✨",
+  "a guest posts a story tagging you. we verify it on our own and the pass on their phone unlocks. nobody checks phones.": "un cliente sube una historia etiquetándote. la verificamos solos y el pase en su celular se desbloquea. nadie revisa celulares.",
   "venue, event or class name": "nombre del local, evento o clase",
   "you'll get a qr, a link to share and your guestlist by email.": "recibes un qr, un link para compartir y tu lista por email.",
   "they scan your qr or open your link, post, and it unlocks": "escanean tu qr o abren tu link, publican y se desbloquea",

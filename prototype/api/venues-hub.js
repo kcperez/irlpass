@@ -101,7 +101,7 @@ async function demo() {
   const qr = await QRCode.toDataURL(`${GETTY}/`, { width: 300, margin: 1, color: { dark: "#15110f", light: "#ffffff" } })
   const beats = [
     ["set the perk", "pick what a story is worth: a smoothie, a free class, your ebook. print the qr or share the link."],
-    ["they post, it unlocks", "a guest posts a story tagging you. we verify it on our own and their pass unlocks. nobody checks phones."],
+    ["they post, it unlocks", "a guest posts a story tagging you. we verify it on our own and the pass on their phone unlocks. nobody checks phones."],
     ["watch it spread", "each story hits a few hundred people who trust whoever posted it. by friday, everyone's heard of you."],
   ]
   return `<section id="demo" class="demo" style="padding:40px 0 56px">
@@ -119,17 +119,25 @@ async function demo() {
       <div class="qrpop" id="qrpop"><img src="${qr}" alt=""><p>your counter qr is ready</p></div>
     </div>
     <div class="scr s1">
-      <img src="/getty/cafe2.jpg" alt="" class="bg">
-      <span class="st-bars" style="top:12px"><i style="--w:100%"></i><i style="--w:60%"></i></span>
-      <span class="st-who" style="top:24px"><b style="background-image:url(/getty/pfp/3.jpg)"></b>dani_vlz</span>
-      <span class="st-tag" style="top:40%;font-size:17px">@yourplace</span>
-      <div class="dtoast" id="dtoast"><i>✓</i><span><b>story verified</b> · @dani_vlz</span></div>
-      <div class="dcw"><div class="dcard" id="pass">
-        <div class="dtop"><img src="/getty/pfp/3.jpg" alt=""><span>your place</span><b>irlpass</b></div>
-        <div class="dchip"></div>
-        <p class="dperk">a free smoothie</p>
-        <div class="dfields"><div><small>guest</small><span>@dani_vlz</span></div><div><small>status</small><span id="pg"><i class="dspin"></i>waiting</span></div></div>
-      </div></div>
+      <div class="lyr story on" id="lstory">
+        <img src="/getty/cafe2.jpg" alt="" class="bg">
+        <span class="st-bars" style="top:12px"><i style="--w:100%"></i><i style="--w:60%"></i></span>
+        <span class="st-who" style="top:24px"><b style="background-image:url(/getty/pfp/3.jpg)"></b>dani_vlz</span>
+        <span class="st-tag" style="top:42%;font-size:17px">@yourplace</span>
+        <span class="lbl">1 · they post on instagram</span>
+        <span class="posted" id="posted">✓ shared to your story</span>
+      </div>
+      <div class="lyr pv" id="lpass">
+        <span class="lbl">2 · their pass unlocks</span>
+        <div class="dtoast" id="dtoast"><i>✓</i><span><b>story verified</b> · @dani_vlz</span></div>
+        <div class="dcw"><div class="dcard" id="pass">
+          <div class="dtop"><img src="/getty/pfp/3.jpg" alt=""><span>your place</span><b>irlpass</b></div>
+          <div class="dchip"></div>
+          <p class="dperk">a free smoothie</p>
+          <div class="dfields"><div><small>guest</small><span>@dani_vlz</span></div><div><small>status</small><span id="pg"><i class="dspin"></i>waiting</span></div></div>
+        </div></div>
+        <p class="pvs" id="pvs">waiting for the story…</p>
+      </div>
     </div>
     <div class="scr s2">
       <p class="faint" style="margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase">this week at your business</p>
@@ -280,7 +288,6 @@ ${await demo()}
 .scr{position:absolute;inset:0;padding:54px 20px 20px;opacity:0;transition:opacity .4s;pointer-events:none}
 .scr.on{opacity:1}
 .s1{padding:0}.s1 .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.s1:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.4),transparent 25%,transparent 55%,rgba(0,0,0,.55))}
 .s1 .st-bars,.s1 .st-who,.s1 .st-tag{z-index:3}
 .fake-in{border:1px solid var(--line);border-radius:14px;padding:13px 14px;font-size:16px;background:rgba(255,255,255,.05);min-height:48px}
 .caret{display:inline-block;width:2px;height:18px;background:var(--lilac);vertical-align:-3px;margin-left:1px;animation:blink 1s steps(1) infinite}
@@ -291,6 +298,16 @@ ${await demo()}
 .qrpop img{width:150px;border-radius:16px;background:#fff;padding:8px}
 .qrpop p{font-size:13px;color:var(--soft);margin:8px 0 0}
 ${DCARD_CSS}
+.lyr{position:absolute;inset:0;opacity:0;transition:opacity .45s}.lyr.on{opacity:1}
+.story:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.4),transparent 25%,transparent 55%,rgba(0,0,0,.55))}
+.story .st-bars,.story .st-who,.story .st-tag,.story .lbl,.story .posted{z-index:3}
+.lbl{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:3;padding:5px 10px;border-radius:999px;background:rgba(21,17,15,.7);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:#f4eee7}
+.posted{position:absolute;left:50%;bottom:26px;transform:translate(-50%,12px);opacity:0;transition:all .4s cubic-bezier(.2,.9,.25,1.1);padding:9px 14px;border-radius:999px;background:#fff;color:#15110f;font-size:12.5px;font-weight:700;white-space:nowrap}
+.posted.on{opacity:1;transform:translate(-50%,0)}
+.pv{background:radial-gradient(80% 50% at 50% 40%,rgba(74,102,255,.28),transparent 70%),#15110f}
+.pv .dcw{top:32%;bottom:auto}
+.pv .dtoast{top:84px}
+.pvs{position:absolute;left:0;right:0;bottom:70px;text-align:center;font:700 17px Chillax,Geist,sans-serif;letter-spacing:-.02em;color:#f4eee7;margin:0}
 .tap{position:absolute;z-index:5;left:50%;bottom:80px;width:56px;height:56px;margin-left:-28px;border-radius:50%;border:2px solid #fff;opacity:0}
 .tap.go{animation:tap .9s ease-out 2}
 @keyframes tap{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(1.4)}}
@@ -321,8 +338,12 @@ var sc=document.querySelector(".scatter");setInterval(function(){var s=document.
 var beats=[].slice.call(document.querySelectorAll(".beat")),scrs=[].slice.call(document.querySelectorAll(".scr")),cur=0,timer=null,DUR=5200,run=[];
 run[0]=function(){var el=document.getElementById("typed"),txt="a free smoothie",i=0;el.textContent="";document.getElementById("c50").classList.remove("hot");document.getElementById("qrpop").classList.remove("on");
  var iv=setInterval(function(){el.textContent=txt.slice(0,++i);if(i>=txt.length){clearInterval(iv);setTimeout(function(){document.getElementById("c50").classList.add("hot")},350);setTimeout(function(){document.getElementById("qrpop").classList.add("on")},1000)}},75)};
-run[1]=function(){var w=document.querySelector(".dcw"),p=document.getElementById("pass"),g=document.getElementById("pg"),t=document.getElementById("dtoast");w.classList.remove("up");p.classList.remove("given");t.classList.remove("on");g.innerHTML='<i class="dspin"></i>waiting';
- setTimeout(function(){w.classList.add("up")},500);setTimeout(function(){t.classList.add("on")},2300);setTimeout(function(){p.classList.add("given");g.innerHTML="✓ redeemed"},2900)};
+run[1]=function(){var ls=document.getElementById("lstory"),lp=document.getElementById("lpass"),po=document.getElementById("posted"),w=document.querySelector(".pv .dcw"),p=document.getElementById("pass"),g=document.getElementById("pg"),t=document.getElementById("dtoast"),pvs=document.getElementById("pvs");
+ ls.classList.add("on");lp.classList.remove("on");po.classList.remove("on");w.classList.remove("up");p.classList.remove("given");t.classList.remove("on");g.innerHTML='<i class="dspin"></i>waiting';pvs.textContent="waiting for the story…";
+ setTimeout(function(){po.classList.add("on")},800);
+ setTimeout(function(){ls.classList.remove("on");lp.classList.add("on");w.classList.add("up")},1900);
+ setTimeout(function(){t.classList.add("on")},3100);
+ setTimeout(function(){p.classList.add("given");g.innerHTML="✓ redeemed";pvs.textContent="you're all set ✨"},3600)};
 run[2]=function(){var imgs=["hero","bar","yoga2","party","cafe2","run","cafe","yoga"],t=document.getElementById("tiles");t.innerHTML="";count(document.getElementById("wk"),18240,3600);count(document.getElementById("wkn"),46,3600);
  for(var i=0;i<20;i++)(function(i){setTimeout(function(){var s=document.createElement("span");s.style.backgroundImage="url(/getty/"+imgs[i%imgs.length]+".jpg)";t.appendChild(s)},i*160)})(i)};
 function go(i){cur=i;beats.forEach(function(b,j){b.classList.toggle("on",j===i);b.classList.toggle("done",j<i);var bar=b.querySelector(".bar i");bar.style.animation="none";void bar.offsetWidth;bar.style.animation=""});scrs.forEach(function(s,j){s.classList.toggle("on",j===i)});run[i]();clearTimeout(timer);timer=setTimeout(function(){go((cur+1)%3)},DUR)}
