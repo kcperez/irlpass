@@ -65,7 +65,7 @@ ${e.cover ? `<img src="${esc(e.cover)}" alt="" style="width:100%;aspect-ratio:16
   ${open ? `
   <p style="margin:0 0 6px"><b>1.</b> post ${esc(ASK[e.perk.ask] || ASK.story)} tagging <b>${tags.map(esc).join(" ")}</b></p>
   <p style="margin:0 0 6px"><b>2.</b> type your instagram below</p>
-  <p style="margin:0 0 14px"><b>3.</b> show your story at the counter</p>
+  <p style="margin:0 0 14px"><b>3.</b> ${process.env.IG_TOKEN ? "your pass unlocks on its own once the story is up" : "show your story at the counter"}</p>
   <label for="h">your instagram</label>
   <input id="h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="@yourhandle">
   <button id="go" class="block" style="margin-top:12px">get my pass</button>

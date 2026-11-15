@@ -428,7 +428,7 @@ ${flash ? `<div class="card" style="border-color:rgba(74,102,255,.5);margin:10px
 <div class="card" style="margin-top:14px;padding:18px 18px 8px">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
     <p class="serif" style="font-size:28px;margin:0">tonight</p>
-    <span class="faint" style="font-size:12px">new guests pop up here. tap give after you see their story</span>
+    <span class="faint" style="font-size:12px">new guests pop up here. stories unlock on their own, or tap give</span>
   </div>
   <div id="list" style="margin-top:6px;min-height:120px"></div>
 </div>
@@ -500,7 +500,7 @@ async function printPage(v, e) {
   <p class="serif" style="font-size:54px;line-height:.98;margin:22px 0 10px">post a story,<br>get <em>${esc(e.perk.item)}</em></p>
   <p class="soft" style="font-size:17px;margin:0 0 22px">tag @${esc(v.instagram || "")} + @irlpass.xyz, then scan</p>
   <img src="${qr}" alt="qr code" style="width:300px;max-width:80%;border-radius:22px;background:#fff;padding:14px">
-  <p class="faint" style="margin-top:18px;font-size:13px">no app needed · show your story at the counter</p>
+  <p class="faint" style="margin-top:18px;font-size:13px">no app needed · it unlocks once your story is up</p>
   <button class="ghost noprint" onclick="print()" style="margin-top:18px">print</button>
 </div>
 <style>@media print{.noprint{display:none}body:before,body:after{display:none}html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>`
