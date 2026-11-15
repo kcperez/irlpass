@@ -80,15 +80,15 @@ p{margin:0}
 .err{color:#ff8a7a;font-size:14px;margin-top:10px;min-height:1px}
 .fine{color:var(--faint);font-size:13px;text-align:center;margin-top:14px}
 .cw{perspective:1100px;margin:6px auto 0;max-width:400px;width:100%}
-.pass{position:relative;aspect-ratio:1.586;border-radius:20px;overflow:hidden;color:#fff;padding:18px 20px 16px;display:flex;flex-direction:column;transform-style:preserve-3d;will-change:transform;
+.pass{position:relative;aspect-ratio:1.586;border-radius:20px;overflow:hidden;color:#fff;padding:18px 20px 16px;display:flex;flex-direction:column;transform-style:preserve-3d;backface-visibility:hidden;-webkit-font-smoothing:antialiased;
 background:radial-gradient(130% 150% at 0% 0%,#8c9cff 0%,#4a66ff 34%,#2a3fd6 66%,#141d6e 100%);
 box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(0,0,0,.3),0 34px 60px -22px rgba(28,44,190,.95),0 14px 26px -14px rgba(0,0,0,.7);
 transition:background .6s,color .6s,box-shadow .6s;animation:fl 7s ease-in-out infinite}
-.pass:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;mix-blend-mode:overlay;
+.pass:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;background:repeating-radial-gradient(circle at 115% 120%,rgba(255,255,255,.7) 0 .6px,transparent .6px 6px)}
 background:repeating-radial-gradient(circle at 115% 120%,rgba(255,255,255,.55) 0 1px,transparent 1px 7px),${"url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.6'/></svg>\")"}}
 .pass:after{content:"";position:absolute;inset:-40%;pointer-events:none;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.38) 48%,rgba(255,255,255,.08) 54%,transparent 62%);transform:translateX(var(--sx,-60%));mix-blend-mode:soft-light;animation:sh 6s ease-in-out infinite}
 .pass>*{position:relative;z-index:1}
-@keyframes fl{0%,100%{transform:rotateX(9deg) rotateY(-12deg)}50%{transform:rotateX(5deg) rotateY(10deg)}}
+@keyframes fl{0%,100%{transform:rotateX(5deg) rotateY(-7deg)}50%{transform:rotateX(3deg) rotateY(6deg)}}
 @keyframes sh{0%,100%{transform:translateX(-55%)}50%{transform:translateX(35%)}}
 .pass.live{animation:none}.pass.live:after{animation:none}
 .pass .top{display:flex;align-items:center;gap:9px;font-weight:600;font-size:14px}
@@ -134,7 +134,7 @@ const CARD = (e, { handle = "you", status = "locked", done = false, no = "", id 
   </div>
 </div></div>`
 // tilt with a finger or mouse; the card settles back into its float on release
-const TILT = `(()=>{const p=document.querySelector(".pass");if(!p)return;const m=(x,y)=>{const r=p.getBoundingClientRect();const dx=(x-r.left)/r.width-.5,dy=(y-r.top)/r.height-.5;p.classList.add("live");p.style.transform="rotateX("+(-dy*18)+"deg) rotateY("+(dx*22)+"deg)";p.style.setProperty("--sx",(dx*90)+"%")};
+const TILT = `(()=>{const p=document.querySelector(".pass");if(!p)return;const m=(x,y)=>{const r=p.getBoundingClientRect();const dx=(x-r.left)/r.width-.5,dy=(y-r.top)/r.height-.5;p.classList.add("live");p.style.transform="rotateX("+(-dy*12)+"deg) rotateY("+(dx*14)+"deg)";p.style.setProperty("--sx",(dx*90)+"%")};
 const off=()=>{p.classList.remove("live");p.style.transform="";p.style.removeProperty("--sx")};
 p.addEventListener("pointermove",ev=>m(ev.clientX,ev.clientY));p.addEventListener("pointerleave",off);p.addEventListener("touchmove",ev=>{const t=ev.touches[0];m(t.clientX,t.clientY)},{passive:true});p.addEventListener("touchend",off)})();`
 
