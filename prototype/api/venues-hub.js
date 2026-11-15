@@ -21,8 +21,8 @@ import { ASK, FREE, PACKS, addCredits, cleanHandle, monthStart, okHandle, slots,
 // POST { k, action: "give", id }                               -> mark a claim given from the dashboard
 // POST { k, action: "buy", slots }                             -> stripe checkout url
 const SITE = "https://irlpass.xyz"
-const CITIES = { miami: "Miami", "new-york": "New York", "los-angeles": "Los Angeles", medellin: "Medellín", palermo: "Palermo" }
-const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
+const CITIES = { online: "Online (no venue)", miami: "Miami", "new-york": "New York", "los-angeles": "Los Angeles", medellin: "Medellín", palermo: "Palermo" }
+const TZ = { online: "UTC", miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
 const stripeKey = () => (process.env.STRIPE_MODE === "test" ? process.env.STRIPE_TEST_KEY : process.env.STRIPE_SECRET_KEY)
 const slugify = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 36)
 const clean = (s, n = 80) => String(s || "").trim().slice(0, n)
@@ -332,14 +332,16 @@ function startPage() {
   <label for="name">venue name</label><input id="name" required maxlength="80" placeholder="paraiso market">
   <label for="ig">your instagram</label><input id="ig" required autocapitalize="none" spellcheck="false" placeholder="@paraisomarket">
   <label for="city">city</label><select id="city">${opts}</select>
-  <label for="item">the perk</label><input id="item" required maxlength="60" placeholder="a free smoothie">
+  <label for="item">the perk</label><input id="item" required maxlength="60" placeholder="a free smoothie, or your ebook">
+  <label for="link">digital perk link <span class="faint" style="font-weight:400">· optional</span></label><input id="link" type="url" inputmode="url" autocapitalize="none" spellcheck="false" placeholder="https://… your ebook, pdf, template or replay">
+  <p class="faint" style="font-size:12.5px;margin:6px 0 0">only unlocks on their pass once their story is verified</p>
   <label>how many a month</label>
   <div class="chips" id="qty">${[20, 50, 100, 300].map((n) => `<button type="button" class="chip${n === 50 ? " on" : ""}" data-n="${n}">${n}</button>`).join("")}</div>
   <label for="email">your email</label><input id="email" type="email" required autocomplete="email" placeholder="you@yourplace.com">
   <button class="block" id="go" style="margin-top:20px">get my qr</button>
   <p class="err" id="err"></p>
 </form>
-<p class="faint" style="font-size:12.5px;text-align:center;margin-top:14px">first 20 stories every month are free. a story counts when staff tap give.</p>
+<p class="faint" style="font-size:12.5px;text-align:center;margin-top:14px">first 20 stories every month are free. a story counts once it's verified.</p>
 </div><div class="side desk" style="padding-top:96px">
   <p class="faint" style="font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;text-align:center">what your guests see</p>
   <div class="card" style="padding:14px;border-radius:30px;max-width:360px;margin:0 auto">
@@ -348,7 +350,7 @@ function startPage() {
       <p class="serif" style="margin:8px 0 4px;font-size:34px;line-height:1" id="pv-item">a free smoothie</p>
       <p style="margin:0;font-size:15px;font-weight:600;opacity:.8">for a story tagging <span id="pv-ig">@you</span></p>
     </div>
-    <p class="faint" style="text-align:center;font-size:12.5px;margin:12px 0 2px">they scan your qr, type their instagram, show the story</p>
+    <p class="faint" style="text-align:center;font-size:12.5px;margin:12px 0 2px">they scan your qr or open your link, type their instagram, post</p>
   </div>
 </div></div>`
   const script = `
@@ -358,7 +360,7 @@ let qty=50;document.querySelectorAll("#qty .chip").forEach(b=>b.onclick=()=>{qty
 const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"";const guess={"America/Bogota":"medellin","America/Los_Angeles":"los-angeles","Europe/Rome":"palermo"}[tz]||(tz==="America/New_York"?"miami":"");if(guess)document.getElementById("city").value=guess;
 const f=document.getElementById("f"),go=document.getElementById("go"),err=document.getElementById("err"),v=id=>document.getElementById(id).value;
 f.onsubmit=async e=>{e.preventDefault();err.textContent="";go.disabled=true;go.textContent="one sec…";
-const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create",name:v("name"),ig:v("ig"),city:v("city"),item:v("item"),email:v("email"),qty})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
+const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create",name:v("name"),ig:v("ig"),city:v("city"),item:v("item"),link:v("link"),email:v("email"),qty})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.url){try{localStorage.setItem("venue-k",r.k)}catch(e){}location.href=r.url}else{err.textContent=r.error||"try again";go.disabled=false;go.textContent="get my qr"}};`
   return glass("set up · getty", body, { getty: true, script, wide: true })
 }
@@ -435,11 +437,14 @@ ${flash ? `<div class="card" style="border-color:rgba(74,102,255,.5);margin:10px
 
 </div><div class="side">
 <div class="card" style="margin-top:14px;text-align:center">
-  <span class="tag" style="--dot:var(--lilac)">the qr for your counter</span>
+  <span class="tag" style="--dot:var(--lilac)">${e?.city === "online" ? "your perk link" : "the qr for your counter"}</span>
   ${qr ? `<a href="${qr}" download="${esc(v.slug)}-qr.png"><img src="${qr}" alt="qr code" style="display:block;width:220px;max-width:70%;margin:18px auto 10px;border-radius:18px;background:#fff;padding:10px"></a>` : ""}
   <p class="soft" style="font-size:13px;margin:0 0 14px">tap the qr to save it, or print the <a href="${GETTY}/g/${v.owner_token}?print=1" target="_blank">counter card</a>.</p>
+  <button class="btn block" id="cplink" data-l="${esc(link)}" style="margin-bottom:8px">copy link to share</button>
+  <p class="faint" style="font-size:12.5px;margin:0 0 12px">drop it in your class chat, bio or email</p>
   <a class="btn ghost block" href="${esc(link)}" target="_blank">see what guests see</a>
 </div>
+<script>(()=>{const b=document.getElementById("cplink");b&&b.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(b.dataset.l)}catch(e){}b.textContent="copied ✓";setTimeout(()=>b.textContent="copy link to share",1400)})})()</script>
 
 <div class="card" style="margin-top:14px">
   <span class="tag" style="--dot:var(--peach)">stories</span>
@@ -518,6 +523,8 @@ async function create(b) {
   const item = clean(b.item, 60)
   const email = String(b.email || "").trim().toLowerCase()
   const qty = Math.min(5000, Math.max(1, Math.round(Number(b.qty) || 50)))
+  const link = String(b.link || "").trim().slice(0, 500)
+  if (link && !/^https:\/\/\S+\.\S+$/i.test(link)) return { error: "the perk link should start with https://" }
   if (name.length < 2) return { error: "what's the venue called?" }
   if (!okHandle(ig)) return { error: "type your instagram, like @yourplace" }
   if (!city) return { error: "pick your city" }
@@ -552,7 +559,7 @@ async function create(b) {
     host: name,
     host_no: `v:${slug}`,
     featured: false,
-    perk: { item, qty, ask: "story", tags: [`@${ig}`] },
+    perk: { item, qty, ask: "story", tags: [`@${ig}`], ...(link ? { link } : {}) },
   }).select("id").single()
   if (ee) throw ee
   await db.from("venues").update({ perk_event_id: e.id }).eq("slug", slug)

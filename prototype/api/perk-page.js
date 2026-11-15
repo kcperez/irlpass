@@ -147,14 +147,14 @@ async function claimPage(e) {
   if (left > 0 && s.left <= 0) await tellHostOut(e)
   const auto = !!process.env.IG_TOKEN
   const body = `
-<div class="venue">${AV(e, 44)}<div><b>${esc(e.venue || title)}</b><span>${esc(cityName(e.city))}</span></div></div>
+<div class="venue">${AV(e, 44)}<div><b>${esc(e.venue || title)}</b><span>${e.city === "online" ? "online" : esc(cityName(e.city))}</span></div></div>
 <p class="title">${esc(e.perk.item)}</p>
 <p class="sub">free for one instagram story</p>
 <div style="margin-top:22px">${CARD(e, { lock: true })}</div>
 <div class="how">
-  <div class="row"><span class="n">1</span><span>post a story here</span></div>
+  <div class="row"><span class="n">1</span><span>${e.perk.link ? "post a story about it" : "post a story here"}</span></div>
   <div class="row"><span class="n">2</span><span>tag <b>${tags.map(esc).join("</b> and <b>")}</b></span></div>
-  <div class="row"><span class="n">3</span><span>${auto ? "your pass unlocks on its own" : "show your pass at the counter"}</span></div>
+  <div class="row"><span class="n">3</span><span>${e.perk.link ? "it unlocks on your pass, right away" : auto ? "your pass unlocks on its own" : "show your pass at the counter"}</span></div>
 </div>
 <div class="dock">${open ? `
   <label class="field"><i>@</i><input id="h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="instagram username" enterkeyhint="go"></label>
@@ -195,10 +195,11 @@ ${CARD(e, { handle: c.handle, status: given ? `${CHECK(14, 3)} redeemed` : "wait
 </div>
 <div id="done" class="state" style="${given ? "" : "display:none"}">
   <div class="seal">${CHECK(28, 3)}</div>
-  <h2>you're all set</h2>
-  <p id="at">${given ? `show this to staff · ${at}` : ""}</p>
+  <h2>${e.perk.link ? "it's yours" : "you're all set"}</h2>
+  <p id="at">${given ? (e.perk.link ? `unlocked · ${at}` : `show this to staff · ${at}`) : ""}</p>
 </div>
 <div class="dock">
+  <a id="dl" class="cta" href="${given && e.perk.link ? esc(e.perk.link) : "#"}" target="_blank" rel="noopener" style="${given && e.perk.link ? "" : "display:none"};margin-bottom:6px">open ${esc(e.perk.item)} →</a>
   <a id="ig" class="cta" href="instagram://story-camera" style="${given ? "display:none" : ""}">open instagram</a>
   <a id="more" class="more" href="${standing(e) ? "/" : `/e/${e.id}`}" style="${given ? "" : "display:none"}">${n > 1 ? `<b>${n} people</b> from irlpass are here · ` : ""}<b>see what's on tonight →</b></a>
 </div>`
@@ -206,8 +207,8 @@ ${CARD(e, { handle: c.handle, status: given ? `${CHECK(14, 3)} redeemed` : "wait
 ${TILT}
 document.querySelectorAll(".tags button").forEach(c=>c.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(c.dataset.t)}catch(e){}const t=c.textContent;c.textContent="copied";setTimeout(()=>c.textContent=t,1200)}));
 ${given ? "" : `
-const done=()=>{clearInterval(poll);document.getElementById("pass").classList.add("done");document.getElementById("pass-st").innerHTML='${CHECK(16, 3)} redeemed';document.getElementById("wait").style.display="none";document.getElementById("done").style.display="";document.getElementById("ig").style.display="none";document.getElementById("more").style.display="";document.getElementById("at").textContent="show this to staff · "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).toLowerCase();try{navigator.vibrate&&navigator.vibrate([12,40,18])}catch(e){}};
-const poll=setInterval(async()=>{if(document.hidden)return;const r=await fetch("/api/perk-page?code=${code}&json=1").then(x=>x.json()).catch(()=>null);if(r&&r.given)done()},3000);`}`
+const done=(link)=>{clearInterval(poll);if(link){const d=document.getElementById("dl");d.href=link;d.style.display=""}document.getElementById("pass").classList.add("done");document.getElementById("pass-st").innerHTML='${CHECK(16, 3)} redeemed';document.getElementById("wait").style.display="none";document.getElementById("done").style.display="";document.getElementById("ig").style.display="none";document.getElementById("more").style.display="";document.getElementById("at").textContent=(link?"unlocked · ":"show this to staff · ")+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}).toLowerCase();try{navigator.vibrate&&navigator.vibrate([12,40,18])}catch(e){}};
+const poll=setInterval(async()=>{if(document.hidden)return;const r=await fetch("/api/perk-page?code=${code}&json=1").then(x=>x.json()).catch(()=>null);if(r&&r.given)done(r.link)},3000);`}`
   return shell(`${e.perk.item} · your pass`, body, { script })
 }
 
@@ -215,8 +216,11 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       if (req.query?.code && req.query?.json) {
-        const { data: c } = await db.from("perk_claims").select("status").eq("code", String(req.query.code).slice(0, 40)).maybeSingle()
-        return res.status(200).json({ given: c?.status === "given" })
+        const { data: c } = await db.from("perk_claims").select("status, event_id").eq("code", String(req.query.code).slice(0, 40)).maybeSingle()
+        const given = c?.status === "given"
+        // a digital perk's link only leaves the server once the story is verified
+        const link = given ? (await getEvent(c.event_id))?.perk?.link || null : null
+        return res.status(200).json({ given, link })
       }
       if (req.query?.code) return send(res, await passPage(String(req.query.code).slice(0, 40)))
       const e = await getEvent(Number(req.query?.id))
