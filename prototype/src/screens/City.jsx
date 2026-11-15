@@ -32,7 +32,7 @@ function PlaceCard({ p, i }) {
         {p.photo && !broken ? (
           <img src={p.photo} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
-          <Poster title={p.name} seed={p.name} top={p.kind} bottom={p.area} />
+          <Poster title={p.name} seed={p.name} bottom={p.area} />
         )}
         <span className="absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur">#{i + 1}</span>
         {p.michelin && <span className="absolute right-2.5 top-2.5 rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]">{MICHELIN[p.michelin]}</span>}

@@ -19,7 +19,9 @@ export default async function handler(req, res) {
   const { data: row } = await db.from("app_settings").select("value").eq("key", key).maybeSingle()
   let cached = null
   try { cached = row?.value ? JSON.parse(row.value) : null } catch { cached = null }
-  if (cached?.places?.length && Date.now() - cached.at < KEEP) {
+  // a guide built before the google key existed has no photos or ratings: rebuild it once the key is there
+  const preGoogle = process.env.GOOGLE_MAPS_KEY && cached?.places?.length && !cached.places.some((p) => p.rating)
+  if (cached?.places?.length && Date.now() - cached.at < KEEP && !preGoogle) {
     res.setHeader("cache-control", "private, max-age=600")
     return res.status(200).json(cached)
   }
