@@ -4,7 +4,7 @@
 const BASE = {
   "name": "irlpass",
   "short_name": "irlpass",
-  "description": "never travel alone. post your dates, see who's there.",
+  "description": "meet people where you are. events, who's going and a chat for each.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
