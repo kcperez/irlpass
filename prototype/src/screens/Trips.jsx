@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { cachedJson } from "../lib/cached"
+import { cachedJson, prefetch } from "../lib/cached"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   CalendarPlus, CheckCircle, CircleNotch, LockSimple,
   PencilSimple, Plus, Trash, X, EyeSlash } from "@phosphor-icons/react"
 import { CITY_INDEX, cityChip, rememberCity } from "../lib/cities"
 import { useCitySearch } from "../lib/useCitySearch"
-import { t } from "../lib/i18n"
+import { t, LANG } from "../lib/i18n"
 import RightNow from "../components/RightNow"
 import CityBrief from "../components/CityBrief"
 import { MoreList } from "../lib/more"
@@ -144,6 +144,9 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || "could not save your dates")
+      // start building that city's pack now, so the city tab is ready when they open it
+      prefetch(`/api/city-guide?t=${token}&city=${city}&lang=${LANG}`, 0)
+      prefetch(`/api/events?t=${token}&city=${city}&lang=${LANG}`, 0)
       onPosted(d)
     } catch (e) {
       setErr(e.message)

@@ -11,7 +11,7 @@ import Poster from "../components/Poster"
 // the city tab: your travel pack for wherever you're looking. ask it anything
 // (dinner, the airport, techno tonight), see what's featured this week, where
 // to eat, how to get around, and who's here.
-const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome" }
+const TZ = { miami: "America/New_York", "new-york": "America/New_York", "los-angeles": "America/Los_Angeles", medellin: "America/Bogota", palermo: "Europe/Rome", barcelona: "Europe/Madrid" }
 const QUICK = [
   ["🍝", "hungry", "somewhere great to eat right now"],
   ["☕", "coffee", "the best coffee near the center"],
@@ -70,7 +70,7 @@ function EventTile({ e, city, onOpen }) {
 
 export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates, onOpenPeople }) {
   const name = String(cityChip(city).name || city).toLowerCase()
-  const [events, setEvents] = useState([])
+  const [events, setEvents] = useState(null) // null = still loading
   const [guide, setGuide] = useState(null)
   const [people, setPeople] = useState(null)
   const [trips, setTrips] = useState([])
@@ -79,26 +79,29 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
 
   useEffect(() => {
     let live = true
-    setAsk(null); setGuide(null); setPeople(null); setEvents([])
-    cachedJson(`/api/events?t=${token}&city=${city}&lang=${LANG}`, (d) => live && setEvents(d.events || [])).catch(() => {})
+    setAsk(null); setGuide(null); setPeople(null); setEvents(null)
+    cachedJson(`/api/events?t=${token}&city=${city}&lang=${LANG}`, (d) => live && setEvents(d.events || [])).catch(() => live && setEvents([]))
     cachedJson(`/api/city-guide?t=${token}&city=${city}&lang=${LANG}`, (d) => live && setGuide(d.places || [])).catch(() => live && setGuide([]))
     cachedJson(`/api/members?t=${token}&city=${city}`, (d) => live && setPeople(d.people || [])).catch(() => live && setPeople([]))
     cachedJson(`/api/trips?t=${token}`, (d) => live && setTrips(d.trips || [])).catch(() => {})
     return () => { live = false }
   }, [token, city])
 
-  const byId = useMemo(() => new Map(events.map((e) => [e.id, e])), [events])
-  // featured this week: hosted first, then photos and the most people going
-  const featured = useMemo(() => {
-    const week = Date.now() + 7 * 864e5
-    return events
-      .filter((e) => Date.parse(e.startsAt) < week)
-      .map((e) => ({ e, score: (e.hosted ? 50 : 0) + (e.featured ? 20 : 0) + (e.cover ? 10 : 0) + (e.goingCount || 0) * 3 + (e.perk ? 8 : 0) }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 6)
-      .map((x) => x.e)
-  }, [events])
+  const byId = useMemo(() => new Map((events || []).map((e) => [e.id, e])), [events])
+
   const trip = trips.find((x) => x.city === city && x.ends >= new Date().toISOString().slice(0, 10))
+  // featured: the week you're there (or this week if you're here now). hosted
+  // first, then photos and the most people going. nothing in that week yet
+  // (a trip a month out) falls back to the soonest good ones.
+  const featured = useMemo(() => {
+    if (!events) return null
+    const score = (e) => (e.hosted ? 50 : 0) + (e.featured ? 20 : 0) + (e.cover ? 10 : 0) + (e.goingCount || 0) * 3 + (e.perk ? 8 : 0)
+    const from = Math.max(Date.now(), trip ? Date.parse(`${trip.starts}T00:00:00`) : 0)
+    const until = from + 7 * 864e5
+    const inWeek = events.filter((e) => { const t0 = Date.parse(e.startsAt); return t0 < until && (Date.parse(e.endsAt || "") || t0) >= from - 864e5 })
+    const pick = inWeek.length ? inWeek : events
+    return pick.map((e) => ({ e, s: score(e) })).sort((a, b) => b.s - a.s).slice(0, 6).map((x) => x.e)
+  }, [events, trip])
 
   const run = async (text) => {
     const query = String(text ?? q).trim()
@@ -181,7 +184,16 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
               <button onClick={onGoEvents} className="flex items-center gap-1 text-[12.5px] font-bold">{t("all events")} <ArrowRight size={13} weight="bold" /></button>
             </div>
             <div className="-mx-5 mt-2.5 flex gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
-              {featured.length ? featured.map((e) => <EventTile key={e.id} e={e} city={city} onOpen={onOpenEvent} />) : <div className="h-[300px] w-full animate-pulse rounded-[1.3rem] bg-ink/5" />}
+              {featured === null
+                ? [0, 1, 2].map((i) => <div key={i} className="aspect-[3/4] w-[62vw] max-w-[240px] shrink-0 animate-pulse rounded-[1.3rem] border border-line bg-white/60 lg:w-[240px]" />)
+                : featured.length
+                  ? featured.map((e) => <EventTile key={e.id} e={e} city={city} onOpen={onOpenEvent} />)
+                  : (
+                    <div className="w-full rounded-[1.3rem] border border-dashed border-line p-4">
+                      <p className="text-[14px] font-bold">{t("we're pulling")} {name}{t("'s events now")}</p>
+                      <p className="text-[12.5px] text-ink-soft">{t("check back tomorrow, or ask above: techno tonight, a christmas market, a match.")}</p>
+                    </div>
+                  )}
             </div>
 
             {/* eat & drink, ranked by the guides */}
@@ -189,7 +201,11 @@ export default function City({ token, city, onOpenEvent, onGoEvents, onEditDates
             <p className="mt-0.5 text-[12.5px] text-ink-soft">{t("michelin picks first, then the places locals line up for")}</p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {guide === null
-                ? [0, 1].map((i) => <div key={i} className="aspect-[16/14] animate-pulse rounded-[1.4rem] bg-ink/5" />)
+                ? [0, 1].map((i) => (
+                  <div key={i} className="flex aspect-[16/14] animate-pulse items-end rounded-[1.4rem] border border-line bg-white/60 p-4">
+                    {i === 0 && <p className="text-[12.5px] font-semibold text-ink-soft">{t("finding the best places in")} {name}…</p>}
+                  </div>
+                ))
                 : guide.slice(0, 6).map((p, i) => <PlaceCard key={p.name} p={p} i={i} />)}
             </div>
 

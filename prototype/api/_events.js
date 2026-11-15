@@ -27,6 +27,11 @@ export const CITY_SOURCES = {
     sites: ["timeout.com/newyork", "theskint.com (cheap and free)", "nonsensenyc.com", "ohmyrockness.com", "dice.fm", "ra.co", "ticketmaster.com"],
     ideas: "concerts, club nights, comedy, gallery openings, run clubs, food festivals, knicks, nets, yankees, mets and nycfc home games",
   },
+  barcelona: {
+    lang: "spanish and catalan",
+    sites: ["timeout.com/barcelona", "barcelona.cat/agenda", "guiadelocio.com/barcelona", "dice.fm", "ra.co", "ticketmaster.es", "fcbarcelona.com (home matches)"],
+    ideas: "christmas markets (fira de santa llucia, sagrada familia), club nights and techno, concerts at razzmatazz and palau sant jordi, fc barcelona home games, food and wine festivals, new year's eve parties",
+  },
   "los-angeles": {
     lang: "english and spanish",
     sites: ["timeout.com/los-angeles", "laweekly.com", "discoverla.com", "dice.fm", "ra.co", "ticketmaster.com"],
@@ -46,6 +51,7 @@ export const EVENT_CITIES = [
   { slug: "los-angeles", lat: 34.0522, lng: -118.2437, eb: "ca--los-angeles", ra: 23, tz: "America/Los_Angeles" },
   { slug: "medellin", lat: 6.2442, lng: -75.5812, eb: "colombia--medellín", ra: 374, tz: "America/Bogota" },
   { slug: "palermo", lat: 38.1157, lng: 13.3615, eb: "italy--palermo", ra: 302, raOnly: /palermo/i, tz: "Europe/Rome" },
+  { slug: "barcelona", lat: 41.3874, lng: 2.1686, eb: "spain--barcelona", ra: 20, tz: "Europe/Madrid" },
 ]
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
@@ -302,10 +308,16 @@ export async function seedEvents() {
   const report = {}
   // every city at once (feeds, web search, sorting): one at a time ran past
   // vercel's 5 minute limit
-  await Promise.all(EVENT_CITIES.map(async (c) => {
+  // plus any city a member is heading to in the next three weeks: web search
+  // only (no feed ids for it), so a new trip city never opens empty
+  const known = new Set(EVENT_CITIES.map((c) => c.slug))
+  const soon = new Date(now + 21 * 864e5).toISOString().slice(0, 10)
+  const { data: tripRows } = await db.from("trips").select("city").gte("ends", new Date(now).toISOString().slice(0, 10)).lte("starts", soon).eq("hidden", false)
+  const extra = [...new Set((tripRows || []).map((r) => r.city).filter((c) => c && !known.has(c)))].slice(0, 8).map((slug) => ({ slug }))
+  await Promise.all([...EVENT_CITIES, ...extra].map(async (c) => {
     try {
       const web = await discover(c, until)
-      const got = [...web, ...(await Promise.all([luma(c).catch(() => []), eventbrite(c).catch(() => []), residentAdvisor(c).catch(() => [])])).flat()]
+      const got = [...web, ...(await Promise.all([c.lat != null ? luma(c).catch(() => []) : [], c.eb ? eventbrite(c).catch(() => []) : [], residentAdvisor(c).catch(() => [])])).flat()]
       const keep = []
       const seen = new Set()
       for (const e of got) {
