@@ -2,6 +2,13 @@
 // swaps whole phrases in the finished html (longest first, so a short phrase
 // never breaks a longer one). place names, handles and prices stay as they are.
 const ES = {
+  "what is it": "qué es",
+  "always on · a place": "siempre activo · un local",
+  "one event or class": "un evento o clase",
+  "<label for=\"when\">when</label>": "<label for=\"when\">cuándo</label>",
+  "how many for this event": "cuántas para este evento",
+  "for this event": "para este evento",
+  "pick when your event or class happens": "elige cuándo es tu evento o clase",
   "1 · they post on instagram": "1 · publican en instagram",
   "✓ shared to your story": "✓ compartido en tu historia",
   "2 · their pass unlocks": "2 · su pase se desbloquea",

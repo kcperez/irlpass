@@ -7,7 +7,7 @@ import { sendEmail } from "./_email.js"
 import { kindOf } from "./_events.js"
 import { venueAvatar } from "./_instagram.js"
 import { waitUntil } from "@vercel/functions"
-import { ASK, FREE, PACKS, addCredits, cleanHandle, monthStart, okHandle, slots, useSlot } from "./_perks.js"
+import { ASK, FREE, PACKS, addCredits, cleanHandle, monthStart, okHandle, slots, standing, useSlot } from "./_perks.js"
 
 // getty by irlpass (getty.irlpass.xyz, also irlpass.xyz/venues). a venue signs up in a minute, gets an
 // always-on story perk with a qr for the counter, and the guestlist: every
@@ -372,11 +372,14 @@ function startPage() {
 <form id="f" class="card rise" style="margin-top:18px;animation-delay:.1s" autocomplete="on">
   <label for="name">venue, event or class name</label><input id="name" required maxlength="80" placeholder="paraiso market">
   <label for="ig">your instagram</label><input id="ig" required autocapitalize="none" spellcheck="false" placeholder="@paraisomarket">
+  <label>what is it</label>
+  <div class="chips" id="kind"><button type="button" class="chip on" data-k="always">always on · a place</button><button type="button" class="chip" data-k="event">one event or class</button></div>
+  <div id="whenrow" style="display:none"><label for="when">when</label><input id="when" type="datetime-local"></div>
   <label for="city">city</label><select id="city">${opts}</select>
   <label for="item">the perk</label><input id="item" required maxlength="60" placeholder="a free smoothie, or your ebook">
   <label for="link">digital perk link <span class="faint" style="font-weight:400">· optional</span></label><input id="link" type="url" inputmode="url" autocapitalize="none" spellcheck="false" placeholder="https://… your ebook, pdf, template or replay">
   <p class="faint" style="font-size:12.5px;margin:6px 0 0">only unlocks on their pass once their story is verified</p>
-  <label>how many a month</label>
+  <label id="qtyl">how many a month</label>
   <div class="chips" id="qty">${[20, 50, 100, 300].map((n) => `<button type="button" class="chip${n === 50 ? " on" : ""}" data-n="${n}">${n}</button>`).join("")}</div>
   <label for="email">your email</label><input id="email" type="email" required autocomplete="email" placeholder="you@yourplace.com">
   <button class="block" id="go" style="margin-top:20px">get my qr</button>
@@ -399,11 +402,12 @@ function startPage() {
   const script = `
 const pv=(i,o,f)=>{const el=document.getElementById(i);el&&el.addEventListener("input",()=>{document.getElementById(o).textContent=f(el.value)})};
 pv("name","pv-venue",x=>x.trim()||"your venue");pv("item","pv-item",x=>x.trim()||"a free smoothie");pv("ig","pv-ig",x=>"@"+(x.trim().replace(/^@+/,"")||"you"));
+let kind="always";document.querySelectorAll("#kind .chip").forEach(b=>b.onclick=()=>{kind=b.dataset.k;document.querySelectorAll("#kind .chip").forEach(x=>x.classList.toggle("on",x===b));document.getElementById("whenrow").style.display=kind==="event"?"":"none";document.getElementById("qtyl").textContent=kind==="event"?"how many for this event":"how many a month"});
 let qty=50;document.querySelectorAll("#qty .chip").forEach(b=>b.onclick=()=>{qty=+b.dataset.n;document.querySelectorAll("#qty .chip").forEach(x=>x.classList.toggle("on",x===b))});
 const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"";const guess={"America/Bogota":"medellin","America/Los_Angeles":"los-angeles","Europe/Rome":"palermo"}[tz]||(tz==="America/New_York"?"miami":"");if(guess)document.getElementById("city").value=guess;
 const f=document.getElementById("f"),go=document.getElementById("go"),err=document.getElementById("err"),v=id=>document.getElementById(id).value;
 f.onsubmit=async e=>{e.preventDefault();err.textContent="";go.disabled=true;go.textContent="one sec…";
-const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create",name:v("name"),ig:v("ig"),city:v("city"),item:v("item"),link:v("link"),email:v("email"),qty})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
+const r=await fetch("/api/venues-hub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create",name:v("name"),ig:v("ig"),city:v("city"),item:v("item"),link:v("link"),email:v("email"),qty,kind,when:kind==="event"&&v("when")?new Date(v("when")).toISOString():""})}).then(x=>x.json()).catch(()=>({error:"no signal. try again."}));
 if(r.url){try{localStorage.setItem("venue-k",r.k)}catch(e){}location.href=r.url}else{err.textContent=r.error||"try again";go.disabled=false;go.textContent="get my qr"}};`
   return glass("set up · getty", body, { getty: true, script, wide: true })
 }
@@ -502,7 +506,7 @@ ${flash ? `<div class="card" style="border-color:rgba(74,102,255,.5);margin:10px
   <label for="item">what they get</label><input id="item" maxlength="60" value="${esc(perk.item || "")}">
   <div class="row">
     <div><label for="ask">they post</label><select id="ask">${Object.entries(ASK).map(([k, l]) => `<option value="${k}"${perk.ask === k ? " selected" : ""}>${l}</option>`).join("")}</select></div>
-    <div><label for="qty">per month</label><input id="qty" type="number" min="1" max="5000" value="${d.qty}"></div>
+    <div><label for="qty">${e && !standing(e) ? "for this event" : "per month"}</label><input id="qty" type="number" min="1" max="5000" value="${d.qty}"></div>
   </div>
   <button class="ghost block" id="save" style="margin-top:16px">save</button>
   <p class="err" id="perr"></p>
@@ -567,6 +571,9 @@ async function create(b) {
   const email = String(b.email || "").trim().toLowerCase()
   const qty = Math.min(5000, Math.max(1, Math.round(Number(b.qty) || 50)))
   const link = String(b.link || "").trim().slice(0, 500)
+  const oneOff = b.kind === "event"
+  const when = oneOff ? Date.parse(b.when) : NaN
+  if (oneOff && !(when > Date.now() - 6 * 3600e3)) return { error: "pick when your event or class happens" }
   if (link && !/^https:\/\/\S+\.\S+$/i.test(link)) return { error: "the perk link should start with https://" }
   if (name.length < 2) return { error: "what's the venue called?" }
   if (!okHandle(ig)) return { error: "type your instagram, like @yourplace" }
@@ -590,13 +597,14 @@ async function create(b) {
   if (error) throw error
 
   const { data: e, error: ee } = await db.from("events").insert({
-    source: "venue",
+    // always-on places reset monthly; a one-off event counts once, closes after
+    source: oneOff ? "getty" : "venue",
     source_id: slug,
     city,
     title: name,
     venue: name,
-    starts_at: new Date().toISOString(),
-    ends_at: "2099-12-31T00:00:00Z",
+    starts_at: oneOff ? new Date(when).toISOString() : new Date().toISOString(),
+    ends_at: oneOff ? new Date(when + 3 * 3600e3).toISOString() : "2099-12-31T00:00:00Z",
     category: kindOf(`${name} ${item}`, ""),
     is_free: true,
     host: name,
