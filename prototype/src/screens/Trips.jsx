@@ -281,7 +281,7 @@ function DateForm({ token, defaultCity, prefillMonth, trip, onPosted, onClose })
 
       <input
         id="trip-area" value={area} maxLength={40} onChange={(e) => setArea(e.target.value)}
-        placeholder={t("roughly where you're staying. el poblado, laureles… (optional)")}
+        placeholder={t("roughly where you're staying, like your neighborhood (optional)")}
         className="mt-3 w-full rounded-2xl border border-line bg-white/70 px-4 py-3 text-[15px] placeholder:text-ink-soft/50"
       />
       <p className="mt-1 px-1 text-[11px] text-ink-soft">{t("neighborhood only, never your address. only people you can message see it.")}</p>

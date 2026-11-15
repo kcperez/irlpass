@@ -833,7 +833,7 @@ export const LANG = raw.toLowerCase().startsWith("es") ? "es" : "en"
   "your vibes": "tus vibes",
   "pick yours": "elige los tuyos",
   "you're already a member. we emailed a link that opens your account to": "ya eres miembro. mandamos un link para abrir tu cuenta a",
-  "roughly where you're staying. el poblado, laureles… (optional)": "más o menos dónde te quedas. el poblado, laureles… (opcional)",
+  "roughly where you're staying, like your neighborhood (optional)": "más o menos dónde te quedas, como tu barrio (opcional)",
   "neighborhood only, never your address. only people you can message see it.": "solo el barrio, nunca tu dirección. solo lo ve quien te puede escribir.",
   "📹 before we meet up, want to do a quick video call to say hi? send me a time that works.": "📹 antes de vernos, ¿hacemos una videollamada rápida para saludarnos? mándame una hora que te sirva.",
   "ask for a quick video call first": "pide una videollamada rápida primero",
